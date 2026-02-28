@@ -11,8 +11,9 @@ const required = [
   "screen6_rosters.png",
   "screen7_league_settings.png",
   "screen8_keeper_tab.png",
-  "screen9_api_sandbox.png",
-  "screen10_api_response.png",
+  "screen9_taxi_squad.png",
+  "screen10_api_sandbox.png",
+  "screen11_api_response.png",
 ];
 
 const missing = required.filter((file) => !fs.existsSync(path.join(dir, file)));
@@ -24,4 +25,4 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-console.log("All 10 screenshots are present in", dir);
+console.log("All required screenshots are present in", dir);

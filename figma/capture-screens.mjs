@@ -1,9 +1,12 @@
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const BASE_URL = "http://localhost:5173";
-const OUT_DIR = "C:/Users/Apple/draftkit/screenshots";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const OUT_DIR = path.resolve(__dirname, "..", "screenshots");
 const VIEWPORT = { width: 1440, height: 900 };
 
 function textButton(page, label) {
@@ -37,11 +40,11 @@ async function run() {
   await page.waitForTimeout(1000);
   await take(page, "screen2_keeper_setup.png");
 
-  await textButton(page, /FINALIZE KEEPERS & START DRAFT/).click();
+  await textButton(page, /FINALIZE KEEPERS & START DRAFT/i).click();
   await page.waitForTimeout(1000);
   await take(page, "screen3_draft_board.png");
 
-  await page.getByRole("button", { name: /PLACE BID|BID NOW/i }).first().click();
+  await page.getByRole("button", { name: /RECORD SALE|PLACE BID|BID NOW/i }).first().click();
   await page.waitForTimeout(500);
   await take(page, "screen4_bid_modal.png");
 
@@ -70,13 +73,17 @@ async function run() {
   await page.waitForTimeout(500);
   await take(page, "screen8_keeper_tab.png");
 
+  await textButton(page, "Taxi Squad").click();
+  await page.waitForTimeout(500);
+  await take(page, "screen9_taxi_squad.png");
+
   await textButton(page, "API Sandbox").click();
   await page.waitForTimeout(500);
-  await take(page, "screen9_api_sandbox.png");
+  await take(page, "screen10_api_sandbox.png");
 
-  await textButton(page, /SEND REQUEST/).click();
+  await textButton(page, /SEND REQUEST/i).click();
   await page.waitForTimeout(500);
-  await take(page, "screen10_api_response.png");
+  await take(page, "screen11_api_response.png");
 
   await browser.close();
   console.log(`done: ${OUT_DIR}`);

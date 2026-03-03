@@ -94,6 +94,12 @@ Attempt2/
 └── utils/              # Helper functions
 ```
 
+## Client Source Material
+
+- Imported scope/spec document: `../docs/client-input/client_scope_notes_2026-02-20.txt`
+- Imported product sketch PDF: `../docs/client-input/product_sketch.pdf`
+- Source link index: `../docs/client-input/README.md`
+
 ## License
 
 MIT

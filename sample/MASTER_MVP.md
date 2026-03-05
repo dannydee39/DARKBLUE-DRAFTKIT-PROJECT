@@ -92,7 +92,70 @@ It is **not** the full product.
 }
 ```
 
-## 6) MVP UI Views
+## 6) MVP Communication Protocol (Low-Latency, Event-Driven)
+### Trigger Rule
+Only **draft state changing actions** trigger valuation recalculation requests:
+1. Player drafted/assigned
+2. Player moved between teams
+3. Player returned to pool
+4. Keeper set/edited
+
+Non-state-changing bid chatter does not trigger recomputation.
+
+### Request Pattern
+1. Frontend sends one update request per state change
+2. Request includes full current state snapshot + `baseVersion` + `clientEventId`
+3. Backend validates, persists event, computes valuations against current snapshot
+4. Response returns compact draft updates immediately
+5. Full player valuation table is fetched on demand by page/view
+
+### Endpoint Contract (MVP)
+1. `POST /v1/drafts/{id}/events`
+   - Write state change event (`DRAFTED`, `MOVED`, `RETURNED_TO_POOL`, `KEEPER_SET`)
+   - Returns `{newVersion, affectedTeams, nominatedPlayerValue}`
+2. `GET /v1/drafts/{id}/board?sinceVersion=...`
+   - Returns roster/budget deltas for dashboard
+3. `GET /v1/drafts/{id}/valuations?nominatedPlayerId=...`
+   - Returns fast single-player valuation
+4. `GET /v1/drafts/{id}/recommendations?limit=20`
+   - Returns top-N candidate recommendations
+5. `GET /v1/drafts/{id}/players?page=1&pageSize=50&sort=fpts`
+   - Paginated dictionary (on demand)
+6. `GET /v1/drafts/{id}/players/{playerId}`
+   - Player card/details + notes + depth label
+
+### Consistency Controls
+1. Idempotency via `clientEventId`
+2. Monotonic `stateVersion` on every write/read response
+3. Frontend discards stale responses (`response.version < local.version`)
+4. Retry with exponential backoff for transient API failures
+
+## 7) MVP Dataset Baseline (From Provided Google Drive Files)
+MVP valuation and dictionary are based on these imported CSV files:
+1. [projections-NL.csv](/home/apple/DARKBLUE-DRAFTKIT-PROJECT/sample/data/projections-NL.csv)
+2. [3Year-average-NL-stats.csv](/home/apple/DARKBLUE-DRAFTKIT-PROJECT/sample/data/3Year-average-NL-stats.csv)
+3. [2025-player-NL-stats.csv](/home/apple/DARKBLUE-DRAFTKIT-PROJECT/sample/data/2025-player-NL-stats.csv)
+
+Source links provided by client/team:
+1. `https://drive.google.com/open?id=19uGNJ_7TsWfYn1SaXA-NVcGoy0kq0xT7&usp=drive_copy`
+2. `https://drive.google.com/open?id=1be5uM7N2kU0nmUk6lVaNbgaGRZgGy8jN&usp=drive_copy`
+3. `https://drive.google.com/open?id=11myG8qTlK5EXqxERuVe5h4Xf04Pw7dVu&usp=drive_copy`
+
+Current dataset shape:
+1. Each file has `2,221` rows including header (`2,220` players)
+2. Shared columns: `Player, AB, R, H, 1B, 2B, 3B, HR, RBI, BB, K, SB, CS, AVG, OBP, SLG, FPTS`
+3. MVP pool scope defaults to NL dataset rows from these files
+
+MVP valuation baseline (eligible for MVP scope):
+1. Parse player identity and position/team from `Player` field
+2. Join by normalized player name across all three files
+3. Build weighted fantasy baseline score:
+   - `Projection FPTS` (primary)
+   - `2025 FPTS` (recent performance)
+   - `3-Year Average FPTS` (stability)
+4. Apply live draft-state adjustments (budget pressure, scarcity, open slots)
+
+## 8) MVP UI Views
 1. API Landing + License Docs
 2. API Sandbox (paste payload -> receive value)
 3. League Setup (rules + pool type + roster counts)
@@ -104,7 +167,7 @@ It is **not** the full product.
 9. MLB News/Transactions Feed
 10. Depth Chart Panel in player cursor/details
 
-## 7) MVP Acceptance Checklist
+## 9) MVP Acceptance Checklist
 1. Both products are deployed to non-localhost URLs
 2. Draft Kit can call Valuation API with valid key
 3. Invalid/missing key returns 401 from Valuation API
@@ -116,9 +179,12 @@ It is **not** the full product.
 9. Recommendation panel returns top-N candidates from current state
 10. MLB updates feed refreshes and displays latest transaction items
 11. Player detail view shows depth chart role label (starter/backup)
-12. Team can demo end-to-end flow in < 8 minutes without manual DB edits
+12. State-changing events are idempotent and versioned
+13. Player dictionary and valuations are paginated/on-demand
+14. MVP seed data loads from the three NL CSV files in `sample/data/`
+15. Team can demo end-to-end flow in < 8 minutes without manual DB edits
 
-## 8) Story Coverage Matrix (MVP-Only)
+## 10) Story Coverage Matrix (MVP-Only)
 Legend: `FULL`, `PARTIAL`
 
 | Story ID | Title | MVP Coverage | Notes |
@@ -144,7 +210,7 @@ Legend: `FULL`, `PARTIAL`
 | Additional: Live MLB Transactions | Realtime feed | PARTIAL | Polling-based feed in MVP, websocket later |
 | Additional: Team Depth Charts | MLB context | PARTIAL | Starter/backup labeling only in MVP |
 
-## 9) Self-Grade (MVP Requirement Retention)
+## 11) Self-Grade (MVP Requirement Retention)
 Scoring method:
 1. `FULL = 1.0`
 2. `PARTIAL = 0.5`
@@ -161,16 +227,18 @@ This MVP retains the large majority of documented requirements while staying min
 2. All major user-facing flows are demonstrated in lightweight form.
 3. Remaining gaps are implementation depth/quality improvements, not missing capabilities.
 
-## 10) Immediate Build Order (Execution Plan)
+## 12) Immediate Build Order (Execution Plan)
 1. Deploy `valuation-api` to VPS and verify public HTTPS endpoint
 2. Deploy `draftkit-web` to Render and `draftkit-app-api` to Render web service
 3. Implement API key middleware on valuation API
 4. Implement league + draft state schema and CRUD
-5. Build draft dashboard table + player search panel + opponent gap matrix
-6. Integrate valuation request from nominated player workflow
-7. Add edit/undo transaction flow and keeper preload
-8. Add player notes, dictionary view, and player cursor panel
-9. Add taxi squad mode and recommendation panel (heuristic)
-10. Add MLB transaction polling feed + starter/backup depth labels
-11. Ship API docs + sandbox page
-12. Prepare MVP demo script and verify from clean browser session
+5. Import three NL datasets into player seed pipeline
+6. Build event-based API writes (`events`) and versioned read endpoints
+7. Build draft dashboard table + player search panel + opponent gap matrix
+8. Integrate valuation request from nominated player workflow
+9. Add edit/undo transaction flow and keeper preload
+10. Add player notes, dictionary view, and player cursor panel
+11. Add taxi squad mode and recommendation panel (heuristic)
+12. Add MLB transaction polling feed + starter/backup depth labels
+13. Ship API docs + sandbox page
+14. Prepare MVP demo script and verify from clean browser session

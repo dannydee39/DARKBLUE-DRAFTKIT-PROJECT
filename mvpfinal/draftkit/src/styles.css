@@ -1075,3 +1075,213 @@ a { color: var(--green); text-decoration: none; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENHANCED DRAFT GRID — added for DraftBoard.jsx modular component
+   These styles support the interactive cell behavior:
+   - Value color borders (steal / fair / overpaid)
+   - Hover tooltips on cells
+   - Flash animation for empty-cell clicks
+   - Keeper badge
+   - Remove modal styling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Roster Cell States ───────────────────────────────────────────────────── */
+
+/* Base filled cell — overrides the generic .roster-cell */
+.roster-cell-filled {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.roster-cell-filled:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Empty cell — clicking sets the position filter */
+.roster-cell-empty {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.roster-cell-empty:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ── Value Indicator Borders ──────────────────────────────────────────────── */
+/*
+  Color-coded left border shows whether the auction price
+  was a steal, fair value, or overpaid relative to base value.
+
+  Calculation (in helpers.js getValueClass()):
+    price / baseValue < 0.8  → steal    (green)
+    price / baseValue < 1.2  → fair     (default)
+    price / baseValue >= 1.2 → overpaid (red/orange)
+*/
+.value-steal {
+  border-left: 3px solid var(--green) !important;
+}
+.value-fair {
+  border-left: 3px solid transparent !important; /* invisible, no change */
+}
+.value-overpaid {
+  border-left: 3px solid var(--red) !important;
+}
+
+/* ── Roster Entry Layout ─────────────────────────────────────────────────── */
+/* Extended roster cell content with price row and value label */
+.roster-entry {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  padding: 1px 2px;
+}
+.roster-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+.roster-price-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 1px;
+}
+.roster-price {
+  color: var(--green);
+  font-size: 9px;
+  font-weight: 400;
+}
+
+/* ── Value Labels (▲ steal / ▼ overpaid) ────────────────────────────────── */
+.value-label {
+  font-size: 8px;
+  font-weight: 900;
+}
+.value-label.steal   { color: var(--green); }
+.value-label.overpaid { color: var(--red); }
+
+/* ── Keeper Badge (K) ────────────────────────────────────────────────────── */
+/*
+  Small inline badge shown on pre-draft keeper entries in the grid.
+  Set entry.isKeeper = true in the roster entry object.
+*/
+.keeper-badge {
+  display: inline-block;
+  font-size: 7px;
+  font-weight: 900;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-right: 3px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+}
+
+/* ── Flash Animation (empty cell click) ─────────────────────────────────── */
+/*
+  When an empty cell is clicked, it briefly flashes to confirm
+  that the click registered and the position filter was set.
+  The component adds .cell-flash temporarily and removes it after 600ms.
+*/
+@keyframes cellFlash {
+  0%   { background: rgba(34, 197, 94, 0.25); }
+  100% { background: transparent; }
+}
+.cell-flash {
+  animation: cellFlash 0.6s ease-out forwards;
+}
+
+/* ── Cell Tooltip ────────────────────────────────────────────────────────── */
+/*
+  Mini popup that appears on hover over a filled or empty cell.
+  Positioned absolutely relative to the cell (requires position: relative on cell).
+
+  For filled cells: shows player name, price paid, base value, FPTS.
+  For empty cells: shows best available player for that position.
+*/
+.cell-tooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);  /* appears above the cell */
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  z-index: 500;
+  min-width: 130px;
+  max-width: 180px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  pointer-events: none; /* don't block mouse events on the cell */
+  white-space: nowrap;
+}
+
+/* Tooltip header — player name or position slot title */
+.ct-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Label-value row inside the tooltip */
+.ct-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.ct-label {
+  font-size: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+.ct-val {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted2);
+}
+
+/* Helper text at the bottom of the tooltip */
+.ct-hint {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Empty-cell tooltip variant — slightly different tint */
+.cell-tooltip-empty {
+  border-color: rgba(34, 197, 94, 0.2);
+  background: rgba(13, 13, 13, 0.97);
+}
+
+/* ── Remove Player Modal (red confirm button) ────────────────────────────── */
+/* The remove modal reuses .modal / .modal-overlay but needs a red confirm.
+   The red background is applied inline in DraftBoard.jsx. */
+
+/* ── Panel Budget Enhancement ────────────────────────────────────────────── */
+/* Third column in the budget panel for max-bid */
+.panel-budget {
+  gap: 14px; /* tighten for 3 items */
+}
+
+/* ── Board Hint Enhancement ───────────────────────────────────────────────── */
+/* Updated hint text style — slightly more visible */
+.board-hint {
+  font-size: 10px;
+  color: var(--muted2);
+  font-weight: 400;
+  margin-left: 8px;
+}
+

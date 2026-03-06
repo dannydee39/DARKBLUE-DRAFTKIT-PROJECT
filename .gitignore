@@ -1,0 +1,72 @@
+# ── Node / Package Managers ────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json
+yarn.lock
+
+# ── Build Outputs ──────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.vercel/
+
+# ── Environment Variables (NEVER commit secrets) ────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ── IDE / Editor Configs ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── OS Generated Files ─────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── TypeScript Build Cache ─────────────────────────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Test Coverage ───────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Temp / Cache ────────────────────────────────────────────────────────────
+.cache/
+tmp/
+temp/
+
+# ── SSL Certs ───────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.cert
+*.crt
+
+# ── Project-specific: keep generated players.json (it's part of the API) ──
+# To regenerate: node mvpfinal/api/scripts/generate-players.js
+# !mvpfinal/api/data/players.json   ← uncomment to exclude from git

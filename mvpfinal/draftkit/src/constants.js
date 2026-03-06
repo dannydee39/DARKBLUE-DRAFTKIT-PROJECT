@@ -6,13 +6,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── API Config ────────────────────────────────────────────────────────────────
-// API_BASE: the local address of the running Express server (mvpfinal/api).
-// Change this to your production URL when deploying (e.g. https://api.darkblue.io).
-export const API_BASE = "http://localhost:3001";
+// API_BASE: valuation API endpoint.
+// Production should be provided via VITE_API_BASE at build time.
+export const API_BASE =
+  import.meta.env.VITE_API_BASE || "http://localhost:3001";
 
 // PROD_DISPLAY_URL: shown in the API Sandbox UI so users know what endpoint
 // they're hitting in production. Does NOT affect actual fetch() calls.
-export const PROD_DISPLAY_URL = "https://api.darkblue.io";
+export const PROD_DISPLAY_URL =
+  import.meta.env.VITE_API_BASE || "https://draftapi.anythingavenue.com";
 
 // DEMO_KEY: Hardcoded demo license key used while the API server is local.
 // In production this would come from the user's account settings or env vars.

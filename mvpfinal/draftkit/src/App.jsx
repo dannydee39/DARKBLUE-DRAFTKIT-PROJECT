@@ -22,7 +22,7 @@
 //   └─ ApiSandbox (receives league + apiStatus)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./styles.css";
 
 // ── Named imports from modular components ─────────────────────────────────────
@@ -37,6 +37,24 @@ import ApiSandbox        from "./components/ApiSandbox.jsx";
 // ── Shared constants and helpers ──────────────────────────────────────────────
 import { API_BASE, DEMO_KEY, DEFAULT_ROSTER, DEFAULT_SCORING } from "./constants.js";
 import { buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SAMPLE_PICKS — hardcoded debug picks for fillSampleDraft().
+// slotIndex based on default roster order:
+//   [C=0, 1B=1, 2B=2, 3B=3, SS=4, OF=5, OF=6, OF=7, SP=8, SP=9, RP=10, RP=11, UTIL=12, BN=13, BN=14]
+// ─────────────────────────────────────────────────────────────────────────────
+const SAMPLE_PICKS = [
+  { name: "Shohei Ohtani",     teamIdx: 0, price: 65, slotIndex: 12, draftedPos: "UTIL" },
+  { name: "William Contreras", teamIdx: 0, price: 22, slotIndex: 0,  draftedPos: "C"    },
+  { name: "Juan Soto",         teamIdx: 1, price: 72, slotIndex: 5,  draftedPos: "OF"   },
+  { name: "Freddie Freeman",   teamIdx: 1, price: 28, slotIndex: 1,  draftedPos: "1B"   },
+  { name: "Kyle Tucker",       teamIdx: 2, price: 55, slotIndex: 6,  draftedPos: "OF"   },
+  { name: "Francisco Lindor",  teamIdx: 2, price: 38, slotIndex: 4,  draftedPos: "SS"   },
+  { name: "Corbin Carroll",    teamIdx: 3, price: 40, slotIndex: 7,  draftedPos: "OF"   },
+  { name: "Nolan Arenado",     teamIdx: 3, price: 20, slotIndex: 3,  draftedPos: "3B"   },
+  { name: "Elly De La Cruz",   teamIdx: 4, price: 35, slotIndex: 4,  draftedPos: "SS"   },
+  { name: "Logan Webb",        teamIdx: 5, price: 25, slotIndex: 8,  draftedPos: "SP"   },
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App — root component
@@ -64,6 +82,14 @@ export default function App() {
   // Map of { [playerId]: noteText }. Saved when user blurs a notes textarea.
   // Future enhancement: persist to localStorage or a DB.
   const [notes, setNotes] = useState({});
+
+  // ── Shared valuation cache ────────────────────────────────────────────────
+  // Single source of truth for API valuation results, shared across
+  // DraftBoard and PlayerDictionary so both panels always show live values.
+  // Values: undefined (not fetched) | "loading" | API response object.
+  const [valuationCache, setValuationCache] = useState({});
+  const inFlightRef     = useRef(new Set());   // player IDs with active requests
+  const cacheVersionRef = useRef(0);           // incremented on cache invalidation
 
   // ── Current active owner (index into league.teams) ────────────────────────
   // Controls which team row is highlighted and whose budget/max-bid is shown.
@@ -93,6 +119,20 @@ export default function App() {
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
+  // draftStateKey + cache invalidation
+  // Clears the entire valuation cache whenever any team's roster changes.
+  // This forces fresh API calls after every pick or undo so inflation/scarcity
+  // math in the API stays accurate.
+  // ─────────────────────────────────────────────────────────────────────────
+  const draftStateKey = league.teams.map((t) => t.roster.length).join(",");
+  useEffect(() => {
+    cacheVersionRef.current += 1;
+    inFlightRef.current.clear();
+    setValuationCache({});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftStateKey]);
+
+  // ─────────────────────────────────────────────────────────────────────────
   // checkApiStatus — hits GET /health and updates the apiStatus indicator.
   // ─────────────────────────────────────────────────────────────────────────
   async function checkApiStatus() {
@@ -101,6 +141,64 @@ export default function App() {
       setApiStatus(r.ok ? "online" : "offline");
     } catch {
       setApiStatus("offline");
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // requestValuation — shared valuation fetcher for all components.
+  //
+  // Features:
+  //  • De-duplication: skips if an identical request is already in-flight
+  //  • Cache hit: skips if a fresh (non-loading) result already exists
+  //  • Stale-response guard: discards responses from before the last cache reset
+  //
+  // @param {Object} player - Player object to valuate
+  // ─────────────────────────────────────────────────────────────────────────
+  async function requestValuation(player) {
+    if (!player || apiStatus !== "online") return;
+    // Already has a fresh (non-loading) cache entry — nothing to do
+    if (valuationCache[player.id] && valuationCache[player.id] !== "loading") return;
+    // Request already in-flight for this player
+    if (inFlightRef.current.has(player.id)) return;
+
+    const version = cacheVersionRef.current;
+    inFlightRef.current.add(player.id);
+    setValuationCache((prev) => ({ ...prev, [player.id]: "loading" }));
+    try {
+      const draftState = {
+        total_teams: league.owners,
+        budget_per_team: league.budget,
+        scoring_categories: Object.entries(league.scoring)
+          .filter(([, v]) => v)
+          .map(([k]) => k),
+        teams: league.teams.map((t) => ({
+          id: t.id,
+          budget_remaining: t.budget_remaining,
+          roster: t.roster.map((r) => r.name),
+        })),
+        nominated_player: player.name,
+        roster_config: league.roster,
+      };
+      const r = await fetch(`${API_BASE}/v1/valuate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-License-Key": DEMO_KEY },
+        body: JSON.stringify({ license_key: DEMO_KEY, draft_state: draftState }),
+      });
+      const data = await r.json();
+      // Discard stale response if the draft state changed while we were waiting
+      if (cacheVersionRef.current === version) {
+        setValuationCache((prev) => ({ ...prev, [player.id]: data }));
+      }
+    } catch {
+      if (cacheVersionRef.current === version) {
+        setValuationCache((prev) => {
+          const next = { ...prev };
+          delete next[player.id];
+          return next;
+        });
+      }
+    } finally {
+      inFlightRef.current.delete(player.id);
     }
   }
 
@@ -162,14 +260,16 @@ export default function App() {
   //
   // Side effects:
   //  - Deducts the sale price from the winning team's budget_remaining
-  //  - Adds a roster entry to the winning team
+  //  - Adds a roster entry to the winning team (with slotIndex + draftedPos)
   //  - Marks the player as drafted in the players array
   //
-  // @param {Object} player  - Player object from the players array
-  // @param {number} price   - Winning bid in dollars
-  // @param {number} teamId  - ID of the winning team
+  // @param {Object} player     - Player object from the players array
+  // @param {number} price      - Winning bid in dollars
+  // @param {number} teamId     - ID of the winning team
+  // @param {number} slotIndex  - Roster slot index the player is placed into
+  // @param {string} draftedPos - Position label of the slot (e.g. "OF", "UTIL")
   // ─────────────────────────────────────────────────────────────────────────
-  function recordSale(player, price, teamId) {
+  function recordSale(player, price, teamId, slotIndex, draftedPos) {
     // Update the winning team's budget and roster
     setLeague((prev) => ({
       ...prev,
@@ -180,7 +280,13 @@ export default function App() {
           budget_remaining: t.budget_remaining - price,
           roster: [
             ...t.roster,
-            { name: player.name, price, pos: player.pos },
+            {
+              name: player.name,
+              price,
+              pos: player.pos,
+              slotIndex,
+              draftedPos,
+            },
           ],
         };
       }),
@@ -191,6 +297,77 @@ export default function App() {
       prev.map((p) =>
         p.id === player.id
           ? { ...p, drafted: true, draftedBy: teamId, draftPrice: price }
+          : p
+      )
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // fillSampleDraft — hardcodes 10 sample picks for debugging the grid.
+  //
+  // Finds each player in the players array by name (case-insensitive), then
+  // applies all picks at once by calling setLeague and setPlayers once each
+  // with fully accumulated changes.
+  //
+  // Picks use the default roster slot order:
+  //   [C=0, 1B=1, 2B=2, 3B=3, SS=4, OF=5, OF=6, OF=7,
+  //    SP=8, SP=9, RP=10, RP=11, UTIL=12, BN=13, BN=14]
+  // ─────────────────────────────────────────────────────────────────────────
+  function fillSampleDraft() {
+    // Build accumulated per-team changes: teamId → { budgetDelta, newRoster[] }
+    const teamChanges = {};
+    // Track which player IDs were drafted so we can update players state at once
+    const draftedPlayerIds = new Set();
+
+    SAMPLE_PICKS.forEach((pick) => {
+      // Find the player in current players state by name (case-insensitive)
+      const player = players.find(
+        (p) => p.name.toLowerCase() === pick.name.toLowerCase()
+      );
+      if (!player) return; // player not found in pool, skip
+
+      // Get the team for this pick
+      const team = league.teams[pick.teamIdx];
+      if (!team) return; // team index out of range, skip
+
+      // Skip if player already drafted (e.g., sample called twice)
+      if (player.drafted) return;
+
+      // Accumulate changes for this team
+      if (!teamChanges[team.id]) {
+        teamChanges[team.id] = { budgetDelta: 0, newRoster: [] };
+      }
+      teamChanges[team.id].budgetDelta -= pick.price;
+      teamChanges[team.id].newRoster.push({
+        name: player.name,
+        price: pick.price,
+        pos: player.pos,
+        slotIndex: pick.slotIndex,
+        draftedPos: pick.draftedPos,
+      });
+
+      draftedPlayerIds.add(player.id);
+    });
+
+    // Apply all team changes in a single setLeague call
+    setLeague((prev) => ({
+      ...prev,
+      teams: prev.teams.map((t) => {
+        const changes = teamChanges[t.id];
+        if (!changes) return t;
+        return {
+          ...t,
+          budget_remaining: t.budget_remaining + changes.budgetDelta,
+          roster: [...t.roster, ...changes.newRoster],
+        };
+      }),
+    }));
+
+    // Mark all drafted players in a single setPlayers call
+    setPlayers((prev) =>
+      prev.map((p) =>
+        draftedPlayerIds.has(p.id)
+          ? { ...p, drafted: true }
           : p
       )
     );
@@ -370,6 +547,28 @@ export default function App() {
         </div>
 
         <div className="nav-right">
+          {/* Sample Draft debug button — only shown on the board tab */}
+          {activeTab === "board" && (
+            <button
+              onClick={fillSampleDraft}
+              title="Fill 10 sample picks for debugging the draft grid"
+              style={{
+                background: "rgba(245,158,11,0.12)",
+                border: "1px solid rgba(245,158,11,0.35)",
+                color: "#f59e0b",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "3px 10px",
+                borderRadius: "var(--radius)",
+                cursor: "pointer",
+                letterSpacing: "0.04em",
+                flexShrink: 0,
+              }}
+            >
+              Sample Draft
+            </button>
+          )}
+
           {/* API health indicator dot */}
           <div className={`api-dot ${apiStatus}`} />
           <span className="api-status-label">API {apiStatus.toUpperCase()}</span>
@@ -433,6 +632,7 @@ export default function App() {
             onSale={recordSale}
             onUndo={undoLast}
             onUndoCell={undoSale}
+            onFillSample={fillSampleDraft}
             currentOwnerIdx={currentOwnerIdx}
             setCurrentOwnerIdx={setCurrentOwnerIdx}
             notes={notes}
@@ -441,6 +641,9 @@ export default function App() {
             rosterPositions={rosterPositions}
             totalSlots={totalSlots}
             maxBid={maxBid}
+            valuationCache={valuationCache}
+            requestValuation={requestValuation}
+            draftStateKey={draftStateKey}
           />
         )}
 
@@ -452,6 +655,9 @@ export default function App() {
             setSelectedPlayer={setSelectedPlayer}
             notes={notes}
             saveNote={saveNote}
+            valuationCache={valuationCache}
+            requestValuation={requestValuation}
+            draftStateKey={draftStateKey}
           />
         )}
 

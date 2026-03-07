@@ -1285,3 +1285,135 @@ a { color: var(--green); text-decoration: none; }
   margin-left: 8px;
 }
 
+/* ── Inline Cell Search ─────────────────────────────────────────────────── */
+/* Container inside an empty cell when it's in "search mode"                 */
+.cell-search-container {
+  width: 100%;
+}
+
+/* Compact input that fits inside a table cell */
+.cell-search-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--green);
+  color: var(--white);
+  font-size: 10px;
+  padding: 3px 5px;
+  border-radius: 3px;
+  outline: none;
+  font-family: var(--font);
+}
+.cell-search-input::placeholder { color: var(--muted); }
+
+/* Dropdown floating below the active cell */
+.cell-search-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  min-width: 200px;
+  max-width: 280px;
+  background: var(--bg3);
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  z-index: 600;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+  overflow: hidden;
+}
+
+/* Single result row in the cell search dropdown */
+.cell-search-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.cell-search-result:hover { background: var(--bg4); }
+.cell-search-result:last-child { border-bottom: none; }
+.csr-info  { flex: 1; min-width: 0; }
+.csr-name  { font-size: 10px; font-weight: 700; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.csr-team  { font-size: 9px; color: var(--muted2); }
+.csr-value { font-size: 10px; font-weight: 700; color: var(--green); flex-shrink: 0; }
+.csr-empty { padding: 8px 10px; font-size: 10px; color: var(--muted); font-style: italic; }
+
+/* Active cell highlight when inline search is open */
+.roster-cell-empty.cell-active {
+  background: rgba(34, 197, 94, 0.08) !important;
+  outline: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+/* ── Slot Picker (sale modal) ─────────────────────────────────────────────── */
+/* Horizontal scrollable row of position slot pills                           */
+.slot-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+/* Individual slot button */
+.slot-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 10px;
+  color: var(--muted2);
+}
+.slot-btn:hover {
+  border-color: var(--green);
+  background: var(--bg4);
+  color: var(--white);
+}
+.slot-btn.active {
+  border-color: var(--green);
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+}
+
+/* Custom position override row */
+.custom-pos-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.custom-pos-label {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.custom-pos-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  outline: none;
+  font-family: var(--mono);
+  transition: border-color 0.15s, color 0.15s;
+}
+.custom-pos-input:focus { border-color: var(--green); color: var(--white); }
+.custom-pos-input::placeholder { color: var(--border2); }
+
+/* ── Roster Drafted Position tag ─────────────────────────────────────────── */
+/* Small tag in a filled roster cell showing which slot the player is in     */
+.roster-drafted-pos {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-left: 3px;
+}

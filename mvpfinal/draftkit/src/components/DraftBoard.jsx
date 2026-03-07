@@ -1,76 +1,41 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // components/DraftBoard.jsx
 //
-// The main draft screen. Contains:
-//
-//   ┌─────────────────────────────────────────────────────────┬───────────┐
-//   │  DRAFT LEAGUE TEAMS TABLE (interactive roster grid)     │  Right    │
-//   │  ── Teams as rows, roster slots as columns              │  Panel:   │
-//   │  ── Click filled cell → remove player (with confirm)    │  Budget   │
-//   │  ── Click empty cell  → tooltip + position filter       │  Player   │
-//   │  ── Hover filled cell → mini stats tooltip              │  Card     │
-//   │  ── Color-coded value borders (steal/fair/overpaid)     │  Recs     │
-//   ├─────────────────────────────────────────────────────────┤           │
-//   │  PLAYER SEARCH (autocomplete)                           │           │
-//   └─────────────────────────────────────────────────────────┴───────────┘
+// The main draft screen. Left: interactive team roster grid + player search.
+// Right: budget panel, player card, recommendations.
 //
 // ── Grid Cell Behavior ────────────────────────────────────────────────────────
 //
-//  FILLED CELL (player is drafted here):
-//    • Hover: shows a mini tooltip with player name, price, base value, and
-//             a "click to remove" hint
-//    • Left border color:
-//        green  = steal (price < 80% of base value)
-//        yellow = fair  (price 80–120% of base value)
-//        red    = overpaid (price > 120% of base value)
-//    • Single click: opens RemoveModal asking to confirm removal
-//      Removing restores the player to the available pool and refunds budget.
+//  FILLED CELL:
+//    • Hover → tooltip: name / price / base value / FPTS / "click to remove"
+//    • Left border color: green=steal, red=overpaid, transparent=fair
+//    • Click → RemoveModal (confirms, refunds budget)
 //
 //  EMPTY CELL:
-//    • Hover: shows the best available player for that position (name + value)
-//    • Single click: triggers a brief "pulse" animation + sets the position
-//      filter in the search bar below (e.g. clicking an empty OF slot → filters
-//      player search to OF players)
-//    • Does NOT let you add a player directly — use "Record Sale" from the search
+//    • Hover → tooltip: position slot label + best available player
+//    • Click → InlineCellSearch (mini search box inside the cell)
+//             Also opens sale modal when a player is selected from it.
 //
 //  COLUMN HEADER (position badge):
-//    • Click: sets position filter in search to that position
+//    • Click → toggles position filter in the bottom search bar
 //
+// ── Roster Slot Storage ───────────────────────────────────────────────────────
+// Each roster entry: { name, price, pos, slotIndex, draftedPos, isKeeper? }
+// Grid displays via: team.roster.find(r => r.slotIndex === si)
+// This means position matters — a C drafted into slot 0 stays in that cell.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
-import { API_BASE, DEMO_KEY } from "../constants.js";
 import { posColor, calcMaxBid, getValueClass } from "../utils/helpers.js";
 
-/**
- * DraftBoard
- *
- * @param {Object}    props
- * @param {Object}    props.league             - Full league state
- * @param {Object[]}  props.players            - Full player array from API
- * @param {Object}    props.selectedPlayer     - Currently highlighted player (or null)
- * @param {Function}  props.setSelectedPlayer  - Sets selected player for the card panel
- * @param {Function}  props.onSale             - (player, price, teamId) => void
- * @param {Function}  props.onUndo             - () => void — undoes the last recorded sale
- * @param {Function}  props.onUndoCell         - (playerName, teamId) => void — targeted undo
- * @param {number}    props.currentOwnerIdx    - Index into league.teams of the active owner
- * @param {Function}  props.setCurrentOwnerIdx - Changes the active drafting owner
- * @param {Object}    props.notes              - { [playerId]: noteText }
- * @param {Function}  props.saveNote           - (playerId, text) => void
- * @param {string}    props.apiStatus          - "online" | "offline" | "checking"
- * @param {string[]}  props.rosterPositions    - Flat array of roster slot labels
- * @param {number}    props.totalSlots         - Total roster slots per team
- * @param {number}    props.maxBid             - Max bid for the active owner
- * @returns {JSX.Element}
- */
 export default function DraftBoard({
   league,
   players,
   selectedPlayer,
   setSelectedPlayer,
-  onSale,
+  onSale,          // (player, price, teamId, slotIndex, draftedPos) => void
   onUndo,
   onUndoCell,
   currentOwnerIdx,
@@ -78,193 +43,259 @@ export default function DraftBoard({
   notes,
   saveNote,
   apiStatus,
-  rosterPositions,
+  rosterPositions, // flat ordered array e.g. ["C","1B","2B","3B","SS","OF","OF","OF","SP"...]
   totalSlots,
   maxBid,
+  valuationCache,      // shared valuation cache from App { [playerId]: "loading" | apiResponse }
+  requestValuation,    // (player) => void  — requests a valuation and stores it in the cache
+  draftStateKey,       // compact string that changes on every pick/undo (cache version key)
 }) {
-  // ── Search / filter state ─────────────────────────────────────────────────
-  const [searchQ,   setSearchQ]   = useState("");     // text search query
-  const [posFilter, setPosFilter] = useState("ALL");  // position filter for search
+  // ── Search / filter state (bottom search bar) ─────────────────────────────
+  const [searchQ,   setSearchQ]   = useState("");
+  const [posFilter, setPosFilter] = useState("ALL");
 
   // ── Sale modal state ──────────────────────────────────────────────────────
-  // saleModal: the player being sold (or null if modal is closed)
-  const [saleModal, setSaleModal] = useState(null);
-  const [saleTeam,  setSaleTeam]  = useState(1);   // team ID in the sale modal
-  const [salePrice, setSalePrice] = useState("");  // bid amount string
+  const [saleModal,     setSaleModal]     = useState(null);  // player obj or null
+  const [saleTeam,      setSaleTeam]      = useState(1);     // winning team ID
+  const [salePrice,     setSalePrice]     = useState("");    // bid amount
+  const [saleSlot,      setSaleSlot]      = useState(null);  // slotIndex to fill
+  const [customPosInput, setCustomPosInput] = useState(""); // custom eligibility override
 
   // ── Remove confirmation modal state ──────────────────────────────────────
-  // Shown when user clicks a filled grid cell to remove a player.
-  const [removeModal, setRemoveModal] = useState(null); // { playerName, teamId, price, pos }
+  const [removeModal, setRemoveModal] = useState(null); // {playerName, teamId, price, pos}
 
-  // ── Empty cell feedback state ─────────────────────────────────────────────
-  // When the user clicks an empty cell, we briefly flash it and set posFilter.
-  const [flashCell, setFlashCell] = useState(null); // "teamId-slotIdx" key
+  // ── Inline cell search state ──────────────────────────────────────────────
+  // When set, the matching empty cell shows an inline search box.
+  const [activeCellSearch, setActiveCellSearch] = useState(null); // {teamId, slotIdx, pos}
 
   // ── Grid tooltip hover state ──────────────────────────────────────────────
-  // Tracks which cell is hovered so we can show a mini tooltip.
-  const [hoveredCell, setHoveredCell] = useState(null); // { teamId, slotIdx, entry, pos }
-
-  // ── API valuation state ───────────────────────────────────────────────────
-  const [valuation,  setValuation]  = useState(null);
-  const [valuating,  setValuating]  = useState(false);
+  const [hoveredCell, setHoveredCell] = useState(null);
 
   // ── Recommendations ───────────────────────────────────────────────────────
   const [recommendations, setRecommendations] = useState([]);
 
-  // Ref to the search input (used to focus it when an empty cell is clicked)
   const searchRef = useRef(null);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Effect: Update recommendations whenever the player pool changes.
-  // Shows the top 4 undrafted players by base value.
+  // Derived: extend saleModal player with custom eligibility override.
+  // If user typed extra positions in the override box, temporarily add them
+  // to the player's pos list so they appear as valid slot options.
   // ─────────────────────────────────────────────────────────────────────────
+  const extendedSalePlayer = saleModal
+    ? {
+        ...saleModal,
+        pos: [
+          ...new Set([
+            ...saleModal.pos,
+            ...customPosInput
+              .toUpperCase()
+              .split(",")
+              .map((p) => p.trim())
+              .filter(Boolean),
+          ]),
+        ],
+      }
+    : null;
+
+  // Valid slots for the current modal player + selected team
+  const validSlotsForModal = extendedSalePlayer
+    ? getValidSlotsForPlayer(extendedSalePlayer, saleTeam)
+    : [];
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // getValidSlotsForPlayer — returns all valid empty roster slots for a player
+  // on a given team. Used in both the sale modal slot picker and inline search.
+  //
+  // Slot eligibility rules:
+  //   BN   → any player
+  //   UTIL → any player with at least one non-pitcher position (not pure SP/RP)
+  //   other → player.pos.includes(slotPos)
+  //
+  // @param {Object} player - Player object (uses .pos array)
+  // @param {number} teamId - Team to check slots for
+  // @returns {{ slotIdx: number, pos: string }[]}
+  // ─────────────────────────────────────────────────────────────────────────
+  function getValidSlotsForPlayer(player, teamId) {
+    const team = league.teams.find((t) => t.id === teamId);
+    if (!team) return [];
+
+    // Occupied slot indices for this team
+    const takenSlots = new Set(team.roster.map((r) => r.slotIndex));
+
+    return rosterPositions.reduce((acc, slotPos, si) => {
+      // Skip occupied slots
+      if (takenSlots.has(si)) return acc;
+
+      if (slotPos === "BN") {
+        // Bench: accepts any player
+        acc.push({ slotIdx: si, pos: slotPos });
+        return acc;
+      }
+
+      if (slotPos === "UTIL") {
+        // UTIL: accepts any hitter (player has at least one non-pitcher position)
+        const hasHitterEligibility = player.pos.some(
+          (p) => !["SP", "RP"].includes(p)
+        );
+        if (hasHitterEligibility) {
+          acc.push({ slotIdx: si, pos: slotPos });
+        }
+        return acc;
+      }
+
+      // Standard slot: player must have this position in their eligibility
+      if (player.pos.includes(slotPos)) {
+        acc.push({ slotIdx: si, pos: slotPos });
+      }
+
+      return acc;
+    }, []);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Effects
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Update recommendations when player pool changes
   useEffect(() => {
-    const undrafted = players.filter((p) => !p.drafted);
-    setRecommendations(undrafted.slice(0, 4));
+    setRecommendations(players.filter((p) => !p.drafted).slice(0, 4));
   }, [players]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Effect: Auto-fetch valuation when selected player changes.
-  // Only runs if the API is online — otherwise shows base value.
-  // ─────────────────────────────────────────────────────────────────────────
+  // Auto-fetch valuation when selected player OR draft state changes.
+  // draftStateKey re-triggers this whenever a player is added/removed,
+  // so the API inflation & scarcity math stays accurate without a manual re-click.
   useEffect(() => {
-    if (selectedPlayer && apiStatus === "online") {
-      fetchValuation(selectedPlayer);
-    } else {
-      setValuation(null);
-    }
+    if (selectedPlayer) requestValuation(selectedPlayer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPlayer?.id, apiStatus]);
+  }, [selectedPlayer?.id, draftStateKey]);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Effect: Close modals on Escape key press.
-  // ─────────────────────────────────────────────────────────────────────────
+  // Pre-fetch valuations for the top recommended players so the rec panel
+  // always shows live API values, not just base values.
+  useEffect(() => {
+    recommendations.forEach((p) => requestValuation(p));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommendations, draftStateKey]);
+
+  // Close modals on Escape
   useEffect(() => {
     function handleKey(e) {
       if (e.key === "Escape") {
         setSaleModal(null);
         setRemoveModal(null);
+        setActiveCellSearch(null);
       }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // fetchValuation — POSTs the current draft state to the valuation API
-  // and stores the result in `valuation` state.
-  //
-  // @param {Object} player - The player to get valuation for
-  // ─────────────────────────────────────────────────────────────────────────
-  async function fetchValuation(player) {
-    setValuating(true);
-    setValuation(null);
-    try {
-      // Build the full draft state payload the API expects
-      const draftState = {
-        total_teams: league.owners,
-        budget_per_team: league.budget,
-        scoring_categories: Object.entries(league.scoring)
-          .filter(([, v]) => v)
-          .map(([k]) => k),
-        teams: league.teams.map((t) => ({
-          id: t.id,
-          budget_remaining: t.budget_remaining,
-          roster: t.roster.map((r) => r.name), // API expects array of name strings
-        })),
-        nominated_player: player.name,
-        roster_config: league.roster,
-      };
-
-      const r = await fetch(`${API_BASE}/v1/valuate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-License-Key": DEMO_KEY,
-        },
-        body: JSON.stringify({ license_key: DEMO_KEY, draft_state: draftState }),
-      });
-
-      const data = await r.json();
-      setValuation(data);
-    } catch {
-      // API offline or unreachable — valuation stays null, card shows base value
-      setValuation(null);
+  // Close inline cell search when clicking outside
+  useEffect(() => {
+    if (!activeCellSearch) return;
+    function handleOutsideClick() {
+      setActiveCellSearch(null);
     }
-    setValuating(false);
-  }
+    // Small timeout so the click that opened us doesn't immediately close us
+    const t = setTimeout(() => {
+      document.addEventListener("click", handleOutsideClick);
+    }, 50);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [activeCellSearch]);
+
+  // When saleTeam changes while modal is open, recalculate valid slots
+  // and reset saleSlot to the first valid option
+  useEffect(() => {
+    if (!saleModal || !extendedSalePlayer) return;
+    const slots = getValidSlotsForPlayer(extendedSalePlayer, saleTeam);
+    setSaleSlot(slots[0]?.slotIdx ?? null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleTeam, customPosInput]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // openSaleModal — opens the sale confirmation modal for a given player.
-  // Pre-fills team with the current active owner and price with the API
-  // recommendation (or base value if API is offline).
-  //
-  // @param {Object} player - Player to record a sale for
+  // openSaleModal — open the sale modal for a player.
+  // Pre-selects the first valid slot for the current active owner's team.
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModal(player) {
+    const team = league.teams[currentOwnerIdx];
+    const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
     setSaleModal(player);
-    setSaleTeam(league.teams[currentOwnerIdx]?.id || 1);
-    // Pre-fill price from API recommendation if available, else use base value
-    setSalePrice(valuation?.max_bid_recommendation || player.baseValue || "");
+    setSaleTeam(team?.id || 1);
+    setSaleSlot(initialSlots[0]?.slotIdx ?? null);
+    setSalePrice(valuationCache[player.id]?.max_bid_recommendation || player.baseValue || "");
+    setCustomPosInput("");
     setSelectedPlayer(player);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // confirmSale — commits the sale modal and fires onSale().
-  // Closes the modal and clears the selected player on success.
+  // openSaleModalForCell — opens sale modal pre-filled for a specific cell.
+  // Called when a player is selected from the InlineCellSearch dropdown.
+  //
+  // @param {Object} player  - Player selected
+  // @param {number} teamId  - Team ID of the clicked cell
+  // @param {number} slotIdx - Slot index of the clicked cell
   // ─────────────────────────────────────────────────────────────────────────
-  function confirmSale() {
-    if (!saleModal || !salePrice) return;
-    onSale(saleModal, +salePrice, saleTeam);
-    setSaleModal(null);
-    setSalePrice("");
-    setSelectedPlayer(null);
-    setValuation(null);
+  function openSaleModalForCell(player, teamId, slotIdx) {
+    setActiveCellSearch(null);
+    // Switch the active owner to the team being filled
+    const ti = league.teams.findIndex((t) => t.id === teamId);
+    if (ti >= 0) setCurrentOwnerIdx(ti);
+
+    setSaleModal(player);
+    setSaleTeam(teamId);
+    setSaleSlot(slotIdx);     // pre-select the exact slot that was clicked
+    setSalePrice(valuationCache[player.id]?.max_bid_recommendation || player.baseValue || "");
+    setCustomPosInput("");
+    setSelectedPlayer(player);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // handleFilledCellClick — handles clicking a cell that already has a player.
-  // Opens the RemoveModal confirmation dialog.
-  //
-  // @param {Object} entry  - Roster entry { name, price, pos }
-  // @param {number} teamId - ID of the team this cell belongs to
-  // @param {string} pos    - Position slot label (e.g. "OF")
-  // @param {Event}  e      - Click event (stopped from bubbling to row click)
+  // confirmSale — validates and fires onSale with slotIndex + draftedPos.
+  // Clears all modal state on success.
+  // ─────────────────────────────────────────────────────────────────────────
+  function confirmSale() {
+    if (!saleModal || !salePrice || saleSlot == null) return;
+    // The draftedPos is the position label of the selected slot
+    // (could differ from player.pos[0] if going into UTIL or BN)
+    const draftedPos = rosterPositions[saleSlot] || "BN";
+    onSale(saleModal, +salePrice, saleTeam, saleSlot, draftedPos);
+    setSaleModal(null);
+    setSalePrice("");
+    setSaleSlot(null);
+    setCustomPosInput("");
+    setSelectedPlayer(null);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // handleFilledCellClick — opens the remove confirmation modal.
   // ─────────────────────────────────────────────────────────────────────────
   function handleFilledCellClick(entry, teamId, pos, e) {
-    e.stopPropagation(); // prevent row click (which changes active owner)
+    e.stopPropagation();
+    setActiveCellSearch(null); // close any open inline search
     setRemoveModal({ playerName: entry.name, teamId, price: entry.price, pos });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // handleEmptyCellClick — handles clicking an empty roster slot.
-  // Shows a brief flash animation and sets the position filter in the search bar.
-  // Scrolls the search bar into view and focuses the input.
-  //
-  // @param {string} pos       - Position for this slot (e.g. "OF")
-  // @param {number} teamId    - Team ID this cell belongs to
-  // @param {number} slotIdx   - Column index of the slot within that team's row
-  // @param {Event}  e         - Click event
+  // handleEmptyCellClick — opens the inline cell search for this specific slot.
+  // This lets the user search + add a player directly from the grid cell.
   // ─────────────────────────────────────────────────────────────────────────
   function handleEmptyCellClick(pos, teamId, slotIdx, e) {
     e.stopPropagation();
-
-    // Set position filter to help user find the right player
-    if (pos !== "BN" && pos !== "UTIL") {
-      setPosFilter(pos);
+    // Toggle: clicking the same cell again closes it
+    if (
+      activeCellSearch?.teamId === teamId &&
+      activeCellSearch?.slotIdx === slotIdx
+    ) {
+      setActiveCellSearch(null);
+      return;
     }
-
-    // Flash the cell to give feedback
-    const key = `${teamId}-${slotIdx}`;
-    setFlashCell(key);
-    setTimeout(() => setFlashCell(null), 600); // clear flash after animation
-
-    // Focus the search bar so user can type immediately
-    searchRef.current?.focus();
+    setActiveCellSearch({ teamId, slotIdx, pos });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // confirmRemove — fires onUndoCell to remove the player and refund budget.
+  // confirmRemove — removes a player and refunds budget.
   // ─────────────────────────────────────────────────────────────────────────
   function confirmRemove() {
     if (!removeModal) return;
@@ -273,38 +304,32 @@ export default function DraftBoard({
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // getBestAvailable — returns the top undrafted player eligible for a given
-  // position slot. Shown as a hint in hover tooltips on empty cells.
-  //
-  // @param {string} pos - Position slot (e.g. "OF", "SP")
-  // @returns {Object|null} Player object or null if none available
+  // getBestAvailable — top undrafted player eligible for a position slot.
+  // Used in hover tooltips on empty cells.
   // ─────────────────────────────────────────────────────────────────────────
   function getBestAvailable(pos) {
     if (pos === "BN" || pos === "UTIL") {
-      // Bench/UTIL: return highest-value undrafted player of any position
       return players.find((p) => !p.drafted) || null;
     }
     return players.find((p) => !p.drafted && p.pos.includes(pos)) || null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Filtered player list for the search autocomplete dropdown.
-  // Excludes already-drafted players. Applies text search and position filter.
+  // Filtered player list for the bottom search bar autocomplete.
   // ─────────────────────────────────────────────────────────────────────────
   const filteredPlayers = players.filter((p) => {
     if (p.drafted) return false;
-    if (
-      searchQ &&
-      !p.name.toLowerCase().includes(searchQ.toLowerCase()) &&
-      !(p.team || "").toLowerCase().includes(searchQ.toLowerCase())
-    ) {
-      return false;
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      if (!p.name.toLowerCase().includes(q) && !(p.team || "").toLowerCase().includes(q)) {
+        return false;
+      }
     }
     if (posFilter !== "ALL" && !p.pos.includes(posFilter)) return false;
     return true;
   });
 
-  const myTeam   = league.teams[currentOwnerIdx];
+  const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -314,16 +339,16 @@ export default function DraftBoard({
     <div className="board-layout">
 
       {/* ════════════════════════════════════════════════════════════════════
-          TEAMS TABLE (Left/Main area)
+          GRID + SEARCH (main/left area)
       ════════════════════════════════════════════════════════════════════ */}
       <div className="board-main">
 
-        {/* ── Header row (title + undo button) ──────────────────────────── */}
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="board-header">
           <div>
             <h2 className="board-title">DRAFT LEAGUE TEAMS TABLE</h2>
             <span className="board-hint">
-              Click a filled cell to remove · click empty cell to filter search by position
+              Click filled cell to remove · click empty cell to search + add inline
             </span>
           </div>
           <button className="undo-btn" onClick={onUndo} title="Undo last recorded sale">
@@ -331,22 +356,18 @@ export default function DraftBoard({
           </button>
         </div>
 
-        {/* ── Draft Grid Table ──────────────────────────────────────────── */}
+        {/* ── Teams Grid ──────────────────────────────────────────────────── */}
         <div className="teams-table-wrap">
           <table className="teams-table">
             <thead>
               <tr>
-                {/* Owner column header */}
                 <th className="col-owner">OWNER</th>
-                {/* Budget column header */}
                 <th className="col-budget">$ LEFT</th>
-
-                {/* Position slot headers — clicking sets the position filter */}
                 {rosterPositions.map((pos, i) => (
                   <th
                     key={i}
                     style={{ cursor: "pointer" }}
-                    title={`Click to filter player search to ${pos}`}
+                    title={`Click to filter search to ${pos}`}
                     onClick={() => {
                       setPosFilter(pos === posFilter ? "ALL" : pos);
                       searchRef.current?.focus();
@@ -356,7 +377,6 @@ export default function DraftBoard({
                       className="pos-badge-header"
                       style={{
                         background: posColor(pos),
-                        // Highlight the column if its position is the active filter
                         outline: posFilter === pos ? "2px solid white" : "none",
                         outlineOffset: 1,
                       }}
@@ -367,11 +387,9 @@ export default function DraftBoard({
                 ))}
               </tr>
             </thead>
-
             <tbody>
               {league.teams.map((team, ti) => {
-                const isMe    = ti === currentOwnerIdx;
-                // Max bid for this specific team's row
+                const isMe = ti === currentOwnerIdx;
                 const teamMaxBid = calcMaxBid(
                   team.budget_remaining,
                   totalSlots - team.roster.length
@@ -384,27 +402,23 @@ export default function DraftBoard({
                     onClick={() => setCurrentOwnerIdx(ti)}
                     title={`Click row to set ${team.name} as drafting owner`}
                   >
-                    {/* Owner name cell */}
+                    {/* Owner label */}
                     <td className="col-owner">
                       {isMe && <span className="star">★ </span>}
                       {team.name}
                       {isMe && (
-                        <div className="max-bid-mini">
-                          max bid ${teamMaxBid}
-                        </div>
+                        <div className="max-bid-mini">max bid ${teamMaxBid}</div>
                       )}
                     </td>
 
-                    {/* Budget cell — color changes at thresholds */}
+                    {/* Budget */}
                     <td
                       className="col-budget"
                       style={{
                         color:
-                          team.budget_remaining > 50
-                            ? "#22c55e"     // green: lots of budget left
-                            : team.budget_remaining > 20
-                            ? "#f59e0b"     // amber: getting tight
-                            : "#ef4444",   // red: almost out
+                          team.budget_remaining > 50 ? "#22c55e"
+                          : team.budget_remaining > 20 ? "#f59e0b"
+                          : "#ef4444",
                       }}
                     >
                       ${team.budget_remaining}
@@ -412,30 +426,26 @@ export default function DraftBoard({
 
                     {/* Roster slot cells */}
                     {rosterPositions.map((pos, si) => {
-                      const entry   = team.roster[si];
-                      const cellKey = `${team.id}-${si}`;
-                      const isFlashing = flashCell === cellKey;
-                      const isHovered  = hoveredCell?.teamId === team.id &&
-                                         hoveredCell?.slotIdx === si;
+                      // ── KEY FIX: look up entry by slotIndex, not array index ──
+                      // This ensures a drafted player stays in the correct column
+                      // regardless of the order they were added to the roster array.
+                      const entry = team.roster.find((r) => r.slotIndex === si);
+                      const isHovered =
+                        hoveredCell?.teamId === team.id && hoveredCell?.slotIdx === si;
+                      const isCellSearchActive =
+                        activeCellSearch?.teamId === team.id &&
+                        activeCellSearch?.slotIdx === si;
 
                       if (entry) {
-                        // ── FILLED CELL ─────────────────────────────────
-                        // Look up base value to determine if it was a steal/overpay
-                        const matchedPlayer = players.find(
-                          (p) => p.name === entry.name
-                        );
-                        const valueClass = getValueClass(
-                          entry.price,
-                          matchedPlayer?.baseValue
-                        );
+                        // ── FILLED CELL ────────────────────────────────────
+                        const matchedPlayer = players.find((p) => p.name === entry.name);
+                        const valueClass = getValueClass(entry.price, matchedPlayer?.baseValue);
 
                         return (
                           <td
                             key={si}
                             className={`roster-cell roster-cell-filled ${valueClass}`}
-                            onClick={(e) =>
-                              handleFilledCellClick(entry, team.id, pos, e)
-                            }
+                            onClick={(e) => handleFilledCellClick(entry, team.id, pos, e)}
                             onMouseEnter={() =>
                               setHoveredCell({ teamId: team.id, slotIdx: si, entry, pos, matchedPlayer })
                             }
@@ -443,16 +453,18 @@ export default function DraftBoard({
                             title={`${entry.name} · $${entry.price} · Click to remove`}
                             style={{ position: "relative" }}
                           >
-                            {/* ── Roster entry content ──────────────────── */}
                             <div className="roster-entry">
-                              {/* Keeper badge (if this entry was a pre-draft keeper) */}
-                              {entry.isKeeper && (
-                                <span className="keeper-badge">K</span>
-                              )}
+                              {entry.isKeeper && <span className="keeper-badge">K</span>}
                               <span className="roster-name">{entry.name}</span>
                               <div className="roster-price-row">
                                 <span className="roster-price">${entry.price}</span>
-                                {/* Show if this was a steal or overpay */}
+                                {/* Show the position slot they were drafted into (not just pos[0]) */}
+                                <span
+                                  className="roster-drafted-pos"
+                                  style={{ color: posColor(entry.draftedPos || pos) }}
+                                >
+                                  {entry.draftedPos || pos}
+                                </span>
                                 {matchedPlayer && valueClass === "value-steal" && (
                                   <span className="value-label steal" title="Great value!">▲</span>
                                 )}
@@ -462,25 +474,31 @@ export default function DraftBoard({
                               </div>
                             </div>
 
-                            {/* ── Hover tooltip ─────────────────────────── */}
+                            {/* Hover tooltip */}
                             {isHovered && (
                               <div className="cell-tooltip">
                                 <div className="ct-name">{entry.name}</div>
+                                <div className="ct-row">
+                                  <span className="ct-label">SLOT</span>
+                                  <span className="ct-val" style={{ color: posColor(entry.draftedPos || pos) }}>
+                                    {entry.draftedPos || pos}
+                                  </span>
+                                </div>
                                 <div className="ct-row">
                                   <span className="ct-label">PAID</span>
                                   <span className="ct-val">${entry.price}</span>
                                 </div>
                                 {matchedPlayer && (
-                                  <div className="ct-row">
-                                    <span className="ct-label">VALUE</span>
-                                    <span className="ct-val">${matchedPlayer.baseValue}</span>
-                                  </div>
-                                )}
-                                {matchedPlayer && (
-                                  <div className="ct-row">
-                                    <span className="ct-label">FPTS</span>
-                                    <span className="ct-val">{matchedPlayer.fpts}</span>
-                                  </div>
+                                  <>
+                                    <div className="ct-row">
+                                      <span className="ct-label">VALUE</span>
+                                      <span className="ct-val">${matchedPlayer.baseValue}</span>
+                                    </div>
+                                    <div className="ct-row">
+                                      <span className="ct-label">FPTS</span>
+                                      <span className="ct-val">{matchedPlayer.fpts}</span>
+                                    </div>
+                                  </>
                                 )}
                                 <div className="ct-hint">↩ Click to remove</div>
                               </div>
@@ -489,59 +507,77 @@ export default function DraftBoard({
                         );
 
                       } else {
-                        // ── EMPTY CELL ───────────────────────────────────
-                        // Show best-available hint on hover
+                        // ── EMPTY CELL ─────────────────────────────────────
                         const bestAvail = isHovered ? getBestAvailable(pos) : null;
 
                         return (
                           <td
                             key={si}
-                            className={`roster-cell roster-cell-empty ${isFlashing ? "cell-flash" : ""}`}
-                            onClick={(e) =>
-                              handleEmptyCellClick(pos, team.id, si, e)
-                            }
+                            className={`roster-cell roster-cell-empty ${isCellSearchActive ? "cell-active" : ""}`}
+                            onClick={(e) => handleEmptyCellClick(pos, team.id, si, e)}
                             onMouseEnter={() =>
                               setHoveredCell({ teamId: team.id, slotIdx: si, entry: null, pos })
                             }
                             onMouseLeave={() => setHoveredCell(null)}
-                            title={`Empty ${pos} slot — click to filter search to ${pos}`}
-                            style={{ position: "relative" }}
+                            title={
+                              isCellSearchActive
+                                ? "Type to search players for this slot"
+                                : `Empty ${pos} — click to search and add player`
+                            }
+                            style={{ position: "relative", minWidth: 80 }}
                           >
-                            {/* Default dash marker */}
-                            <span className="roster-empty">–</span>
+                            {isCellSearchActive ? (
+                              /* ── Inline search box ─────────────────────── */
+                              <InlineCellSearch
+                                pos={pos}
+                                teamId={team.id}
+                                slotIdx={si}
+                                players={players}
+                                rosterPositions={rosterPositions}
+                                getValidSlotsForPlayer={getValidSlotsForPlayer}
+                                onSelect={(player) =>
+                                  openSaleModalForCell(player, team.id, si)
+                                }
+                                onClose={() => setActiveCellSearch(null)}
+                              />
+                            ) : (
+                              <>
+                                <span className="roster-empty">–</span>
 
-                            {/* ── Hover tooltip for empty cell ─────────── */}
-                            {isHovered && (
-                              <div className="cell-tooltip cell-tooltip-empty">
-                                <div className="ct-name" style={{ color: posColor(pos) }}>
-                                  {pos} SLOT
-                                </div>
-                                {bestAvail ? (
-                                  <>
-                                    <div className="ct-hint" style={{ marginBottom: 3 }}>
-                                      Best available:
+                                {/* Hover tooltip for empty cell */}
+                                {isHovered && (
+                                  <div className="cell-tooltip cell-tooltip-empty">
+                                    <div className="ct-name" style={{ color: posColor(pos) }}>
+                                      {pos} SLOT
                                     </div>
-                                    <div className="ct-row">
-                                      <span className="ct-val" style={{ color: "var(--white)" }}>
-                                        {bestAvail.name}
-                                      </span>
+                                    {bestAvail ? (
+                                      <>
+                                        <div className="ct-hint" style={{ marginBottom: 3 }}>
+                                          Best available:
+                                        </div>
+                                        <div className="ct-row">
+                                          <span className="ct-val" style={{ color: "var(--white)" }}>
+                                            {bestAvail.name}
+                                          </span>
+                                        </div>
+                                        <div className="ct-row">
+                                          <span className="ct-label">VALUE</span>
+                                          <span className="ct-val" style={{ color: "var(--green)" }}>
+                                            ${bestAvail.baseValue}
+                                          </span>
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="ct-hint" style={{ color: "var(--red)" }}>
+                                        No {pos} available
+                                      </div>
+                                    )}
+                                    <div className="ct-hint" style={{ marginTop: 4 }}>
+                                      ↓ Click to search inline
                                     </div>
-                                    <div className="ct-row">
-                                      <span className="ct-label">VALUE</span>
-                                      <span className="ct-val" style={{ color: "var(--green)" }}>
-                                        ${bestAvail.baseValue}
-                                      </span>
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="ct-hint" style={{ color: "var(--red)" }}>
-                                    No {pos} available
                                   </div>
                                 )}
-                                <div className="ct-hint" style={{ marginTop: 4 }}>
-                                  ↓ Click to filter search
-                                </div>
-                              </div>
+                              </>
                             )}
                           </td>
                         );
@@ -554,21 +590,19 @@ export default function DraftBoard({
           </table>
         </div>
 
-        {/* ── Player Search ─────────────────────────────────────────────── */}
+        {/* ── Bottom Search Bar ─────────────────────────────────────────────── */}
         <div className="search-bar-area">
           <div className="search-label-row">
             <span className="search-label">PLAYER SEARCH</span>
             <span className="search-hint">
-              Quick search · click result to view card · click "Record Sale" to commit
+              Search here or click an empty grid cell to add directly
             </span>
-            {/* Position filter buttons — also used as the grid's position filter */}
             <div className="pos-filters">
               {["ALL", "C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"].map((p) => (
                 <button
                   key={p}
                   className={`pos-filter ${posFilter === p ? "active" : ""}`}
                   onClick={() => setPosFilter(p)}
-                  title={p === "ALL" ? "Show all positions" : `Filter to ${p}`}
                 >
                   {p}
                 </button>
@@ -577,68 +611,55 @@ export default function DraftBoard({
             </div>
           </div>
 
-          {/* ── Search input with autocomplete dropdown ──────────────── */}
           <div style={{ position: "relative" }}>
             <input
               ref={searchRef}
               className="search-input"
               placeholder={
                 posFilter !== "ALL"
-                  ? `Search ${posFilter} players… (filtering active)`
-                  : "Search players or teams… click result to view, click Record Sale to commit"
+                  ? `Search ${posFilter} players…`
+                  : "Search by name or team…"
               }
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               onKeyDown={(e) => {
-                // Pressing Escape clears the position filter
-                if (e.key === "Escape") {
-                  setPosFilter("ALL");
-                  setSearchQ("");
-                }
+                if (e.key === "Escape") { setPosFilter("ALL"); setSearchQ(""); }
               }}
             />
-
-            {/* ── Autocomplete dropdown results ───────────────────── */}
             {searchQ && filteredPlayers.length > 0 && (
               <div className="search-dropdown">
                 {filteredPlayers.slice(0, 8).map((p) => (
                   <SearchResult
                     key={p.id}
                     player={p}
-                    onSelect={() => {
-                      setSelectedPlayer(p);
-                      setSearchQ("");
-                    }}
+                    onSelect={() => { setSelectedPlayer(p); setSearchQ(""); }}
                     onRecord={() => openSaleModal(p)}
                   />
                 ))}
                 {filteredPlayers.length > 8 && (
                   <div style={{ padding: "6px 12px", fontSize: 10, color: "var(--muted)" }}>
-                    + {filteredPlayers.length - 8} more results — refine your search
+                    + {filteredPlayers.length - 8} more — refine search
                   </div>
                 )}
               </div>
             )}
-            {/* No results message */}
             {searchQ && filteredPlayers.length === 0 && (
               <div className="search-dropdown">
                 <div style={{ padding: "12px", fontSize: 11, color: "var(--muted)" }}>
                   No available players match "{searchQ}"
-                  {posFilter !== "ALL" && ` for position ${posFilter}`}
+                  {posFilter !== "ALL" && ` for ${posFilter}`}
                 </div>
               </div>
             )}
           </div>
         </div>
-
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
           RIGHT PANEL
       ════════════════════════════════════════════════════════════════════ */}
       <div className="right-panel">
-
-        {/* Budget + Slots summary */}
+        {/* Budget summary */}
         <div className="panel-budget">
           <div>
             <div className="panel-label">BUDGET</div>
@@ -661,7 +682,6 @@ export default function DraftBoard({
           <div className="cp-header">CURRENT PLAYER</div>
           <div className="cp-drafting-row">
             <span className="cp-drafting-label">DRAFTING OWNER:</span>
-            {/* Owner selector dropdown */}
             <select
               className="cp-owner-select"
               value={currentOwnerIdx}
@@ -673,7 +693,6 @@ export default function DraftBoard({
                 </option>
               ))}
             </select>
-            {/* Record Sale button — only shown when a player is selected */}
             {selectedPlayer && (
               <button
                 className="record-sale-btn"
@@ -684,28 +703,25 @@ export default function DraftBoard({
             )}
           </div>
 
-          {/* Player card or empty state */}
           {selectedPlayer ? (
             <PlayerCard
               player={selectedPlayer}
-              valuation={valuating ? "loading" : valuation}
+              valuation={valuationCache[selectedPlayer?.id] ?? null}
               notes={notes}
               saveNote={saveNote}
             />
           ) : (
             <div className="cp-empty">
-              Search for a player below or click a roster cell
+              Search below or click a grid cell to select a player
             </div>
           )}
         </div>
 
-        {/* Recommendations panel */}
+        {/* Recommendations */}
         <div className="recommendations">
           <div className="rec-header">
             TOP AVAILABLE{" "}
-            <span className="rec-sub">
-              {posFilter !== "ALL" ? posFilter : "Overall"}
-            </span>
+            <span className="rec-sub">{posFilter !== "ALL" ? posFilter : "Overall"}</span>
           </div>
           {recommendations
             .filter((p) => posFilter === "ALL" || p.pos.includes(posFilter))
@@ -715,7 +731,6 @@ export default function DraftBoard({
                 key={p.id}
                 className="rec-row"
                 onClick={() => setSelectedPlayer(p)}
-                title={`Select ${p.name} — $${p.baseValue} base value`}
               >
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">
@@ -723,66 +738,50 @@ export default function DraftBoard({
                   <div className="rec-team">{p.team}</div>
                   <div className="rec-pos">
                     {p.pos.map((pos) => (
-                      <span
-                        key={pos}
-                        className="pos-badge"
-                        style={{ background: posColor(pos) }}
-                      >
+                      <span key={pos} className="pos-badge" style={{ background: posColor(pos) }}>
                         {pos}
                       </span>
                     ))}
                   </div>
                 </div>
                 <div className="rec-right">
-                  <div className="rec-value green">${p.baseValue}</div>
+                  <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
                   <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
                     {p.tier?.toUpperCase()}
                   </div>
                 </div>
               </div>
             ))}
-          {/* Fall back to overall top if no filtered matches */}
           {posFilter !== "ALL" &&
             recommendations.filter((p) => p.pos.includes(posFilter)).length === 0 &&
             recommendations.slice(0, 2).map((p) => (
-              <div
-                key={p.id}
-                className="rec-row"
-                onClick={() => setSelectedPlayer(p)}
-              >
+              <div key={p.id} className="rec-row" onClick={() => setSelectedPlayer(p)}>
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">
                   <div className="rec-name">{p.name}</div>
                   <div className="rec-team">{p.team}</div>
                 </div>
                 <div className="rec-right">
-                  <div className="rec-value green">${p.baseValue}</div>
+                  <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
                 </div>
               </div>
             ))}
         </div>
-
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-          SALE MODAL — record an auction sale
-          Opened by: "Record Sale" button or clicking a player in search results
+          SALE MODAL
+          Opened by: "Record Sale" button, search result, or inline cell search
       ════════════════════════════════════════════════════════════════════ */}
       {saleModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setSaleModal(null)}
-        >
+        <div className="modal-overlay" onClick={() => setSaleModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>RECORD AUCTION SALE</h3>
             <p className="modal-player">{saleModal.name}</p>
 
-            {/* Positions + tier on the header */}
-            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
               {saleModal.pos.map((p) => (
-                <span key={p} className="pos-badge" style={{ background: posColor(p) }}>
-                  {p}
-                </span>
+                <span key={p} className="pos-badge" style={{ background: posColor(p) }}>{p}</span>
               ))}
               <span className={`tier-badge ${saleModal.tier?.toLowerCase()}`}>
                 {saleModal.tier?.toUpperCase()}
@@ -792,10 +791,7 @@ export default function DraftBoard({
             {/* Winning team selector */}
             <div className="form-group">
               <label>WINNING TEAM</label>
-              <select
-                value={saleTeam}
-                onChange={(e) => setSaleTeam(+e.target.value)}
-              >
+              <select value={saleTeam} onChange={(e) => setSaleTeam(+e.target.value)}>
                 {league.teams.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} (${t.budget_remaining} left)
@@ -804,7 +800,56 @@ export default function DraftBoard({
               </select>
             </div>
 
-            {/* Bid amount input */}
+            {/* ── Position Slot Picker ─────────────────────────────────────── */}
+            {/* Shows all empty roster slots this player is eligible to fill.    */}
+            {/* Clicking a slot badge selects it. The sale places the player     */}
+            {/* into the grid at that exact column position.                     */}
+            <div className="form-group">
+              <label>DRAFT INTO SLOT</label>
+              {validSlotsForModal.length > 0 ? (
+                <div className="slot-picker">
+                  {validSlotsForModal.map(({ slotIdx, pos }) => (
+                    <button
+                      key={slotIdx}
+                      type="button"
+                      className={`slot-btn ${saleSlot === slotIdx ? "active" : ""}`}
+                      onClick={() => setSaleSlot(slotIdx)}
+                      title={`Slot ${slotIdx + 1}: ${pos}`}
+                    >
+                      <span
+                        className="pos-badge"
+                        style={{ background: posColor(pos), pointerEvents: "none" }}
+                      >
+                        {pos}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: "var(--red)", fontSize: 11, padding: "6px 0" }}>
+                  ⚠ No eligible slots available for{" "}
+                  {league.teams.find((t) => t.id === saleTeam)?.name}
+                  — try a different team or add a custom position below.
+                </div>
+              )}
+
+              {/* Custom eligibility override */}
+              {/* Lets you temporarily grant a player eligibility at a position  */}
+              {/* not in their database profile (e.g., multi-pos player listed    */}
+              {/* only as OF but has 1B eligibility in your league).              */}
+              <div className="custom-pos-row">
+                <span className="custom-pos-label">Override/add eligibility:</span>
+                <input
+                  className="custom-pos-input"
+                  value={customPosInput}
+                  onChange={(e) => setCustomPosInput(e.target.value)}
+                  placeholder="e.g. 2B or SS,3B"
+                  title="Add custom position eligibility for this player"
+                />
+              </div>
+            </div>
+
+            {/* Bid amount */}
             <div className="form-group">
               <label>WINNING BID ($)</label>
               <input
@@ -813,47 +858,37 @@ export default function DraftBoard({
                 min={1}
                 onChange={(e) => setSalePrice(e.target.value)}
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") confirmSale();
-                }}
+                onKeyDown={(e) => { if (e.key === "Enter") confirmSale(); }}
               />
             </div>
 
-            {/* API valuation hint */}
-            {valuation && valuation !== "loading" && (
+            {/* API / base value hint */}
+            {valuationCache[saleModal?.id] && valuationCache[saleModal?.id] !== "loading" ? (
               <div className="modal-hint">
-                API suggests:{" "}
-                <strong>${valuation.max_bid_recommendation}</strong> max bid
-                {valuation.true_dollar_value && (
-                  <> · TDV: <strong>${valuation.true_dollar_value}</strong></>
-                )}
-                {valuation.scarcity_tier && (
-                  <> · Tier: {valuation.scarcity_tier}</>
-                )}
+                API suggests: <strong>${valuationCache[saleModal?.id].max_bid_recommendation}</strong> max bid
+                {valuationCache[saleModal?.id].true_dollar_value && <> · TDV: <strong>${valuationCache[saleModal?.id].true_dollar_value}</strong></>}
+                {valuationCache[saleModal?.id].scarcity_tier && <> · {valuationCache[saleModal?.id].scarcity_tier}</>}
               </div>
-            )}
-
-            {/* Show base value if no API valuation */}
-            {!valuation && (
+            ) : (
               <div className="modal-hint">
                 Base value: <strong>${saleModal.baseValue}</strong>
-                {" "}(no live API valuation)
+                {apiStatus !== "online" && " (API offline — using pre-calc value)"}
               </div>
             )}
 
             <div className="modal-actions">
-              <button
-                className="modal-cancel"
-                onClick={() => setSaleModal(null)}
-              >
+              <button className="modal-cancel" onClick={() => setSaleModal(null)}>
                 Cancel
               </button>
               <button
                 className="modal-confirm"
                 onClick={confirmSale}
-                disabled={!salePrice}
+                disabled={!salePrice || saleSlot == null}
+                title={saleSlot == null ? "Select a roster slot above" : ""}
               >
-                Confirm Sale — {salePrice ? `$${salePrice}` : "enter bid"}
+                {saleSlot == null
+                  ? "Select a slot ↑"
+                  : `Confirm Sale — $${salePrice} → ${rosterPositions[saleSlot]}`}
               </button>
             </div>
           </div>
@@ -861,14 +896,10 @@ export default function DraftBoard({
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          REMOVE MODAL — confirm player removal from roster
-          Opened by: clicking a filled cell in the grid
+          REMOVE MODAL
       ════════════════════════════════════════════════════════════════════ */}
       {removeModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setRemoveModal(null)}
-        >
+        <div className="modal-overlay" onClick={() => setRemoveModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>REMOVE PLAYER FROM ROSTER?</h3>
             <p className="modal-player">{removeModal.playerName}</p>
@@ -881,23 +912,21 @@ export default function DraftBoard({
                 </strong>
               </div>
               <div>
-                Paid: <strong style={{ color: "var(--red)" }}>
-                  ${removeModal.price}
+                Slot: <strong style={{ color: posColor(removeModal.pos) }}>
+                  {removeModal.pos}
                 </strong>
               </div>
+              <div>
+                Paid: <strong style={{ color: "var(--red)" }}>${removeModal.price}</strong>
+              </div>
               <div style={{ marginTop: 6, color: "var(--green)" }}>
-                ✓ Budget will be refunded: +${removeModal.price}
+                ✓ Budget refunded: +${removeModal.price}
               </div>
-              <div style={{ marginTop: 4 }}>
-                Player returns to available pool.
-              </div>
+              <div style={{ marginTop: 4 }}>Player returns to available pool.</div>
             </div>
 
             <div className="modal-actions">
-              <button
-                className="modal-cancel"
-                onClick={() => setRemoveModal(null)}
-              >
+              <button className="modal-cancel" onClick={() => setRemoveModal(null)}>
                 Cancel
               </button>
               <button
@@ -917,72 +946,155 @@ export default function DraftBoard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SearchResult — internal sub-component for a single search dropdown row
+// SearchResult — single row in the bottom search bar autocomplete dropdown
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * SearchResult
- *
- * A single row in the autocomplete dropdown. Shows avatar, name, team,
- * positions, base value, and a "Record Sale" action button.
- *
- * @param {Object}   props
- * @param {Object}   props.player    - Player object
- * @param {Function} props.onSelect  - Called when the row itself is clicked (view card)
- * @param {Function} props.onRecord  - Called when "Record Sale" button is clicked
- */
 function SearchResult({ player, onSelect, onRecord }) {
   return (
     <div
       className="search-result"
       onClick={onSelect}
-      title={`Click to view ${player.name}'s card`}
+      title={`View ${player.name}'s card`}
     >
-      {/* Mini avatar */}
       <PlayerAvatar name={player.name} size={28} photoUrl={player.photoUrl} />
-
-      {/* Name */}
       <span className="sr-name">{player.name}</span>
-
-      {/* Team + league */}
-      <span className="sr-team">
-        {player.team} · {player.league}
-      </span>
-
-      {/* Position badges */}
+      <span className="sr-team">{player.team} · {player.league}</span>
       <div style={{ display: "flex", gap: 2 }}>
         {player.pos.map((pos) => (
-          <span
-            key={pos}
-            className="pos-badge"
-            style={{ background: posColor(pos) }}
-          >
+          <span key={pos} className="pos-badge" style={{ background: posColor(pos) }}>
             {pos}
           </span>
         ))}
       </div>
-
-      {/* FPTS */}
       {player.fpts && (
-        <span style={{ fontSize: 9, color: "var(--muted)", marginLeft: 2 }}>
-          {player.fpts}pts
-        </span>
+        <span style={{ fontSize: 9, color: "var(--muted)" }}>{player.fpts}pts</span>
       )}
-
-      {/* Base value */}
       <span className="sr-value">${player.baseValue}</span>
-
-      {/* Record Sale action button */}
       <button
         className="sr-record"
-        onClick={(e) => {
-          e.stopPropagation(); // don't trigger onSelect
-          onRecord();
-        }}
-        title={`Record sale of ${player.name}`}
+        onClick={(e) => { e.stopPropagation(); onRecord(); }}
       >
         Record Sale
       </button>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// InlineCellSearch — mini search box rendered directly inside an empty grid cell
+//
+// Shown when user clicks an empty cell. Provides an auto-focused input and a
+// small dropdown of eligible players. Selecting a player opens the full sale
+// modal pre-filled for this specific team and slot.
+//
+// @param {Object}    props
+// @param {string}    props.pos                  - Position label for this slot
+// @param {number}    props.teamId               - Team this cell belongs to
+// @param {number}    props.slotIdx              - Slot index of this cell
+// @param {Object[]}  props.players              - Full player array
+// @param {string[]}  props.rosterPositions      - Ordered roster position labels
+// @param {Function}  props.getValidSlotsForPlayer - Slot eligibility helper
+// @param {Function}  props.onSelect             - (player) => void
+// @param {Function}  props.onClose              - () => void
+// ─────────────────────────────────────────────────────────────────────────────
+function InlineCellSearch({
+  pos,
+  teamId,
+  slotIdx,
+  players,
+  rosterPositions,
+  getValidSlotsForPlayer,
+  onSelect,
+  onClose,
+}) {
+  const [q, setQ] = useState("");
+  const inputRef = useRef(null);
+
+  // Auto-focus input when dropdown appears
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Filter players eligible for this specific slot position
+  // BN/UTIL slots show all undrafted players; others filter by pos eligibility.
+  const results = players
+    .filter((p) => {
+      if (p.drafted) return false;
+      // Filter by position eligibility for this slot type
+      if (pos !== "BN" && pos !== "UTIL" && !p.pos.includes(pos)) return false;
+      if (pos === "UTIL") {
+        // UTIL: hitters only
+        if (!p.pos.some((pp) => !["SP", "RP"].includes(pp))) return false;
+      }
+      // Text search if user has typed something
+      if (q) {
+        const lq = q.toLowerCase();
+        if (!p.name.toLowerCase().includes(lq) && !(p.team || "").toLowerCase().includes(lq)) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .slice(0, 6);
+
+  return (
+    // stopPropagation prevents the document click listener from closing this immediately
+    <div
+      className="cell-search-container"
+      onClick={(e) => e.stopPropagation()}
+      style={{ position: "relative" }}
+    >
+      {/* Mini input — fills the cell */}
+      <input
+        ref={inputRef}
+        className="cell-search-input"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") { e.stopPropagation(); onClose(); }
+          // Enter selects first result
+          if (e.key === "Enter" && results.length > 0) onSelect(results[0]);
+        }}
+        placeholder={`${pos}…`}
+      />
+
+      {/* Results dropdown */}
+      {results.length > 0 && (
+        <div className="cell-search-dropdown">
+          {results.map((p) => (
+            <div
+              key={p.id}
+              className="cell-search-result"
+              // Use onMouseDown to fire before input blur closes the dropdown
+              onMouseDown={(e) => { e.preventDefault(); onSelect(p); }}
+            >
+              <PlayerAvatar name={p.name} size={20} photoUrl={p.photoUrl} />
+              <div className="csr-info">
+                <span className="csr-name">{p.name}</span>
+                <span className="csr-team">{p.team}</span>
+              </div>
+              <div style={{ display: "flex", gap: 2 }}>
+                {p.pos.map((pp) => (
+                  <span key={pp} className="pos-badge" style={{ background: posColor(pp), fontSize: 7 }}>
+                    {pp}
+                  </span>
+                ))}
+              </div>
+              <span className="csr-value">${p.baseValue}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {results.length === 0 && (
+        <div className="cell-search-dropdown">
+          <div className="csr-empty">
+            {q
+              ? `No ${pos === "BN" || pos === "UTIL" ? "" : pos + " "}players match "${q}"`
+              : `No ${pos} players available`}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

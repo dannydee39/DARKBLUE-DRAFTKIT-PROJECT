@@ -10,7 +10,7 @@
 //  - Inline note preview on each card
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import { TIERS } from "../constants.js";
@@ -33,12 +33,30 @@ export default function PlayerDictionary({
   setSelectedPlayer,
   notes,
   saveNote,
+  valuationCache,    // shared valuation cache from App
+  requestValuation,  // (player) => void
+  draftStateKey,     // changes on every pick/undo to trigger re-fetches
 }) {
   // ── Filter state ──────────────────────────────────────────────────────────
   const [searchQ, setSearchQ]       = useState("");     // text search
   const [posFilter, setPosFilter]   = useState("ALL");  // position filter
   const [tierFilter, setTierFilter] = useState("ALL");  // tier filter
   const [showDrafted, setShowDrafted] = useState(false); // show drafted players
+
+  // ── Valuation requests ────────────────────────────────────────────────────
+  // Request valuation for the selected player whenever it changes or draft
+  // state shifts (new pick/undo invalidates all cached values).
+  useEffect(() => {
+    if (selectedPlayer) requestValuation(selectedPlayer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlayer?.id, draftStateKey]);
+
+  // Pre-fetch valuations for the top 4 available players so the recommendation
+  // panel and DictCards show live values instead of base values.
+  useEffect(() => {
+    players.filter((p) => !p.drafted).slice(0, 4).forEach((p) => requestValuation(p));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftStateKey]);
 
   // ── Filtering Logic ───────────────────────────────────────────────────────
   // Apply all active filters to produce the visible player list
@@ -157,6 +175,7 @@ export default function PlayerDictionary({
                     player={p}
                     isSelected={selectedPlayer?.id === p.id}
                     note={notes[p.id] || p.note}
+                    liveValue={valuationCache[p.id]?.max_bid_recommendation}
                     onClick={() => setSelectedPlayer(p)}
                   />
                 ))}
@@ -172,7 +191,7 @@ export default function PlayerDictionary({
         {selectedPlayer ? (
           <PlayerCard
             player={selectedPlayer}
-            valuation={null} // no live valuation in dictionary view
+            valuation={valuationCache[selectedPlayer?.id] ?? null}
             notes={notes}
             saveNote={saveNote}
           />
@@ -215,7 +234,7 @@ export default function PlayerDictionary({
                   </div>
                 </div>
                 <div className="rec-right">
-                  <div className="rec-value green">${p.baseValue}</div>
+                  <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
                   <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
                     {p.tier?.toUpperCase()}
                   </div>
@@ -245,7 +264,7 @@ export default function PlayerDictionary({
  * @param {string}   props.note       - Note text (from notes map or player.note)
  * @param {Function} props.onClick    - Click handler
  */
-function DictCard({ player, isSelected, note, onClick }) {
+function DictCard({ player, isSelected, note, liveValue, onClick }) {
   return (
     <div
       className={`dict-card ${isSelected ? "selected" : ""} ${player.drafted ? "drafted" : ""}`}
@@ -269,7 +288,7 @@ function DictCard({ player, isSelected, note, onClick }) {
             ))}
           </div>
         </div>
-        <div className="dc-value green">${player.baseValue}</div>
+        <div className="dc-value green">${liveValue ?? player.baseValue}</div>
       </div>
 
       {/* FPTS micro-display */}

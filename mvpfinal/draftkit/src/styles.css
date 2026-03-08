@@ -288,6 +288,72 @@ a { color: var(--green); text-decoration: none; }
 .roster-price { color: var(--green); font-size: 9px; font-weight: 400; }
 .roster-empty { color: var(--border2); font-size: 16px; }
 
+/* Position availability count badge shown below position header badge.
+   Color changes from muted → yellow → red as availability decreases. */
+.pos-avail-count {
+  font-size: 8px;
+  font-weight: 700;
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+/* Roster slot progress bar in the owner column.
+   Shows a thin green/amber bar proportional to slots filled. */
+.roster-progress-wrap {
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+.roster-progress-bar {
+  height: 100%;
+  background: var(--green);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+/* Tiny label below the progress bar: "3/15" */
+.roster-progress-label {
+  font-size: 8px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+/* Empty roster cell when NO players remain at that position in the pool.
+   Subtle red tint alerts the drafter that this slot can't be filled normally. */
+.roster-cell-empty.cell-no-avail {
+  background: rgba(239, 68, 68, 0.04);
+}
+.roster-cell-empty.cell-no-avail .roster-empty {
+  color: rgba(239, 68, 68, 0.35);
+}
+
+/* Summary footer row at the bottom of the teams table.
+   Shows picks drafted per slot column and total spend per team. */
+.teams-table tfoot tr.summary-row td {
+  background: var(--bg3);
+  border-top: 1px solid var(--border2);
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 5px 6px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.teams-table tfoot tr.summary-row td.col-owner {
+  text-align: left;
+  padding-left: 10px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* ── Search Bar ─────────────────────────────────────────────────────────── */
 .search-bar-area {
   background: var(--bg2);

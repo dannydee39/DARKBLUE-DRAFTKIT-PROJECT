@@ -41,38 +41,42 @@ function calculateValuation(draftState) {
   // Undrafted pool
   const undrafted = players.filter((p) => !draftedNames.has(p.name));
 
-  // Compute pool stats for normalization
-  const poolStats = computePoolStats(undrafted, scoring_categories);
-
-  // Score the nominated player
-  const nominatedScore = scorePlayer(nominated, scoring_categories, poolStats);
-
-  // Total pool score (all undrafted including nominated)
-  const totalPoolScore = undrafted.reduce(
-    (sum, p) => sum + scorePlayer(p, scoring_categories, poolStats),
-    0
-  );
-
-  // Market inflation calculation
-  const totalRemainingBudget = teams.reduce((sum, t) => {
-    const spent = budget_per_team - (t.budget_remaining ?? budget_per_team);
-    const remaining = budget_per_team - spent;
+  // ── Market inflation calculation ────────────────────────────────────────
+  // Sum known teams' budget_remaining, then add full budget for any teams not
+  // yet represented in the payload (e.g. partial teams array from client).
+  const knownTeamBudget = teams.reduce((sum, t) => {
+    const remaining = t.budget_remaining ?? budget_per_team;
     return sum + remaining;
-  }, total_teams * budget_per_team);
+  }, 0);
+  const missingTeams = Math.max(total_teams - teams.length, 0);
+  const totalRemainingBudget = knownTeamBudget + missingTeams * budget_per_team;
 
   // Reserved dollars — each team needs $1 per remaining empty slot
   const totalRosterSlots = Object.values(roster_config).reduce((a, b) => a + b, 0);
   const filledSlots = teams.reduce((sum, t) => sum + (t.roster || []).length, 0);
   const remainingSlots = total_teams * totalRosterSlots - filledSlots;
-  const reservedDollars = remainingSlots; // $1 per remaining slot
 
-  const spendableBudget = Math.max(totalRemainingBudget - reservedDollars, 1);
-
-  // Base true dollar value
-  const baseTDV =
-    totalPoolScore > 0
-      ? (nominatedScore / totalPoolScore) * spendableBudget
-      : nominated.baseValue;
+  // ── Base true dollar value (anchored to pre-computed baseValue) ──────────
+  //
+  // WHY anchor to baseValue instead of normalising against all undrafted players?
+  //
+  // The raw SGP normalisation (nominatedScore / totalPoolScore × spendableBudget)
+  // distributes the budget across EVERY undrafted player, including hundreds of
+  // fringe/depth players. With a large pool (300+ players) this dilutes every
+  // player's share — elite players like Ohtani end up valued at $15-22 instead
+  // of the realistic $65-80 a drafter would actually bid.
+  //
+  // The `baseValue` on each player object was computed by generate-players.js
+  // using a replacement-level PAR formula that correctly concentrates the budget
+  // only on the ~110 draftable players. It is therefore a much better anchor for
+  // live auction valuations.
+  //
+  // This API then applies real-time ADJUSTMENTS on top of that anchor:
+  //   • inflationFactor  — how much remaining budget has moved vs. expectation
+  //   • scarcityMultiplier — how scarce the player's position is right now
+  //
+  // Result: accurate, realistic values from pick 1 through the final pick.
+  const baseTDV = nominated.baseValue ?? 1;
 
   // Position scarcity analysis
   const { scarcity, scarcityTier, positionScarcityMap } = analyzeScarcity(
@@ -94,7 +98,9 @@ function calculateValuation(draftState) {
 
   // Combine all factors
   const trueDollarValue = Math.round(baseTDV * scarcity * inflationFactor);
-  const trueDollarValueClamped = Math.min(Math.max(trueDollarValue, 1), 80);
+  // Cap raised to 120 so elite players ($75 base) still have headroom
+  // when scarcity (up to 1.35×) or inflation (up to 1.45×) push values higher.
+  const trueDollarValueClamped = Math.min(Math.max(trueDollarValue, 1), 120);
 
   const maxBidRecommendation = Math.max(
     Math.round(trueDollarValueClamped * 0.92),
@@ -270,7 +276,7 @@ function analyzeScarcity(player, undrafted, teams, totalTeams, rosterConfig) {
 
   return {
     scarcity: scarcityMultiplier,
-    scarcityTier: player.tier,
+    scarcityTier: scarcityTierLabel,   // bug-fix: was player.tier (wrong field)
     positionScarcityMap,
     scarcityLevel,
     undraftedAtPos,

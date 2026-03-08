@@ -25,7 +25,7 @@
 // This means position matters — a C drafted into slot 0 stays in that cell.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import { posColor, calcMaxBid, getValueClass } from "../utils/helpers.js";
@@ -215,16 +215,33 @@ export default function DraftBoard({
   }, [saleTeam, customPosInput]);
 
   // ─────────────────────────────────────────────────────────────────────────
+  // getRecommendedBid — returns the best available bid suggestion for a player.
+  // Uses the live API value from cache when available, falls back to baseValue.
+  // @param {Object} player
+  // @returns {number|string}
+  // ─────────────────────────────────────────────────────────────────────────
+  function getRecommendedBid(player) {
+    const cached = valuationCache?.[player?.id];
+    if (cached && cached !== "loading" && cached.max_bid_recommendation != null) {
+      return cached.max_bid_recommendation;
+    }
+    return player?.baseValue ?? "";
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // openSaleModal — open the sale modal for a player.
   // Pre-selects the first valid slot for the current active owner's team.
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModal(player) {
+    // Kick off a valuation request immediately so the modal can update
+    // its suggested bid as soon as the API responds (even after it opens).
+    requestValuation(player);
     const team = league.teams[currentOwnerIdx];
     const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
     setSaleModal(player);
     setSaleTeam(team?.id || 1);
     setSaleSlot(initialSlots[0]?.slotIdx ?? null);
-    setSalePrice(valuationCache[player.id]?.max_bid_recommendation || player.baseValue || "");
+    setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
   }
@@ -238,6 +255,7 @@ export default function DraftBoard({
   // @param {number} slotIdx - Slot index of the clicked cell
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModalForCell(player, teamId, slotIdx) {
+    requestValuation(player);   // same as openSaleModal — trigger early so bid updates live
     setActiveCellSearch(null);
     // Switch the active owner to the team being filled
     const ti = league.teams.findIndex((t) => t.id === teamId);
@@ -246,10 +264,29 @@ export default function DraftBoard({
     setSaleModal(player);
     setSaleTeam(teamId);
     setSaleSlot(slotIdx);     // pre-select the exact slot that was clicked
-    setSalePrice(valuationCache[player.id]?.max_bid_recommendation || player.baseValue || "");
+    setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // When the modal is already open and a valuation response arrives, update
+  // the suggested bid if the user hasn't manually changed it yet.
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!saleModal) return;
+    const cached = valuationCache?.[saleModal.id];
+    if (!cached || cached === "loading" || cached.max_bid_recommendation == null) return;
+    setSalePrice((prev) => {
+      const prevNum = Number(prev);
+      // Only auto-fill if the field still holds the baseValue default (hasn't been manually edited)
+      if (prev === "" || Number.isNaN(prevNum) || prevNum === Number(saleModal.baseValue)) {
+        return String(cached.max_bid_recommendation);
+      }
+      return prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saleModal?.id, valuationCache]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // confirmSale — validates and fires onSale with slotIndex + draftedPos.
@@ -329,8 +366,50 @@ export default function DraftBoard({
     return true;
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Pre-fetch valuations for the top 8 search results while the user types.
+  // This ensures the "Record Sale" modal bid default is already an API value
+  // by the time they click it rather than using the static baseValue.
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!searchQ) return;
+    filteredPlayers.slice(0, 8).forEach((p) => requestValuation(p));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQ, posFilter, filteredPlayers.length, draftStateKey]);
+
   const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // undraftedByPos — count of undrafted players eligible at each position.
+  // Used to show scarcity counts in column headers and tint empty cells red
+  // when a position is completely exhausted from the available pool.
+  //
+  // Recomputed only when the players array changes (memoized for performance
+  // since this touches every player for every render).
+  // ─────────────────────────────────────────────────────────────────────────
+  const undraftedByPos = useMemo(() => {
+    const map = {};
+    players
+      .filter((p) => !p.drafted)
+      .forEach((p) => {
+        p.pos.forEach((pos) => {
+          map[pos] = (map[pos] || 0) + 1;
+        });
+      });
+    return map;
+  }, [players]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // totalDraftedCount / totalSpend — aggregate counters shown in the
+  // table summary footer row (below the last team row).
+  // ─────────────────────────────────────────────────────────────────────────
+  const totalDraftedCount = league.teams.reduce(
+    (sum, t) => sum + t.roster.length, 0
+  );
+  const totalSpend = league.teams.reduce(
+    (sum, t) => sum + (league.budget - t.budget_remaining), 0
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
@@ -363,28 +442,50 @@ export default function DraftBoard({
               <tr>
                 <th className="col-owner">OWNER</th>
                 <th className="col-budget">$ LEFT</th>
-                {rosterPositions.map((pos, i) => (
-                  <th
-                    key={i}
-                    style={{ cursor: "pointer" }}
-                    title={`Click to filter search to ${pos}`}
-                    onClick={() => {
-                      setPosFilter(pos === posFilter ? "ALL" : pos);
-                      searchRef.current?.focus();
-                    }}
-                  >
-                    <span
-                      className="pos-badge-header"
-                      style={{
-                        background: posColor(pos),
-                        outline: posFilter === pos ? "2px solid white" : "none",
-                        outlineOffset: 1,
+                {rosterPositions.map((pos, i) => {
+                  // Number of undrafted players still eligible at this position
+                  const availCount = undraftedByPos[pos] ?? 0;
+                  // BN/UTIL have all undrafted hitters available — show total undrafted
+                  const displayCount =
+                    pos === "BN" || pos === "UTIL"
+                      ? players.filter((p) => !p.drafted).length
+                      : availCount;
+
+                  return (
+                    <th
+                      key={i}
+                      style={{ cursor: "pointer" }}
+                      title={`${pos} · ${displayCount} available · Click to filter`}
+                      onClick={() => {
+                        setPosFilter(pos === posFilter ? "ALL" : pos);
+                        searchRef.current?.focus();
                       }}
                     >
-                      {pos}
-                    </span>
-                  </th>
-                ))}
+                      <span
+                        className="pos-badge-header"
+                        style={{
+                          background: posColor(pos),
+                          outline: posFilter === pos ? "2px solid white" : "none",
+                          outlineOffset: 1,
+                        }}
+                      >
+                        {pos}
+                      </span>
+                      {/* Availability count — green=plenty, yellow=low, red=scarce/empty */}
+                      <div
+                        className="pos-avail-count"
+                        style={{
+                          color:
+                            displayCount === 0 ? "var(--red)"
+                            : displayCount < 3 ? "var(--yellow)"
+                            : "var(--muted)",
+                        }}
+                      >
+                        {displayCount}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -402,13 +503,28 @@ export default function DraftBoard({
                     onClick={() => setCurrentOwnerIdx(ti)}
                     title={`Click row to set ${team.name} as drafting owner`}
                   >
-                    {/* Owner label */}
+                    {/* Owner label + roster progress */}
                     <td className="col-owner">
                       {isMe && <span className="star">★ </span>}
                       {team.name}
                       {isMe && (
                         <div className="max-bid-mini">max bid ${teamMaxBid}</div>
                       )}
+                      {/* Mini progress bar: green fill = % of slots filled */}
+                      <div className="roster-progress-wrap" title={`${team.roster.length} of ${totalSlots} slots filled`}>
+                        <div
+                          className="roster-progress-bar"
+                          style={{
+                            width: `${Math.min((team.roster.length / totalSlots) * 100, 100)}%`,
+                            // Turns amber when roster is >80% full
+                            background: team.roster.length / totalSlots > 0.8
+                              ? "var(--yellow)" : "var(--green)",
+                          }}
+                        />
+                      </div>
+                      <div className="roster-progress-label">
+                        {team.roster.length}/{totalSlots}
+                      </div>
                     </td>
 
                     {/* Budget */}
@@ -509,11 +625,16 @@ export default function DraftBoard({
                       } else {
                         // ── EMPTY CELL ─────────────────────────────────────
                         const bestAvail = isHovered ? getBestAvailable(pos) : null;
+                        // No players left for this position — tint cell red
+                        const posExhausted =
+                          pos !== "BN" &&
+                          pos !== "UTIL" &&
+                          (undraftedByPos[pos] ?? 0) === 0;
 
                         return (
                           <td
                             key={si}
-                            className={`roster-cell roster-cell-empty ${isCellSearchActive ? "cell-active" : ""}`}
+                            className={`roster-cell roster-cell-empty ${posExhausted ? "cell-no-avail" : ""} ${isCellSearchActive ? "cell-active" : ""}`}
                             onClick={(e) => handleEmptyCellClick(pos, team.id, si, e)}
                             onMouseEnter={() =>
                               setHoveredCell({ teamId: team.id, slotIdx: si, entry: null, pos })
@@ -522,6 +643,8 @@ export default function DraftBoard({
                             title={
                               isCellSearchActive
                                 ? "Type to search players for this slot"
+                                : posExhausted
+                                ? `No ${pos} players remaining in pool`
                                 : `Empty ${pos} — click to search and add player`
                             }
                             style={{ position: "relative", minWidth: 80 }}
@@ -550,6 +673,22 @@ export default function DraftBoard({
                                     <div className="ct-name" style={{ color: posColor(pos) }}>
                                       {pos} SLOT
                                     </div>
+                                    {/* Remaining count badge */}
+                                    <div className="ct-row" style={{ marginBottom: 3 }}>
+                                      <span className="ct-label">AVAIL</span>
+                                      <span
+                                        className="ct-val"
+                                        style={{
+                                          color: posExhausted ? "var(--red)"
+                                            : (undraftedByPos[pos] ?? 0) < 3 ? "var(--yellow)"
+                                            : "var(--green)",
+                                        }}
+                                      >
+                                        {pos === "BN" || pos === "UTIL"
+                                          ? players.filter((p) => !p.drafted).length
+                                          : (undraftedByPos[pos] ?? 0)}
+                                      </span>
+                                    </div>
                                     {bestAvail ? (
                                       <>
                                         <div className="ct-hint" style={{ marginBottom: 3 }}>
@@ -569,7 +708,7 @@ export default function DraftBoard({
                                       </>
                                     ) : (
                                       <div className="ct-hint" style={{ color: "var(--red)" }}>
-                                        No {pos} available
+                                        ⚠ No {pos} players left
                                       </div>
                                     )}
                                     <div className="ct-hint" style={{ marginTop: 4 }}>
@@ -587,6 +726,49 @@ export default function DraftBoard({
                 );
               })}
             </tbody>
+
+            {/* ── Summary Footer Row ─────────────────────────────────────────
+                Shows totals: overall picks drafted per slot column, and
+                total spend across all teams in the $ LEFT column.
+                Helps quickly identify which roster positions are fully
+                filled league-wide vs. still have open slots.
+            ─────────────────────────────────────────────────────────────── */}
+            <tfoot>
+              <tr className="summary-row">
+                <td className="col-owner">
+                  LEAGUE TOTALS
+                  <div className="roster-progress-label">
+                    {totalDraftedCount} picks · ${totalSpend} spent
+                  </div>
+                </td>
+                <td className="col-budget" style={{ color: "var(--muted)", fontSize: 10 }}>
+                  ${totalSpend}
+                </td>
+                {rosterPositions.map((pos, si) => {
+                  // Count how many teams have a player in this exact slot
+                  const filledCount = league.teams.filter(
+                    (t) => !!t.roster.find((r) => r.slotIndex === si)
+                  ).length;
+                  const pct = filledCount / league.teams.length;
+                  return (
+                    <td
+                      key={si}
+                      title={`${filledCount}/${league.teams.length} teams have a ${pos} here`}
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color:
+                          pct === 1 ? "var(--green)"
+                          : pct > 0.5 ? "var(--muted2)"
+                          : "var(--muted)",
+                      }}
+                    >
+                      {filledCount}/{league.teams.length}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
           </table>
         </div>
 
@@ -632,6 +814,7 @@ export default function DraftBoard({
                   <SearchResult
                     key={p.id}
                     player={p}
+                    recValue={valuationCache[p.id]?.max_bid_recommendation}
                     onSelect={() => { setSelectedPlayer(p); setSearchQ(""); }}
                     onRecord={() => openSaleModal(p)}
                   />
@@ -947,8 +1130,8 @@ export default function DraftBoard({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SearchResult — single row in the bottom search bar autocomplete dropdown
-// ─────────────────────────────────────────────────────────────────────────────
-function SearchResult({ player, onSelect, onRecord }) {
+// recValue: live API max_bid_recommendation when available; falls back to player.baseValue
+function SearchResult({ player, recValue, onSelect, onRecord }) {
   return (
     <div
       className="search-result"
@@ -968,7 +1151,7 @@ function SearchResult({ player, onSelect, onRecord }) {
       {player.fpts && (
         <span style={{ fontSize: 9, color: "var(--muted)" }}>{player.fpts}pts</span>
       )}
-      <span className="sr-value">${player.baseValue}</span>
+      <span className="sr-value">${recValue ?? player.baseValue}</span>
       <button
         className="sr-record"
         onClick={(e) => { e.stopPropagation(); onRecord(); }}

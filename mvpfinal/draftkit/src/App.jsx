@@ -88,8 +88,16 @@ export default function App() {
   // DraftBoard and PlayerDictionary so both panels always show live values.
   // Values: undefined (not fetched) | "loading" | API response object.
   const [valuationCache, setValuationCache] = useState({});
+  const valuationCacheRef = useRef({});    // mirrors valuationCache; used in requestValuation
+                                           // to avoid stale-closure reads of the state variable
   const inFlightRef     = useRef(new Set());   // player IDs with active requests
   const cacheVersionRef = useRef(0);           // incremented on cache invalidation
+
+  // Keep the ref in sync with state so requestValuation always reads fresh values
+  // even when called from inside a stale closure after a cache-clear.
+  useEffect(() => {
+    valuationCacheRef.current = valuationCache;
+  }, [valuationCache]);
 
   // ── Current active owner (index into league.teams) ────────────────────────
   // Controls which team row is highlighted and whose budget/max-bid is shown.
@@ -124,10 +132,23 @@ export default function App() {
   // This forces fresh API calls after every pick or undo so inflation/scarcity
   // math in the API stays accurate.
   // ─────────────────────────────────────────────────────────────────────────
-  const draftStateKey = league.teams.map((t) => t.roster.length).join(",");
+  // Include budget_remaining so that partial picks (same count, diff spend)
+  // still invalidate the cache and trigger fresh valuations.
+  const draftStateKey = league.teams
+    .map((t) => `${t.roster.length}:${t.budget_remaining}`)
+    .join(",");
   useEffect(() => {
     cacheVersionRef.current += 1;
     inFlightRef.current.clear();
+    // BUG FIX: clear the ref SYNCHRONOUSLY here, not just via the
+    // valuationCache state→useEffect chain. The pre-fetch in DraftBoard
+    // reads from valuationCacheRef directly to avoid stale closures.
+    // Without this sync clear, the ref still holds old entries when the
+    // pre-fetch fires (React effects run top-down after each render, so
+    // the ref-sync effect below hasn't run yet), and requestValuation
+    // sees cache hits that don't exist — silently skipping re-fetches
+    // after every pick. Values then appear frozen until a manual click.
+    valuationCacheRef.current = {};
     setValuationCache({});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftStateKey]);
@@ -156,8 +177,10 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   async function requestValuation(player) {
     if (!player || apiStatus !== "online") return;
-    // Already has a fresh (non-loading) cache entry — nothing to do
-    if (valuationCache[player.id] && valuationCache[player.id] !== "loading") return;
+    // Read from ref (not state) to avoid stale closure — state variable would
+    // still reference the old cache object after a cache-clear triggered by a pick.
+    const cached = valuationCacheRef.current[player.id];
+    if (cached && cached !== "loading") return;
     // Request already in-flight for this player
     if (inFlightRef.current.has(player.id)) return;
 

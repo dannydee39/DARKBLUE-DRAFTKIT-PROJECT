@@ -22,24 +22,36 @@ A full-stack fantasy baseball auction draft tool with a live valuation engine. T
 
 | Feature | Status |
 |---|---|
-| Setup screen (league config) | Complete |
-| Interactive draft board with teams table | Complete |
-| Enhanced grid: click to remove, hover tooltips, value indicators | Complete |
-| Player search with autocomplete | Complete |
-| Live valuation from API on player selection | Complete |
-| Sale modal with API recommendation pre-fill | Complete |
-| Remove player confirmation modal | Complete |
-| Undo last sale + targeted cell undo | Complete |
-| Player Dictionary (browse, filter, notes) | Complete |
-| League Settings (scoring cats + roster config) | Complete |
-| Keeper Setup (pre-draft keeper contracts) | Complete |
-| Taxi Squad ($1 reserve picks) | Complete |
-| API Sandbox (raw JSON tester) | Complete |
-| Valuation API with SGP/PAR heuristic engine | Complete |
-| API key authentication (X-License-Key) | Complete |
-| Rate limiting (120 req/min) | Complete |
-| NL sample data pipeline (3 CSV → players.json) | Complete |
-| Modular React component architecture | Complete |
+| Setup screen (league config) | ✅ Complete |
+| Interactive draft board with teams table | ✅ Complete |
+| Grid: click filled cell → remove confirmation modal | ✅ Complete |
+| Grid: click empty cell → inline player search | ✅ Complete |
+| Grid: hover filled cell → name/price/value/FPTS tooltip | ✅ Complete |
+| Grid: hover empty cell → best available player tooltip | ✅ Complete |
+| Grid: position scarcity counts in column headers | ✅ Complete |
+| Grid: roster progress bar per team row (X/Y slots) | ✅ Complete |
+| Grid: empty cell red tint when position pool is exhausted | ✅ Complete |
+| Grid: summary footer row (picks/spend per slot column) | ✅ Complete |
+| Grid: value indicator borders (steal / fair / overpaid) | ✅ Complete |
+| Grid: position header click toggles search filter | ✅ Complete |
+| Player search with autocomplete + position filter | ✅ Complete |
+| Live valuation from API on player selection | ✅ Complete |
+| Sale modal with API recommendation pre-fill | ✅ Complete |
+| Sale modal: position slot picker for multi-eligible players | ✅ Complete |
+| Sale modal: custom position eligibility override | ✅ Complete |
+| Remove player confirmation modal (with budget refund info) | ✅ Complete |
+| Undo last sale + targeted cell undo | ✅ Complete |
+| Player Dictionary (browse, filter, notes) | ✅ Complete |
+| League Settings (scoring categories + roster config) | ✅ Complete |
+| Keeper Setup (pre-draft keeper contracts) | ✅ Complete |
+| Taxi Squad ($1 reserve picks) | ✅ Complete |
+| API Sandbox (raw JSON request tester) | ✅ Complete |
+| Valuation API with SGP/PAR heuristic engine | ✅ Complete |
+| API key authentication (X-License-Key header) | ✅ Complete |
+| Rate limiting (120 req/min per IP) | ✅ Complete |
+| NL sample data pipeline (3 CSV → players.json) | ✅ Complete |
+| Modular React component architecture | ✅ Complete |
+| Thorough code comments + JSDoc throughout | ✅ Complete |
 
 ---
 
@@ -148,7 +160,7 @@ This re-reads all three NL CSV files and writes a fresh `mvpfinal/api/data/playe
 
 ## API Reference
 
-See `mvpfinal/api/API_DOCS.md` for the full API reference.
+See [`docs/API.md`](./docs/API.md) for the full API reference with request/response schemas and examples.
 
 **Quick endpoints:**
 
@@ -165,21 +177,34 @@ See `mvpfinal/api/API_DOCS.md` for the full API reference.
 
 ## Draft Board — Grid Interaction Guide
 
+### Cell Interactions
+
 | Action | Result |
 |---|---|
-| Click a **filled cell** | Opens "Remove Player" confirmation modal. Confirms removal, refunds budget, returns player to pool. |
-| Click an **empty cell** | Flashes the cell, sets position filter in search bar to that slot's position (e.g. clicking empty OF → filters to OF players). Focus jumps to search input. |
-| **Hover a filled cell** | Shows mini tooltip: player name, price paid, base value, FPTS, and "click to remove" hint. |
-| **Hover an empty cell** | Shows mini tooltip with the best available player for that position. |
-| Click a **column header** (position badge) | Toggles the position filter in search. |
-| Click **Undo Last** | Removes the most recently recorded sale and refunds budget. |
-| Press **Escape** | Closes any open modal. |
+| Click a **filled cell** | Opens "Remove Player" confirmation modal. Shows team, slot, price paid, and budget refund amount. Confirms removal and returns player to available pool. |
+| Click an **empty cell** | Opens an inline search box inside the cell. Shows players eligible for that position slot. Selecting a player opens the full Sale modal pre-filled for that team and slot. |
+| **Hover a filled cell** | Shows tooltip: name, slot position (color-coded), price paid, base value, FPTS, and "click to remove" hint. |
+| **Hover an empty cell** | Shows tooltip: position label, number of available players, best available player name and value. |
+| Click a **column header** (position badge) | Toggles the position filter in the bottom search bar. Re-click to clear filter. |
+| Click a **team row** | Sets that team as the active "drafting owner" (highlights row in green). |
+| Click **Undo Last** | Removes the most recently recorded sale (any team) and refunds budget. |
+| Press **Escape** | Closes any open modal or inline cell search. |
 | Press **Enter** (in bid input) | Confirms the sale. |
 
-**Value indicator borders on filled cells:**
-- Green left border = steal (paid < 80% of base value)
-- No border = fair value (80–120% of base value)
-- Red left border = overpaid (paid > 120% of base value)
+### Grid Visual Indicators
+
+| Indicator | Meaning |
+|---|---|
+| **Green left border** on filled cell | Steal — paid less than 80% of base value |
+| **Red left border** on filled cell | Overpaid — paid more than 120% of base value |
+| **No left border** on filled cell | Fair value (80–120% of base value) |
+| **▲ arrow** on cell | Steal indicator |
+| **▼ arrow** on cell | Overpaid indicator |
+| **Number below position header** | Count of undrafted players still eligible at that position. Green = plenty, yellow = few (< 3), red = none |
+| **Mini progress bar** under team name | Roster completion: green = normal, amber = >80% full |
+| **X/Y label** under team name | Slots filled / total slots |
+| **Subtle red tint** on empty cell | No players left in pool for that position |
+| **Summary footer row** | Picks-per-slot across all teams (green = 100% filled) and total league spend |
 
 ---
 

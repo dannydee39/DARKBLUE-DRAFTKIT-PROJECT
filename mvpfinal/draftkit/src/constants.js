@@ -9,7 +9,10 @@
 // API_BASE: valuation API endpoint.
 // Production should be provided via VITE_API_BASE at build time.
 export const API_BASE =
-  import.meta.env.VITE_API_BASE || "http://localhost:3001";
+  import.meta.env.VITE_API_BASE ||
+  (import.meta.env.PROD
+    ? "https://draftapi.anythingavenue.com"
+    : "http://localhost:3001");
 
 // PROD_DISPLAY_URL: shown in the API Sandbox UI so users know what endpoint
 // they're hitting in production. Does NOT affect actual fetch() calls.

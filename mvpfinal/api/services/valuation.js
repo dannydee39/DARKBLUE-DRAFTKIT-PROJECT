@@ -54,12 +54,11 @@ function calculateValuation(draftState) {
   );
 
   // Market inflation calculation
-  const knownTeamBudget = teams.reduce((sum, t) => {
-    const remaining = t.budget_remaining ?? budget_per_team;
+  const totalRemainingBudget = teams.reduce((sum, t) => {
+    const spent = budget_per_team - (t.budget_remaining ?? budget_per_team);
+    const remaining = budget_per_team - spent;
     return sum + remaining;
-  }, 0);
-  const missingTeams = Math.max(total_teams - teams.length, 0);
-  const totalRemainingBudget = knownTeamBudget + missingTeams * budget_per_team;
+  }, total_teams * budget_per_team);
 
   // Reserved dollars — each team needs $1 per remaining empty slot
   const totalRosterSlots = Object.values(roster_config).reduce((a, b) => a + b, 0);
@@ -271,7 +270,7 @@ function analyzeScarcity(player, undrafted, teams, totalTeams, rosterConfig) {
 
   return {
     scarcity: scarcityMultiplier,
-    scarcityTier: scarcityTierLabel,
+    scarcityTier: player.tier,
     positionScarcityMap,
     scarcityLevel,
     undraftedAtPos,

@@ -219,12 +219,13 @@ export default function DraftBoard({
   // Pre-selects the first valid slot for the current active owner's team.
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModal(player) {
+    requestValuation(player);
     const team = league.teams[currentOwnerIdx];
     const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
     setSaleModal(player);
     setSaleTeam(team?.id || 1);
     setSaleSlot(initialSlots[0]?.slotIdx ?? null);
-    setSalePrice(valuationCache[player.id]?.max_bid_recommendation || player.baseValue || "");
+    setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
   }
@@ -238,6 +239,7 @@ export default function DraftBoard({
   // @param {number} slotIdx - Slot index of the clicked cell
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModalForCell(player, teamId, slotIdx) {
+    requestValuation(player);
     setActiveCellSearch(null);
     // Switch the active owner to the team being filled
     const ti = league.teams.findIndex((t) => t.id === teamId);
@@ -246,10 +248,25 @@ export default function DraftBoard({
     setSaleModal(player);
     setSaleTeam(teamId);
     setSaleSlot(slotIdx);     // pre-select the exact slot that was clicked
-    setSalePrice(valuationCache[player.id]?.max_bid_recommendation || player.baseValue || "");
+    setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
   }
+
+  // If modal opened before API response arrives, update bid default to rec value.
+  useEffect(() => {
+    if (!saleModal) return;
+    const cached = valuationCache?.[saleModal.id];
+    if (!cached || cached === "loading" || cached.max_bid_recommendation == null) return;
+
+    setSalePrice((prev) => {
+      const prevNum = Number(prev);
+      if (prev === "" || Number.isNaN(prevNum) || prevNum === Number(saleModal.baseValue)) {
+        return String(cached.max_bid_recommendation);
+      }
+      return prev;
+    });
+  }, [saleModal, valuationCache]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // confirmSale — validates and fires onSale with slotIndex + draftedPos.
@@ -329,8 +346,23 @@ export default function DraftBoard({
     return true;
   });
 
+  // Pre-fetch valuations for visible search dropdown rows.
+  useEffect(() => {
+    if (!searchQ) return;
+    filteredPlayers.slice(0, 8).forEach((p) => requestValuation(p));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQ, posFilter, filteredPlayers.length, draftStateKey]);
+
   const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
+
+  function getRecommendedBid(player) {
+    const cached = valuationCache?.[player?.id];
+    if (cached && cached !== "loading" && cached.max_bid_recommendation != null) {
+      return cached.max_bid_recommendation;
+    }
+    return player?.baseValue ?? "";
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
@@ -533,6 +565,8 @@ export default function DraftBoard({
                                 teamId={team.id}
                                 slotIdx={si}
                                 players={players}
+                                valuationCache={valuationCache}
+                                requestValuation={requestValuation}
                                 rosterPositions={rosterPositions}
                                 getValidSlotsForPlayer={getValidSlotsForPlayer}
                                 onSelect={(player) =>
@@ -632,6 +666,7 @@ export default function DraftBoard({
                   <SearchResult
                     key={p.id}
                     player={p}
+                    recValue={valuationCache[p.id]?.max_bid_recommendation}
                     onSelect={() => { setSelectedPlayer(p); setSearchQ(""); }}
                     onRecord={() => openSaleModal(p)}
                   />
@@ -948,7 +983,7 @@ export default function DraftBoard({
 // ─────────────────────────────────────────────────────────────────────────────
 // SearchResult — single row in the bottom search bar autocomplete dropdown
 // ─────────────────────────────────────────────────────────────────────────────
-function SearchResult({ player, onSelect, onRecord }) {
+function SearchResult({ player, recValue, onSelect, onRecord }) {
   return (
     <div
       className="search-result"
@@ -968,7 +1003,7 @@ function SearchResult({ player, onSelect, onRecord }) {
       {player.fpts && (
         <span style={{ fontSize: 9, color: "var(--muted)" }}>{player.fpts}pts</span>
       )}
-      <span className="sr-value">${player.baseValue}</span>
+      <span className="sr-value">${recValue ?? player.baseValue}</span>
       <button
         className="sr-record"
         onClick={(e) => { e.stopPropagation(); onRecord(); }}
@@ -1001,6 +1036,8 @@ function InlineCellSearch({
   teamId,
   slotIdx,
   players,
+  valuationCache,
+  requestValuation,
   rosterPositions,
   getValidSlotsForPlayer,
   onSelect,
@@ -1035,6 +1072,11 @@ function InlineCellSearch({
       return true;
     })
     .slice(0, 6);
+
+  useEffect(() => {
+    results.forEach((p) => requestValuation(p));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, pos, teamId, slotIdx, results.length]);
 
   return (
     // stopPropagation prevents the document click listener from closing this immediately
@@ -1079,7 +1121,9 @@ function InlineCellSearch({
                   </span>
                 ))}
               </div>
-              <span className="csr-value">${p.baseValue}</span>
+              <span className="csr-value">
+                ${valuationCache?.[p.id]?.max_bid_recommendation ?? p.baseValue}
+              </span>
             </div>
           ))}
         </div>

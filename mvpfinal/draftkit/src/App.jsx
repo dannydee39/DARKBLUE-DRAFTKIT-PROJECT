@@ -88,6 +88,7 @@ export default function App() {
   // DraftBoard and PlayerDictionary so both panels always show live values.
   // Values: undefined (not fetched) | "loading" | API response object.
   const [valuationCache, setValuationCache] = useState({});
+  const valuationCacheRef = useRef({});
   const inFlightRef     = useRef(new Set());   // player IDs with active requests
   const cacheVersionRef = useRef(0);           // incremented on cache invalidation
 
@@ -124,7 +125,13 @@ export default function App() {
   // This forces fresh API calls after every pick or undo so inflation/scarcity
   // math in the API stays accurate.
   // ─────────────────────────────────────────────────────────────────────────
-  const draftStateKey = league.teams.map((t) => t.roster.length).join(",");
+  const draftStateKey = league.teams
+    .map((t) => `${t.roster.length}:${t.budget_remaining}`)
+    .join(",");
+  useEffect(() => {
+    valuationCacheRef.current = valuationCache;
+  }, [valuationCache]);
+
   useEffect(() => {
     cacheVersionRef.current += 1;
     inFlightRef.current.clear();
@@ -156,8 +163,9 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   async function requestValuation(player) {
     if (!player || apiStatus !== "online") return;
+    const cached = valuationCacheRef.current[player.id];
     // Already has a fresh (non-loading) cache entry — nothing to do
-    if (valuationCache[player.id] && valuationCache[player.id] !== "loading") return;
+    if (cached && cached !== "loading") return;
     // Request already in-flight for this player
     if (inFlightRef.current.has(player.id)) return;
 

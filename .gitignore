@@ -70,3 +70,7 @@ temp/
 # ── Project-specific: keep generated players.json (it's part of the API) ──
 # To regenerate: node mvpfinal/api/scripts/generate-players.js
 # !mvpfinal/api/data/players.json   ← uncomment to exclude from git
+
+# ── Local docs / prompts ───────────────────────────────────────────────────
+presentationslidesprompt.md
+PRESENTATION_SLIDES_PROMPT.md

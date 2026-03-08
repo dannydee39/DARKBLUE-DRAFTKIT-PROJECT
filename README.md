@@ -11,6 +11,11 @@ A full-stack fantasy baseball auction draft tool with a live valuation engine. T
 1. **Draft Kit Web App** (`mvpfinal/draftkit/`) — React 18 + Vite frontend for running a live auction draft
 2. **Valuation API** (`mvpfinal/api/`) — Standalone Node.js/Express REST service for real-time player dollar-value calculation
 
+## Live URLs
+
+- Draft Kit Frontend: `https://dbdraftkit.onrender.com/`
+- Valuation API Health: `https://draftapi.anythingavenue.com/health`
+
 ---
 
 ## What's Complete
@@ -205,7 +210,7 @@ See `PlayerAvatar.jsx` for full implementation notes.
 ```env
 PORT=3001
 API_KEYS=DB-2026-DEMO-0001,DB-2026-PROD-XXXX
-ALLOWED_ORIGINS=http://localhost:5173,https://draftkit.darkblue.io
+ALLOWED_ORIGINS=http://localhost:5173,https://dbdraftkit.onrender.com
 NODE_ENV=development
 ```
 
@@ -213,9 +218,9 @@ NODE_ENV=development
 
 ## Deployment
 
-- **Valuation API** → Deploy to a VPS (set `PORT`, `API_KEYS`, `ALLOWED_ORIGINS`, `NODE_ENV=production`)
-- **Draft Kit Frontend** → Run `npm run build` in `mvpfinal/draftkit/`, deploy the `dist/` folder to Netlify / Vercel / S3
-- Update `API_BASE` in `mvpfinal/draftkit/src/constants.js` to your production API URL before building
+- **Valuation API** → Deployed at `https://draftapi.anythingavenue.com` (health at `/health`)
+- **Draft Kit Frontend** → Deployed on Render at `https://dbdraftkit.onrender.com/`
+- Ensure API CORS `ALLOWED_ORIGINS` includes `https://dbdraftkit.onrender.com`
 
 ---
 

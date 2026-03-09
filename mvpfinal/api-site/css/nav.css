@@ -1,0 +1,168 @@
+/**
+ * nav.css
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Top navigation bar styles.
+ * The nav is rendered by js/nav.js and injected into <header id="site-nav">.
+ *
+ * Structure:
+ *   <header id="site-nav">
+ *     <nav class="nav">
+ *       <div class="container nav-inner">
+ *         <a class="nav-logo">…</a>
+ *         <ul class="nav-links">…</ul>
+ *         <div class="nav-cta">…</div>
+ *       </div>
+ *     </nav>
+ *   </header>
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+header#site-nav {
+  position: fixed;
+  top:    0;
+  left:   0;
+  right:  0;
+  z-index: 200;
+}
+
+.nav {
+  height:       var(--nav-height);
+  background:   rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+  transition:   box-shadow var(--duration) var(--ease);
+}
+
+.nav.scrolled {
+  box-shadow: var(--shadow-md);
+}
+
+.nav-inner {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  height:          100%;
+}
+
+/* ── Logo ──────────────────────────────────────────────────────────────────── */
+
+.nav-logo {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-2);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.nav-logo-mark {
+  width:  32px;
+  height: 32px;
+  background:    var(--bg-hero);
+  border-radius: var(--radius);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  font-size:     14px;
+  font-weight:   var(--font-bold);
+  color:         white;
+  letter-spacing: -0.03em;
+  flex-shrink:   0;
+}
+
+.nav-logo-text {
+  display:        flex;
+  flex-direction: column;
+  line-height:    1.1;
+}
+
+.nav-logo-name {
+  font-size:      var(--text-sm);
+  font-weight:    var(--font-bold);
+  color:          var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.nav-logo-sub {
+  font-size:   9px;
+  font-weight: var(--font-medium);
+  color:       var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Navigation links ──────────────────────────────────────────────────────── */
+
+.nav-links {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-1);
+  list-style:  none;
+}
+
+.nav-links li a {
+  display:       block;
+  padding:       0.375rem var(--space-3);
+  font-size:     var(--text-sm);
+  font-weight:   var(--font-medium);
+  color:         var(--text-muted);
+  border-radius: var(--radius);
+  transition:    color var(--duration-fast), background var(--duration-fast);
+  text-decoration: none;
+}
+
+.nav-links li a:hover,
+.nav-links li a.active {
+  color:      var(--text-primary);
+  background: var(--bg-soft);
+}
+
+.nav-links li a.active {
+  color:      var(--blue-500);
+  font-weight: var(--font-semibold);
+}
+
+/* ── CTA buttons / user area ───────────────────────────────────────────────── */
+
+.nav-cta {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-3);
+  flex-shrink: 0;
+}
+
+.nav-user {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-2);
+  padding:       0.375rem var(--space-3);
+  border-radius: var(--radius-full);
+  border:        1px solid var(--border);
+  background:    var(--bg);
+  cursor:        pointer;
+  transition:    box-shadow var(--duration-fast);
+}
+
+.nav-user:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-avatar {
+  width:         28px;
+  height:        28px;
+  border-radius: var(--radius-full);
+  background:    var(--bg-hero);
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  font-size:     11px;
+  font-weight:   var(--font-bold);
+  color:         white;
+  letter-spacing:0;
+}
+
+.nav-user-name {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  color:       var(--text-primary);
+}

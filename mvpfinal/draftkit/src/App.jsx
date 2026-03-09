@@ -556,7 +556,8 @@ export default function App() {
             ["dictionary", "Player Dictionary"],
             ["settings",   "League Settings"],
             ["keeper",     "Keeper Setup"],
-            ["sandbox",    "API Sandbox"],
+            // "sandbox" tab intentionally omitted from nav — use setActiveTab("sandbox")
+            // programmatically or navigate directly for API diagnostics.
             ["taxi",       "Taxi Squad"],
           ].map(([tab, label]) => (
             <button
@@ -592,24 +593,19 @@ export default function App() {
             </button>
           )}
 
-          {/* API health indicator dot */}
+          {/* API status indicator removed from header UI per UX decision.
+              The ApiSandbox tab (setActiveTab("sandbox")) and its underlying
+              checkApiStatus / apiStatus state are preserved for diagnostics.
+              To restore the header indicator, un-comment the block below:
+
           <div className={`api-dot ${apiStatus}`} />
           <span className="api-status-label">API {apiStatus.toUpperCase()}</span>
-          {/* Re-check API status on click */}
-          <button
-            onClick={checkApiStatus}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 10,
-              color: "var(--muted)",
-              padding: "2px 6px",
-            }}
-            title="Re-check API connection"
-          >
+          <button onClick={checkApiStatus} title="Re-check API connection"
+            style={{ background:"none", border:"none", cursor:"pointer",
+                     fontSize:10, color:"var(--muted)", padding:"2px 6px" }}>
             ↺
           </button>
+          */}
           <div className="nav-badge">IN PROGRESS</div>
           <div className="nav-avatar" title="User profile">👤</div>
         </div>

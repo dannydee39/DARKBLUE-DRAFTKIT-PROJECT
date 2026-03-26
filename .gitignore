@@ -74,3 +74,6 @@ temp/
 # ── Local docs / prompts ───────────────────────────────────────────────────
 presentationslidesprompt.md
 PRESENTATION_SLIDES_PROMPT.md
+
+# ── Execute skill tracking (local only) ────────────────────────────────────
+DECISION_LOG.md

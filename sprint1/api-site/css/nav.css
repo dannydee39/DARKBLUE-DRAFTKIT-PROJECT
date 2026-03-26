@@ -1,6 +1,6 @@
 /**
  * nav.css — Top navigation bar.
- * Dark theme matching the Draft Kit nav exactly.
+ * Dark navy theme with electric blue accents.
  */
 
 header#site-nav {
@@ -13,15 +13,16 @@ header#site-nav {
 
 .nav {
   height:          var(--nav-height);
-  background:      rgba(13, 13, 13, 0.92);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  background:      rgba(10, 15, 30, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom:   1px solid var(--border);
   transition:      box-shadow var(--duration) var(--ease);
 }
 
 .nav.scrolled {
   box-shadow: 0 1px 0 var(--border), var(--shadow-md);
+  background: rgba(10, 15, 30, 0.97);
 }
 
 .nav-inner {
@@ -44,7 +45,7 @@ header#site-nav {
 .nav-logo-mark {
   width:           34px;
   height:          34px;
-  background:      #141414;
+  background:      var(--bg-soft);
   border:          1px solid var(--border-medium);
   border-radius:   var(--radius);
   display:         flex;
@@ -55,12 +56,12 @@ header#site-nav {
   overflow:        hidden;
 }
 
-/* Green glow on the logo mark */
+/* Blue glow on the logo mark */
 .nav-logo-mark::after {
   content:   '';
   position:  absolute;
   inset:     0;
-  background: radial-gradient(circle at 50% 60%, rgba(34,197,94,0.18) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 60%, rgba(59,130,246,0.20) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -112,14 +113,14 @@ header#site-nav {
 
 .nav-links li a:hover {
   color:      var(--text-primary);
-  background: #1a1a1a;
+  background: rgba(59, 130, 246, 0.06);
 }
 
 .nav-links li a.active {
-  color:        var(--green);
-  font-weight:  var(--font-semibold);
-  background:   rgba(34, 197, 94, 0.08);
-  border-bottom: 2px solid var(--green);
+  color:         var(--color-accent);
+  font-weight:   var(--font-semibold);
+  background:    var(--color-accent-dim);
+  border-bottom: 2px solid var(--color-accent);
   border-radius: var(--radius) var(--radius) 0 0;
 }
 
@@ -145,7 +146,7 @@ header#site-nav {
 }
 
 .nav-user:hover {
-  border-color: var(--green);
+  border-color: var(--color-accent);
   box-shadow:   var(--shadow-glow);
 }
 
@@ -153,14 +154,14 @@ header#site-nav {
   width:           26px;
   height:          26px;
   border-radius:   var(--radius-full);
-  background:      rgba(34, 197, 94, 0.15);
-  border:          1px solid rgba(34, 197, 94, 0.3);
+  background:      var(--color-accent-dim);
+  border:          1px solid rgba(59, 130, 246, 0.3);
   display:         flex;
   align-items:     center;
   justify-content: center;
   font-size:       10px;
   font-weight:     var(--font-bold);
-  color:           var(--green);
+  color:           var(--color-accent);
   letter-spacing:  0;
 }
 

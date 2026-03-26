@@ -338,10 +338,10 @@
 }
 
 .docs-nav-link.active {
-  color:        var(--blue-500);
+  color:        var(--color-accent);
   font-weight:  var(--font-semibold);
-  border-color: var(--blue-400);
-  background:   var(--blue-50);
+  border-color: var(--color-accent);
+  background:   var(--color-accent-dim);
 }
 
 /* ── Endpoint display row ─────────────────────────────────────────────────── */
@@ -399,7 +399,7 @@
 .callout-warning {
   background:  var(--warning-bg);
   border-left: 3px solid var(--warning);
-  color:       #92400e;
+  color:       var(--text-body);
   display:     flex;
   gap:         var(--space-3);
   padding:     var(--space-4);

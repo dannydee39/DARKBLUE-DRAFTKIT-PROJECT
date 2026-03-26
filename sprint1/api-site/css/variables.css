@@ -1,65 +1,76 @@
 /**
  * variables.css
  * ─────────────────────────────────────────────────────────────────────────────
- * Design tokens — Dark theme matching the Dark Blue Draft Kit UI.
+ * Design tokens — Dark Blue electric-navy theme.
  *
  * Color philosophy:
- *   bg*     → ultra-dark page / card surfaces  (#0d0d0d → #212121)
- *   green   → primary accent (matches draftkit --green)
- *   text*   → near-white hierarchy on dark bg
- *   border  → subtle dark separators
+ *   bg*     → deep navy page / card surfaces  (#0a0f1e → #1a2744)
+ *   accent  → electric blue (#3b82f6)
+ *   text*   → near-white hierarchy on dark navy bg
+ *   border  → subtle navy-blue separators
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 :root {
 
-  /* ── Brand Greens (draftkit primary accent) ─────────────────────────────── */
-  --green:      #22c55e;
-  --green-d:    #16a34a;
-  --green-light:#4ade80;
-  --green-glow: rgba(34, 197, 94, 0.15);
-  --green-bg:   rgba(34, 197, 94, 0.08);
+  /* ── Electric Blue Accent ───────────────────────────────────────────────── */
+  --color-accent:       #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-glow:  rgba(59, 130, 246, 0.15);
+  --color-accent-dim:   rgba(59, 130, 246, 0.08);
 
-  /* ── Brand Blues (remapped to dark-theme equivalents) ───────────────────── */
-  --blue-900: #141414;            /* dark surface (auth logo bg)               */
-  --blue-800: #1a1a1a;            /* dark panel header bg                      */
-  --blue-700: #22c55e;            /* green text (badge labels, callout text)   */
-  --blue-600: #22c55e;            /* green text (code param names, mono)       */
-  --blue-500: #22c55e;            /* mapped → green: primary CTA / active     */
-  --blue-400: #4ade80;            /* mapped → lighter green: links / highlights*/
-  --blue-300: #86efac;            /* soft green decorative                     */
-  --blue-100: rgba(34,197,94,0.10); /* green tint: badge backgrounds           */
-  --blue-50:  rgba(34,197,94,0.05); /* very light tint: hover / section bg     */
+  /* ── Legacy aliases (keep green vars for dashboard/pricing/login compat) ── */
+  --green:       #3b82f6;          /* remapped → electric blue              */
+  --green-d:     #2563eb;          /* darker blue                           */
+  --green-light: #60a5fa;          /* lighter blue                          */
+  --green-glow:  rgba(59, 130, 246, 0.15);
+  --green-bg:    rgba(59, 130, 246, 0.08);
+
+  /* ── Brand Blues ────────────────────────────────────────────────────────── */
+  --blue-900: #0a0f1e;
+  --blue-800: #0f1729;
+  --blue-700: #3b82f6;
+  --blue-600: #3b82f6;
+  --blue-500: #3b82f6;
+  --blue-400: #60a5fa;
+  --blue-300: #93c5fd;
+  --blue-100: rgba(59, 130, 246, 0.10);
+  --blue-50:  rgba(59, 130, 246, 0.05);
 
   /* ── Backgrounds ─────────────────────────────────────────────────────────── */
-  --bg:        #0d0d0d;           /* page background                           */
-  --bg-soft:   #141414;           /* alternating sections, input backgrounds   */
-  --bg-card:   #141414;           /* card surfaces                             */
-  --bg-hover:  #1a1a1a;           /* card / row hover state                    */
-  --bg-deep:   #0a0a0a;           /* deepest surface (footer, dark sections)   */
-  --bg-dark:   #080808;           /* dark CTA banner                           */
-  --bg-hero:   linear-gradient(135deg, #080808 0%, #0d0d0d 55%, #0a120a 100%);
+  --bg:        #0a0f1e;            /* page background — deep navy             */
+  --bg-soft:   #0f1729;            /* alternating sections, card bg           */
+  --bg-card:   #0f1729;            /* card surfaces                           */
+  --bg-hover:  #1a2744;            /* card / row hover state                  */
+  --bg-deep:   #070c18;            /* deepest surface (footer)                */
+  --bg-dark:   #060b15;            /* dark CTA banner                         */
+  --bg-elevated: #1a2744;          /* elevated panels                         */
+  --bg-hero:   linear-gradient(135deg, #060b15 0%, #0a0f1e 55%, #0d1530 100%);
 
   /* ── Text ────────────────────────────────────────────────────────────────── */
-  --text-primary:   #f1f5f9;      /* headings and important body copy          */
-  --text-body:      #e2e8f0;      /* standard body text                        */
-  --text-muted:     #9ca3af;      /* captions, metadata, secondary labels      */
-  --text-faint:     #6b7280;      /* placeholder text, disabled                */
-  --text-inverse:   #0d0d0d;      /* text on light/green backgrounds           */
-  --text-accent:    #22c55e;      /* inline links, highlighted labels          */
+  --text-primary:   #e2e8f0;       /* headings and important body copy        */
+  --text-body:      #cbd5e1;       /* standard body text                      */
+  --text-muted:     #94a3b8;       /* captions, metadata, secondary labels    */
+  --text-faint:     #64748b;       /* placeholder text, disabled              */
+  --text-inverse:   #0a0f1e;       /* text on light/blue backgrounds          */
+  --text-accent:    #3b82f6;       /* inline links, highlighted labels        */
 
   /* ── Borders ─────────────────────────────────────────────────────────────── */
-  --border:        #2a2a2a;       /* standard divider / card outline           */
-  --border-medium: #333333;       /* stronger separator                        */
-  --border-focus:  #22c55e;       /* input focus ring — green                  */
+  --border:        #1e3a5f;        /* standard divider / card outline         */
+  --border-medium: #254875;        /* stronger separator                      */
+  --border-focus:  #3b82f6;        /* input focus ring — electric blue        */
 
   /* ── Semantic States ─────────────────────────────────────────────────────── */
-  --success:     #22c55e;
-  --success-bg:  rgba(34, 197, 94, 0.10);
+  --success:     #10b981;
+  --success-bg:  rgba(16, 185, 129, 0.10);
   --warning:     #f59e0b;
   --warning-bg:  rgba(245, 158, 11, 0.10);
   --error:       #ef4444;
   --error-bg:    rgba(239, 68, 68, 0.10);
+
+  /* HTTP method badge colors */
+  --color-badge-get:  #10b981;
+  --color-badge-post: #3b82f6;
 
   /* ── Typography ──────────────────────────────────────────────────────────── */
   --font-sans: 'Alexandria', 'Inter', -apple-system, BlinkMacSystemFont,
@@ -109,14 +120,14 @@
   --radius-xl:   20px;
   --radius-full: 9999px;
 
-  /* ── Shadows (dark-surface adapted) ─────────────────────────────────────── */
-  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow:      0 4px 6px  rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-md:   0 8px 16px rgba(0, 0, 0, 0.6), 0 3px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg:   0 20px 40px rgba(0, 0, 0, 0.7), 0 8px 16px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 0 3px rgba(34, 197, 94, 0.20);  /* green focus ring     */
-  --shadow-green:0 0 20px rgba(34, 197, 94, 0.12);   /* green ambient glow   */
+  /* ── Shadows (navy-adapted) ──────────────────────────────────────────────── */
+  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow:      0 4px 6px  rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md:   0 8px 16px rgba(0, 0, 0, 0.7), 0 3px 6px rgba(0, 0, 0, 0.5);
+  --shadow-lg:   0 20px 40px rgba(0, 0, 0, 0.8), 0 8px 16px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 0 3px rgba(59, 130, 246, 0.25);   /* blue focus ring    */
+  --shadow-blue: 0 0 24px rgba(59, 130, 246, 0.12);    /* blue ambient glow  */
 
   /* ── Transitions ─────────────────────────────────────────────────────────── */
   --ease:        cubic-bezier(0.4, 0, 0.2, 1);

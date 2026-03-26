@@ -1,5 +1,6 @@
 /**
  * base.css — Reset, body defaults, global typography.
+ * Dark navy theme with electric blue accents.
  */
 
 *, *::before, *::after {
@@ -28,12 +29,12 @@ body {
 img, svg { display: block; max-width: 100%; }
 
 a {
-  color:           var(--text-accent);
+  color:           var(--color-accent);
   text-decoration: none;
   transition:      color var(--duration-fast) var(--ease);
 }
 
-a:hover { color: var(--green-light); }
+a:hover { color: var(--color-accent-hover); }
 
 button {
   font-family: inherit;
@@ -106,7 +107,7 @@ code, pre { font-family: var(--font-mono); }
   font-weight:    var(--font-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color:          var(--green);
+  color:          var(--color-accent);
 }
 
 /* ── Section spacing ─────────────────────────────────────────────────────────── */

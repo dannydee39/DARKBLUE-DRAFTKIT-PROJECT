@@ -1,7 +1,7 @@
 /**
  * docs.css
  * ─────────────────────────────────────────────────────────────────────────────
- * API reference / sample commands page.
+ * API reference page — dark navy theme with electric blue accents.
  *
  * Layout: 2-column on desktop — sticky sidebar for section nav on the left,
  * scrollable content pane on the right.
@@ -22,10 +22,18 @@
 
 .docs-sidebar {
   flex-shrink: 0;
-  width:       220px;
+  width:       224px;
   position:    sticky;
   top:         calc(var(--nav-height) + var(--space-6));
+  max-height:  calc(100vh - var(--nav-height) - var(--space-12));
+  overflow-y:  auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-track { background: transparent; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .docs-sidebar-title {
   font-size:      var(--text-xs);
@@ -57,14 +65,14 @@
 
 .docs-nav a:hover {
   color:      var(--text-primary);
-  background: var(--bg-soft);
+  background: var(--color-accent-dim);
 }
 
 .docs-nav a.active {
-  color:        var(--green);
+  color:        var(--color-accent);
   font-weight:  var(--font-semibold);
-  border-color: var(--green);
-  background:   rgba(34, 197, 94, 0.06);
+  border-color: var(--color-accent);
+  background:   var(--color-accent-dim);
 }
 
 .docs-nav .docs-nav-group {
@@ -87,7 +95,7 @@
 
 .docs-content {
   flex: 1;
-  min-width: 0;  /* prevents flex overflow */
+  min-width: 0;
 }
 
 /* Each docs section */
@@ -120,8 +128,8 @@
   font-family:    var(--font-mono);
 }
 
-.method-badge.get  { background: rgba(34, 197, 94, 0.12); color: var(--green); }
-.method-badge.post { background: rgba(34, 197, 94, 0.10); color: var(--green); }
+.method-badge.get  { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+.method-badge.post { background: rgba(59, 130, 246, 0.12); color: var(--color-accent); }
 
 /* Endpoint path display */
 .endpoint-path {
@@ -190,7 +198,7 @@
 .params-table td:first-child {
   font-family: var(--font-mono);
   font-size:   var(--text-xs);
-  color:       var(--blue-600);
+  color:       var(--color-accent);
   font-weight: var(--font-semibold);
   white-space: nowrap;
 }
@@ -221,15 +229,181 @@
 }
 
 .callout-info {
-  background:  rgba(34, 197, 94, 0.06);
-  border-left: 3px solid var(--green);
+  background:  var(--color-accent-dim);
+  border-left: 3px solid var(--color-accent);
   color:       var(--text-body);
 }
 
-.callout-warn {
+.callout-warn,
+.callout-warning {
   background:  var(--warning-bg);
   border-left: 3px solid var(--warning);
-  color:       #92400e;
+  color:       var(--text-body);
+}
+
+/* ── Endpoint display row (used in docs content) ───────────────────────────── */
+
+.endpoint-display {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-3);
+  background:    var(--bg-soft);
+  border:        1px solid var(--border);
+  border-radius: var(--radius);
+  padding:       var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+  overflow-x:    auto;
+  font-family:   var(--font-mono);
+  font-size:     var(--text-sm);
+  color:         var(--text-muted);
+}
+
+/* HTTP method badge variants */
+.endpoint-badge {
+  display:        inline-flex;
+  align-items:    center;
+  padding:        3px 10px;
+  border-radius:  var(--radius-sm);
+  font-family:    var(--font-mono);
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink:    0;
+}
+
+.badge-get  { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+.badge-post { background: rgba(59, 130, 246, 0.12); color: var(--color-accent); }
+
+/* Required field badge */
+.required-badge {
+  display:        inline-block;
+  font-size:      9px;
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          var(--error);
+  background:     var(--error-bg);
+  padding:        2px 5px;
+  border-radius:  3px;
+  white-space:    nowrap;
+}
+
+/* ── Try It panel ─────────────────────────────────────────────────────────── */
+
+.tryit-textarea {
+  width:        100%;
+  min-height:   280px;
+  resize:       vertical;
+  font-family:  var(--font-mono);
+  font-size:    var(--text-xs);
+  color:        var(--text-body);
+  background:   var(--bg-elevated);
+  border:       1px solid var(--border);
+  border-radius:var(--radius);
+  padding:      var(--space-4);
+  line-height:  var(--leading-normal);
+}
+
+.tryit-textarea:focus {
+  outline:      none;
+  border-color: var(--border-focus);
+  box-shadow:   var(--shadow-glow);
+}
+
+.tryit-actions {
+  display:     flex;
+  gap:         var(--space-3);
+  margin-top:  var(--space-4);
+  flex-wrap:   wrap;
+}
+
+/* Endpoint selector in Try It panel */
+.tryit-endpoint-select {
+  padding:       0.5rem var(--space-3);
+  border:        1.5px solid var(--border-medium);
+  border-radius: var(--radius);
+  font-size:     var(--text-sm);
+  color:         var(--text-primary);
+  background:    var(--bg-elevated);
+  font-family:   var(--font-sans);
+  outline:       none;
+  cursor:        pointer;
+}
+
+.tryit-endpoint-select:focus {
+  border-color: var(--border-focus);
+  box-shadow:   var(--shadow-glow);
+}
+
+.tryit-status {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-top:  var(--space-4);
+  min-height:  1.25rem;
+}
+
+.tryit-ok    { color: var(--success); }
+.tryit-error { color: var(--error);   }
+
+/* ── Docs section headings ────────────────────────────────────────────────── */
+
+.docs-section h2 {
+  font-size:     var(--text-2xl);
+  font-weight:   var(--font-bold);
+  color:         var(--text-primary);
+  letter-spacing:-0.015em;
+  margin-bottom: var(--space-4);
+  line-height:   var(--leading-tight);
+}
+
+.docs-section h3 {
+  font-size:     var(--text-base);
+  font-weight:   var(--font-bold);
+  color:         var(--text-primary);
+  margin-top:    var(--space-8);
+  margin-bottom: var(--space-3);
+}
+
+/* ── Sidebar key box ─────────────────────────────────────────────────────── */
+
+.sidebar-key-box {
+  margin-top:   var(--space-6);
+  padding-top:  var(--space-4);
+  border-top:   1px solid var(--border);
+}
+
+.sidebar-key-val {
+  display:      block;
+  font-family:  var(--font-mono);
+  font-size:    var(--text-xs);
+  color:        var(--color-accent);
+  word-break:   break-all;
+  margin-top:   var(--space-2);
+}
+
+.sidebar-demo-note {
+  font-size:     var(--text-xs);
+  color:         var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.license-key-label {
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color:          var(--text-muted);
+}
+
+/* ── Table note ──────────────────────────────────────────────────────────── */
+
+.table-note {
+  font-size:  var(--text-xs);
+  color:      var(--text-muted);
+  margin-top: calc(-1 * var(--space-4));
+  margin-bottom: var(--space-6);
+  line-height: var(--leading-normal);
 }
 
 /* ── Mobile fallback ───────────────────────────────────────────────────────── */
@@ -240,8 +414,9 @@
   }
 
   .docs-sidebar {
-    width:    100%;
-    position: static;
+    width:      100%;
+    position:   static;
+    max-height: none;
   }
 
   .docs-nav {
@@ -251,12 +426,12 @@
   }
 
   .docs-nav a {
-    border-left: none;
+    border-left:   none;
     border-bottom: 2px solid transparent;
   }
 
   .docs-nav a.active {
-    border-left:  none;
-    border-bottom-color: var(--green);
+    border-left:         none;
+    border-bottom-color: var(--color-accent);
   }
 }

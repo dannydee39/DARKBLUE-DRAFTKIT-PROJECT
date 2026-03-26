@@ -1,426 +1,230 @@
-"""Generate answer.docx for CSE 416 Activity - Data Design"""
+"""Generate concise, API-focused answer.docx for CSE 416 Data Design Activity"""
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
-import os
 
 doc = Document()
 
-# ── Styles ────────────────────────────────────────────────────────────────────
-style = doc.styles['Normal']
-style.font.name = 'Calibri'
-style.font.size = Pt(11)
+NAVY  = RGBColor(0x00, 0x33, 0x99)
+GREY  = RGBColor(0x44, 0x44, 0x44)
+WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 
-def add_heading(text, level=1, color=None):
-    h = doc.add_heading(text, level=level)
-    if color:
-        for run in h.runs:
-            run.font.color.rgb = RGBColor(*color)
-    return h
-
-def add_para(text='', bold=False, italic=False, size=11):
-    p = doc.add_paragraph()
-    run = p.add_run(text)
-    run.bold = bold
-    run.italic = italic
-    run.font.size = Pt(size)
+def h1(text):
+    p = doc.add_heading(text, level=1)
+    for r in p.runs: r.font.color.rgb = NAVY
     return p
 
-def add_bullet(text, bold_prefix=None):
+def h2(text):
+    p = doc.add_heading(text, level=2)
+    for r in p.runs: r.font.color.rgb = NAVY
+    return p
+
+def para(text, bold=False, italic=False, size=10.5):
+    p = doc.add_paragraph()
+    r = p.add_run(text)
+    r.bold = bold; r.italic = italic
+    r.font.size = Pt(size)
+    return p
+
+def bullet(label, text):
     p = doc.add_paragraph(style='List Bullet')
-    if bold_prefix:
-        run = p.add_run(bold_prefix)
-        run.bold = True
-        p.add_run(text)
-    else:
-        p.add_run(text)
-    return p
+    p.paragraph_format.space_after = Pt(2)
+    r = p.add_run(label)
+    r.bold = True; r.font.size = Pt(10)
+    r2 = p.add_run(text)
+    r2.font.size = Pt(10)
 
-def add_code_block(text):
+def code(text):
     p = doc.add_paragraph()
-    p.paragraph_format.left_indent = Inches(0.4)
-    run = p.add_run(text)
-    run.font.name = 'Courier New'
-    run.font.size = Pt(9)
-    run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x6e)
-    return p
+    p.paragraph_format.left_indent = Inches(0.3)
+    p.paragraph_format.space_before = Pt(2)
+    p.paragraph_format.space_after  = Pt(2)
+    r = p.add_run(text)
+    r.font.name = 'Courier New'
+    r.font.size = Pt(8.5)
+    r.font.color.rgb = RGBColor(0x1a, 0x1a, 0x6e)
 
-def add_table_row(table, cells, bold=False):
-    row = table.add_row()
-    for i, val in enumerate(cells):
-        cell = row.cells[i]
-        cell.text = val
-        if bold:
-            for run in cell.paragraphs[0].runs:
-                run.bold = True
-    return row
+def small_table(headers, rows):
+    tbl = doc.add_table(rows=1, cols=len(headers))
+    tbl.style = 'Light Shading Accent 1'
+    for i, h in enumerate(headers):
+        c = tbl.rows[0].cells[i]
+        c.text = h
+        c.paragraphs[0].runs[0].bold = True
+        c.paragraphs[0].runs[0].font.size = Pt(9)
+    for row in rows:
+        r = tbl.add_row()
+        for i, val in enumerate(row):
+            r.cells[i].text = val
+            r.cells[i].paragraphs[0].runs[0].font.size = Pt(9)
 
 # ── Title ─────────────────────────────────────────────────────────────────────
-title = doc.add_heading('Dark Blue Draft Kit — Data Design', 0)
-title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-for run in title.runs:
-    run.font.color.rgb = RGBColor(0x00, 0x33, 0x99)
+t = doc.add_heading('Dark Blue Draft Kit — Data Design', 0)
+t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+for r in t.runs: r.font.color.rgb = NAVY
 
-subtitle = doc.add_paragraph('CSE 416 — Team Activity: Data Design')
-subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-subtitle.runs[0].font.color.rgb = RGBColor(0x55, 0x55, 0x55)
-subtitle.runs[0].font.size = Pt(12)
+sub = doc.add_paragraph('CSE 416 | Team Activity: Data Design | 2026-03-26')
+sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
+sub.runs[0].font.color.rgb = GREY
+sub.runs[0].font.size = Pt(10)
 doc.add_paragraph()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 1 — DATA SOURCES
+h1('1. Data Sources')
 # ═══════════════════════════════════════════════════════════════════════════════
-add_heading('1. Data Sources', level=1, color=(0, 51, 153))
-add_para(
-    'Below is an itemized list of all MLB data sources used by the Dark Blue Draft Kit API, '
-    'including which data must be refreshed periodically and how that refresh is performed.',
-    size=11
-)
+para('All data sourced from the MLB Stats API (statsapi.mlb.com). Static data is cached in players.json; '
+     'live data fetched via nightly/hourly cron jobs during the MLB season (April–October).', size=10)
 doc.add_paragraph()
 
-# 1.1 Player Info
-add_heading('1.1  Player Info (Unique Identifiers, Name, MLB Team)', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API (statsapi.mlb.com) ')
-add_bullet('  Endpoint: /v1/sports/1/players?season={year}&gameType=R')
-add_bullet('  Fields used: id (MLBAM integer ID), fullName, currentTeam.id, primaryPosition.abbreviation')
-add_bullet('  Refresh: Once per season (static for a given year). Re-fetched at season open if rosters change significantly.')
-add_bullet('  Local cache: sprint1/api/data/players.json — regenerated by scripts/generate-players.js')
-doc.add_paragraph()
-
-# 1.2 Player Stats 2025
-add_heading('1.2  Player Stats — 2025 Season (Current)', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API ')
-add_bullet('  Endpoint: /v1/people/{mlbam_id}/stats?stats=season&season=2025&group=hitting,pitching')
-add_bullet('  Fields: HR, RBI, R, SB, AVG, OBP, SLG (hitters); ERA, WHIP, SO, W, SV (pitchers)')
-add_bullet('  Refresh: PERIODICALLY — daily during the MLB season (April–October).')
-add_bullet('  Method: Nightly cron job (Node script) fetches updated stats and rebuilds players.json.')
-doc.add_paragraph()
-
-# 1.3 Player Stats Previous Seasons
-add_heading('1.3  Player Stats — Previous Seasons', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API (historical) ')
-add_bullet('  Endpoint: /v1/people/{mlbam_id}/stats?stats=yearByYear&group=hitting,pitching')
-add_bullet('  Fields: Same stat categories, indexed by season year')
-add_bullet('  Refresh: STATIC after season ends — fetched once per prior season. Stored in players.json under a stats_history array keyed by year.')
-doc.add_paragraph()
-
-# 1.4 Injury Status
-add_heading('1.4  Player Injury Status', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API Transactions + Injury endpoint ')
-add_bullet('  Endpoint: /v1/transactions?sportId=1&startDate={today}&endDate={today}&gameType=R')
-add_bullet('  Also: /v1/sports/1/players?season=2025 — returns "status" field (Active, IL-10, IL-60, etc.)')
-add_bullet('  Fields: status, injuryDescription, injuryDate, expectedReturn')
-add_bullet('  Refresh: PERIODICALLY — every 4 hours during season. Stored in players.json under injury field (null = healthy).')
-doc.add_paragraph()
-
-# 1.5 MLB Team Info
-add_heading('1.5  MLB Team Info (Unique Identifiers, Name)', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API ')
-add_bullet('  Endpoint: /v1/teams?sportId=1')
-add_bullet('  Fields: id (MLBAM team integer ID), name, abbreviation, league.id, division.id')
-add_bullet('  Refresh: STATIC — team identifiers do not change mid-season. Updated once at season start.')
-doc.add_paragraph()
-
-# 1.6 Depth Charts
-add_heading('1.6  MLB Team Depth Charts', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API ')
-add_bullet('  Endpoint: /v1/teams/{team_id}/roster?rosterType=depthChart&season=2025')
-add_bullet('  Fields: roster array with player id, jerseyNumber, position, status')
-add_bullet('  Refresh: PERIODICALLY — daily during season (depth charts shift frequently with call-ups/options).')
-doc.add_paragraph()
-
-# 1.7 Transactions / Contract Status
-add_heading('1.7  Transactions and Contract / Roster Status', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API ')
-add_bullet('  Endpoint: /v1/transactions?sportId=1&startDate={N_days_ago}&endDate={today}')
-add_bullet('  Types tracked: OPTION (to minors), RECALL, RELEASE, SIGN, DFA, TRADE')
-add_bullet('  Refresh: PERIODICALLY — every 4 hours during season. Used to update a player\'s "status" field: Rostered | Minors | Released | DFA.')
-doc.add_paragraph()
-
-# 1.8 Player Photos
-add_heading('1.8  Player Photos', level=2)
-add_bullet('Source: ', bold_prefix='MLB Stats API CDN ')
-add_bullet('  URL pattern: https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/{mlbam_id}/headshot/67/current')
-add_bullet('  No API call needed — photos are fetched on-demand by MLBAM player ID in the frontend.')
-add_bullet('  The photoUrl field in players.json is set to null; frontend constructs the URL from the id field.')
-add_bullet('  Unique identification: MLBAM integer ID guarantees uniqueness even for same-name players (e.g., Ken Griffey Sr. vs. Jr.).')
-doc.add_paragraph()
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 2 — PLAYER AND TEAM ID MANAGEMENT
-# ═══════════════════════════════════════════════════════════════════════════════
-add_heading('2. Player and Team ID Descriptions', level=1, color=(0, 51, 153))
-
-add_heading('2.1  The Problem: Name Collisions', level=2)
-add_para(
-    'Player names are not unique. Two players may share the same first and last name, and — as in the case of '
-    'Ken Griffey Sr. and Ken Griffey Jr. — two players on the same team can share a name. '
-    'Similarly, MLB team abbreviations are not stable across eras (e.g., the Expos became the Nationals). '
-    'We therefore never use name strings as primary keys.'
-)
-doc.add_paragraph()
-
-add_heading('2.2  MLBAM Integer ID — Primary Key for Players', level=2)
-add_para(
-    'Every player is uniquely identified by their MLB Advanced Media (MLBAM) integer ID. '
-    'This is the same ID used by the official MLB Stats API, Baseball Reference, FanGraphs, '
-    'and every major data vendor. It is stable across teams, seasons, and name changes.'
-)
-doc.add_paragraph()
-
-tbl = doc.add_table(rows=1, cols=3)
-tbl.style = 'Light Shading Accent 1'
-hdr = tbl.rows[0].cells
-hdr[0].text = 'Field'
-hdr[1].text = 'Type'
-hdr[2].text = 'Description'
-for cell in hdr:
-    for run in cell.paragraphs[0].runs:
-        run.bold = True
-
-rows = [
-    ('id', 'integer', 'MLBAM Player ID — globally unique, never reused'),
-    ('name', 'string', 'Display name only — NOT used as a key'),
-    ('team', 'string', 'MLB team abbreviation (informational)'),
-    ('league', 'string', 'AL or NL (derived from team)'),
-    ('pos', 'string[]', 'Position eligibility list, e.g. ["OF", "DH"]'),
-]
-for r in rows:
-    row = tbl.add_row()
-    for i, val in enumerate(r):
-        row.cells[i].text = val
-
-doc.add_paragraph()
-add_para(
-    'The players.json data file uses sequential integer IDs (1, 2, 3…) as internal IDs '
-    'since the current data is synthesized for 2025 projections. In the full production system, '
-    'these IDs will be replaced 1-to-1 with official MLBAM IDs sourced directly from the MLB Stats API.',
-    italic=True
-)
-doc.add_paragraph()
-
-add_heading('2.3  MLBAM Integer ID — Primary Key for Teams', level=2)
-add_para(
-    'MLB teams are identified by their MLBAM team integer ID (e.g., 119 = Los Angeles Dodgers, 121 = New York Mets). '
-    'Abbreviations (LAD, NYM) are stored for display purposes only and are never used as keys.'
-)
-doc.add_paragraph()
-
-tbl2 = doc.add_table(rows=1, cols=3)
-tbl2.style = 'Light Shading Accent 1'
-hdr2 = tbl2.rows[0].cells
-hdr2[0].text = 'Field'
-hdr2[1].text = 'Type'
-hdr2[2].text = 'Description'
-for cell in hdr2:
-    for run in cell.paragraphs[0].runs:
-        run.bold = True
-
-team_rows = [
-    ('team_id', 'integer', 'MLBAM Team ID — globally unique'),
-    ('name', 'string', 'Full team name (display only)'),
-    ('abbreviation', 'string', 'Short code, e.g. LAD (display only, not a key)'),
-    ('league_id', 'integer', 'MLBAM League ID: 103 = AL, 104 = NL'),
-]
-for r in team_rows:
-    row = tbl2.add_row()
-    for i, val in enumerate(r):
-        row.cells[i].text = val
-
-doc.add_paragraph()
-
-add_heading('2.4  Draft Session Identity', level=2)
-add_para(
-    'During a live draft, each connected Draft Kit instance is identified by a session_id '
-    '(format: sess_<24-char hex>, e.g. sess_a3f1b2c4d5e6f7a8b9c0d1e2). '
-    'Sessions are tied to a license key (X-License-Key header) and stored server-side. '
-    'The session_id uniquely identifies the licensed party and their current draft state '
-    'for the duration of the draft (6-hour TTL).'
-)
-doc.add_paragraph()
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 3 — API SIGNATURES
-# ═══════════════════════════════════════════════════════════════════════════════
-add_heading('3. Preliminary MLB/Player API — Player Valuation Request Signatures', level=1, color=(0, 51, 153))
-
-add_para(
-    'All endpoints require an X-License-Key header. Requests can be stateless (full draft_state '
-    'in each request) or session-based (open a session once, then pass session_id). '
-    'All monetary values are in USD auction dollars.'
-)
-doc.add_paragraph()
-
-# ── 3.0 Session Management ────────────────────────────────────────────────────
-add_heading('3.0  Session Management (Optional but Recommended)', level=2)
-add_para(
-    'Sessions allow the API to hold draft state server-side. Instead of re-sending full draft state '
-    'with every request, the client opens a session once and sends only small updates as players are drafted.'
-)
-doc.add_paragraph()
-
-add_para('POST /v1/sessions — Open a draft session', bold=True)
-add_para('Headers:')
-add_code_block('X-License-Key: DB-2026-XXXX-XXXX\nContent-Type: application/json')
-add_para('Request body:')
-add_code_block('''{
-  "draft_state": {
-    "total_teams": 12,
-    "budget_per_team": 260,
-    "scoring_categories": ["HR", "RBI", "AVG", "SB", "ERA", "SO", "WHIP"],
-    "roster_config": { "C":1, "1B":1, "2B":1, "3B":1, "SS":1, "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2 },
-    "teams": []
-  }
-}''')
-add_para('Response (201 Created):')
-add_code_block('{ "session_id": "sess_a3f1b2c4d5e6f7a8", "expires_at": "2026-03-26T20:00:00Z" }')
-doc.add_paragraph()
-
-add_para('PUT /v1/sessions/{session_id} — Update draft state after a pick', bold=True)
-add_code_block('''{
-  "draft_state": {
-    "teams": [
-      { "id": 1, "budget_remaining": 222, "roster": ["Shohei Ohtani", "Juan Soto"] }
+small_table(
+    ['Data', 'MLB Stats API Endpoint', 'Key Fields', 'Refresh'],
+    [
+        ('Player info',
+         '/v1/sports/1/players?season=2025&gameType=R',
+         'id (MLBAM), fullName, currentTeam.id, primaryPosition',
+         'Once per season'),
+        ('2025 stats (hitting)',
+         '/v1/people/{id}/stats?stats=season&season=2025&group=hitting',
+         'homeRuns, rbi, stolenBases, avg, obp, slg, runs',
+         'Daily (in-season)'),
+        ('2025 stats (pitching)',
+         '/v1/people/{id}/stats?stats=season&season=2025&group=pitching',
+         'era, whip, strikeOuts, wins, saves',
+         'Daily (in-season)'),
+        ('Previous seasons',
+         '/v1/people/{id}/stats?stats=yearByYear&group=hitting,pitching',
+         'Same fields, keyed by season year',
+         'Static after season ends'),
+        ('Injury / roster status',
+         '/v1/transactions?sportId=1&startDate={today}&endDate={today}',
+         'status (Active, IL-10, IL-60), injuryDescription',
+         'Every 4 hours'),
+        ('Team info',
+         '/v1/teams?sportId=1',
+         'id (MLBAM), name, abbreviation, league.id',
+         'Once per season'),
+        ('Depth charts',
+         '/v1/teams/{team_id}/roster?rosterType=depthChart&season=2025',
+         'roster[].player.id, position, status',
+         'Daily'),
+        ('Transactions',
+         '/v1/transactions?sportId=1&startDate={N_days_ago}&endDate={today}',
+         'type (OPTION, RECALL, DFA, TRADE, SIGN, RELEASE)',
+         'Every 4 hours'),
+        ('Player photos',
+         'img.mlbstatic.com/mlb-photos/image/.../people/{id}/headshot/67/current',
+         'Constructed from MLBAM id — no separate call',
+         'On-demand (CDN)'),
     ]
-  }
-}''')
-add_para('Response (200):')
-add_code_block('{ "session_id": "sess_a3f1b2c4d5e6f7a8", "updated": true }')
-doc.add_paragraph()
-
-add_para('DELETE /v1/sessions/{session_id} — End session when draft is complete', bold=True)
-add_code_block('Response (200): { "session_id": "sess_a3f1b2c4d5e6f7a8", "deleted": true }')
-doc.add_paragraph()
-
-# ── 3.1 Single Player ─────────────────────────────────────────────────────────
-add_heading('3.1  $ Value of a Single Player', level=2)
-add_para('POST /v1/valuate', bold=True)
-add_para('Purpose: Get the real-time auction dollar value for one nominated player given the current draft state.')
-doc.add_paragraph()
-
-add_para('Option A — Stateless (full draft state per request):')
-add_code_block('''{
-  "draft_state": {
-    "total_teams": 12,
-    "budget_per_team": 260,
-    "scoring_categories": ["HR", "RBI", "AVG", "SB", "ERA", "SO", "WHIP"],
-    "nominated_player": "Shohei Ohtani",
-    "teams": [
-      { "id": 1, "budget_remaining": 222, "roster": ["Juan Soto"] },
-      { "id": 2, "budget_remaining": 251, "roster": [] }
-    ],
-    "roster_config": { "C":1, "1B":1, "2B":1, "3B":1, "SS":1, "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2 }
-  }
-}''')
-doc.add_paragraph()
-
-add_para('Option B — Session-based (preferred during live draft):')
-add_code_block('''{
-  "session_id": "sess_a3f1b2c4d5e6f7a8",
-  "draft_state": { "nominated_player": "Shohei Ohtani" }
-}''')
-doc.add_paragraph()
-
-add_para('Response (200 OK):')
-add_code_block('''{
-  "player": "Shohei Ohtani",
-  "true_dollar_value": 75,
-  "max_bid_recommendation": 69,
-  "market_inflation": 1.05,
-  "scarcity_tier": "HIGH",
-  "position_scarcity": { "DH": "HIGH", "SP": "HIGH" },
-  "draftability_score": 1.0,
-  "reasoning": "DH scarce — high demand in pool. Market inflation +5.0%. Tier: Elite. TDV: $75.",
-  "stats": { "tier": "Elite", "positions": ["DH", "SP"], "team": "LAD", "league": "NL" }
-}''')
-doc.add_paragraph()
-
-add_para('Error — Player not found (404):')
-add_code_block('{ "error": "Player not found", "player": "Unknown Name", "message": "Could not find player in database." }')
-doc.add_paragraph()
-
-# ── 3.2 Batch / Collection ────────────────────────────────────────────────────
-add_heading('3.2  $ Value of a Specific Collection of Players', level=2)
-add_para('POST /v1/valuate/batch', bold=True)
-add_para('Purpose: Get valuations for a list of named players in one request (max 50). Useful for watchlist or comparison views.')
-doc.add_paragraph()
-
-add_para('Option A — Stateless:')
-add_code_block('''{
-  "players": ["Shohei Ohtani", "Juan Soto", "Kyle Tucker"],
-  "draft_state": {
-    "total_teams": 12,
-    "budget_per_team": 260,
-    "scoring_categories": ["HR", "RBI", "AVG", "SB", "ERA", "SO", "WHIP"],
-    "teams": [],
-    "roster_config": { "C":1, "1B":1, "2B":1, "3B":1, "SS":1, "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2 }
-  }
-}''')
-doc.add_paragraph()
-
-add_para('Option B — Session-based:')
-add_code_block('{ "session_id": "sess_a3f1b2c4d5e6f7a8", "players": ["Shohei Ohtani", "Juan Soto", "Kyle Tucker"] }')
-doc.add_paragraph()
-
-add_para('Response (200 OK):')
-add_code_block('''{
-  "count": 3,
-  "valuations": [
-    { "player": "Shohei Ohtani", "true_dollar_value": 75, "max_bid_recommendation": 69, ... },
-    { "player": "Juan Soto", "true_dollar_value": 66, "max_bid_recommendation": 61, ... },
-    { "player": "Kyle Tucker", "true_dollar_value": 57, "max_bid_recommendation": 52, ... }
-  ],
-  "errors": []
-}''')
-doc.add_paragraph()
-
-# ── 3.3 All Eligible Players ──────────────────────────────────────────────────
-add_heading('3.3  $ Value of All Eligible Players', level=2)
-add_para('GET /v1/valuate/all', bold=True)
-add_para('Purpose: Returns valuations for every undrafted player, sorted by true_dollar_value descending. Used to populate the draft board and live player rankings.')
-doc.add_paragraph()
-
-add_para('Option A — Stateless query params:')
-add_code_block('''GET /v1/valuate/all
-  ?total_teams=12
-  &budget_per_team=260
-  &scoring_categories=HR,RBI,AVG,SB,ERA,SO,WHIP
-  &drafted=Shohei+Ohtani,Juan+Soto
-  &pos=OF                    (optional — filter by position)
-  &tier=Elite                (optional — filter by tier)''')
-doc.add_paragraph()
-
-add_para('Option B — Session-based:')
-add_code_block('GET /v1/valuate/all?session_id=sess_a3f1b2c4d5e6f7a8&pos=SP')
-doc.add_paragraph()
-
-add_para('Response (200 OK):')
-add_code_block('''{
-  "count": 87,
-  "draft_state_summary": {
-    "total_teams": 12,
-    "budget_per_team": 260,
-    "drafted_count": 2
-  },
-  "players": [
-    { "player": "Kyle Tucker", "true_dollar_value": 57, "max_bid_recommendation": 52, ... },
-    { "player": "Trea Turner", "true_dollar_value": 53, "max_bid_recommendation": 48, ... },
-    ...
-  ]
-}''')
-doc.add_paragraph()
-
-add_para(
-    'Note: All three valuation endpoints (3.1, 3.2, 3.3) return different dollar values depending on '
-    'draft state — inflation rises as the draft progresses and remaining budget competes for fewer players; '
-    'position scarcity multipliers increase as eligible players at a given position are exhausted.',
-    italic=True
 )
 doc.add_paragraph()
+para('Players.json is rebuilt by a Node.js script (scripts/generate-players.js) that calls the MLB Stats API '
+     'and merges all fields. 313 players are currently in the dataset.', italic=True, size=9.5)
+
+doc.add_paragraph()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+h1('2. Player and Team ID Management')
+# ═══════════════════════════════════════════════════════════════════════════════
+para('Player names are NOT unique keys — two players may share a name (including on the same team). '
+     'All objects are keyed by MLBAM integer ID, the same ID used by the official MLB Stats API, '
+     'Baseball Reference, and FanGraphs. This ID is stable across teams, seasons, and name changes.', size=10)
+doc.add_paragraph()
+
+small_table(
+    ['Object', 'Primary Key', 'Display Field', 'Example'],
+    [
+        ('Player', 'MLBAM integer id  (e.g. 660271)', 'fullName', '660271 = Shohei Ohtani'),
+        ('Team',   'MLBAM team id     (e.g. 119)',    'abbreviation', '119 = LAD'),
+        ('League', 'MLBAM league id   (103 AL / 104 NL)', 'name', '103 = American League'),
+    ]
+)
+doc.add_paragraph()
+para('Player photos use the MLBAM ID directly in the CDN URL — no separate lookup needed. '
+     'The current players.json uses sequential integers (1, 2, 3…) as internal IDs since the '
+     'dataset is a projected/synthesized 2025 roster; production will replace these with official MLBAM IDs.', italic=True, size=9.5)
+
+doc.add_paragraph()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+h1('3. Player Valuation API — Request Signatures')
+# ═══════════════════════════════════════════════════════════════════════════════
+para('Base URL: https://draftapi.anythingavenue.com  |  Auth: X-License-Key header  |  Demo key: DB-2026-DEMO-0001', bold=True, size=10)
+doc.add_paragraph()
+
+# 3.1
+h2('3.1  $ Value of a Single Player — POST /v1/valuate')
+para('Returns the draft-state-aware auction dollar value for one nominated player.', size=10)
+code('curl -X POST https://draftapi.anythingavenue.com/v1/valuate \\\n'
+     '  -H "X-License-Key: DB-2026-DEMO-0001" \\\n'
+     '  -H "Content-Type: application/json" \\\n'
+     '  -d \'{"draft_state":{"total_teams":12,"budget_per_team":260,\n'
+     '         "scoring_categories":["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n'
+     '         "nominated_player":"Shohei Ohtani","teams":[],\n'
+     '         "roster_config":{"C":1,"1B":1,"2B":1,"3B":1,"SS":1,"OF":3,"SP":2,"RP":2,"UTIL":1,"BN":2}}}\'')
+para('Response (200 OK) — confirmed live:', size=10)
+code('{"player":"Shohei Ohtani","true_dollar_value":75,"max_bid_recommendation":69,\n'
+     ' "market_inflation":1.0,"scarcity_tier":"LOW",\n'
+     ' "position_scarcity":{"DH":"LOW","SP":"LOW"},"draftability_score":1,\n'
+     ' "reasoning":"Tier: LOW. TDV: $75.",\n'
+     ' "stats":{"tier":"Elite","positions":["DH","SP"],"team":"LAD","league":"NL"}}')
+
+doc.add_paragraph()
+small_table(
+    ['Field', 'Type', 'Description'],
+    [
+        ('total_teams', 'int', 'Number of teams in the league (affects budget inflation)'),
+        ('budget_per_team', 'int', 'Auction budget per team (typically 260)'),
+        ('scoring_categories', 'string[]', 'Active scoring cats: HR, RBI, AVG, SB, ERA, SO, WHIP, etc.'),
+        ('nominated_player', 'string', 'Player name to valuate (case-insensitive, partial match supported)'),
+        ('teams', 'object[]', 'Array of {id, budget_remaining, roster:[names...]} — current draft state'),
+        ('roster_config', 'object', 'Slots per position: {C:1, 1B:1, 2B:1, 3B:1, SS:1, OF:3, SP:2, RP:2, UTIL:1, BN:2}'),
+    ]
+)
+doc.add_paragraph()
+
+# 3.2
+h2('3.2  $ Value of a Player Collection — POST /v1/valuate/batch')
+para('Valuates up to 50 players in a single request. Same draft_state as above, plus a players array.', size=10)
+code('curl -X POST https://draftapi.anythingavenue.com/v1/valuate/batch \\\n'
+     '  -H "X-License-Key: DB-2026-DEMO-0001" -H "Content-Type: application/json" \\\n'
+     '  -d \'{"players":["Shohei Ohtani","Juan Soto","Kyle Tucker"],\n'
+     '         "draft_state":{"total_teams":12,"budget_per_team":260,\n'
+     '           "scoring_categories":["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n'
+     '           "teams":[],"roster_config":{"C":1,"1B":1,"2B":1,"3B":1,"SS":1,"OF":3,"SP":2,"RP":2,"UTIL":1,"BN":2}}}\'')
+para('Response (200 OK):', size=10)
+code('{"count":3,\n'
+     ' "valuations":[\n'
+     '   {"player":"Shohei Ohtani","true_dollar_value":75,"max_bid_recommendation":69,...},\n'
+     '   {"player":"Juan Soto","true_dollar_value":66,"max_bid_recommendation":61,...},\n'
+     '   {"player":"Kyle Tucker","true_dollar_value":57,"max_bid_recommendation":52,...}\n'
+     ' ],\n'
+     ' "errors":[]}')
+doc.add_paragraph()
+
+# 3.3
+h2('3.3  $ Value of All Eligible Players — GET /v1/valuate/all')
+para('Returns all undrafted players valued and sorted by true_dollar_value descending. '
+     'Pass drafted player names via the drafted param to exclude them from the pool.', size=10)
+code('curl "https://draftapi.anythingavenue.com/v1/valuate/all\n'
+     '  ?total_teams=12&budget_per_team=260\n'
+     '  &scoring_categories=HR,RBI,AVG,SB,ERA,SO,WHIP\n'
+     '  &drafted=Shohei+Ohtani,Juan+Soto\n'
+     '  &pos=OF&tier=Elite" \\\n'
+     '  -H "X-License-Key: DB-2026-DEMO-0001"')
+para('Response (200 OK):', size=10)
+code('{"count":311,\n'
+     ' "draft_state_summary":{"total_teams":12,"budget_per_team":260,"drafted_count":2},\n'
+     ' "players":[\n'
+     '   {"player":"Kyle Tucker","true_dollar_value":57,"max_bid_recommendation":52,...},\n'
+     '   {"player":"Trea Turner","true_dollar_value":53,"max_bid_recommendation":48,...},\n'
+     '   ...311 players sorted by true_dollar_value desc\n'
+     ' ]}')
+doc.add_paragraph()
+para('All three endpoints return context-aware values — true_dollar_value changes as teams draft players, '
+     'budgets deplete, and positional scarcity shifts.', italic=True, size=9.5)
 
 # ── Save ──────────────────────────────────────────────────────────────────────
-out_path = r'C:\Users\Apple\Desktop\answer.docx'
-doc.save(out_path)
-print(f"Saved: {out_path}")
+out = r'C:\Users\Apple\Desktop\answer.docx'
+doc.save(out)
+print(f'Saved: {out}')

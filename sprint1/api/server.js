@@ -8,7 +8,6 @@ const rateLimit = require("express-rate-limit");
 
 const valuateRouter = require("./routes/valuate");
 const playersRouter = require("./routes/players");
-const { router: sessionsRouter } = require("./routes/sessions");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,7 +28,7 @@ app.use(
       }
       callback(new Error("Not allowed by CORS policy"));
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "X-License-Key"],
   })
 );
@@ -50,7 +49,6 @@ app.use(express.json({ limit: "1mb" }));
 // ── ROUTES ────────────────────────────────────────────────────────────────────
 app.use("/v1/valuate", valuateRouter);
 app.use("/v1/players", playersRouter);
-app.use("/v1/sessions", sessionsRouter);
 
 // Health check (no auth required)
 app.get("/health", (req, res) => {

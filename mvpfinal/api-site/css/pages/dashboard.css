@@ -39,14 +39,15 @@
 .auth-logo-mark {
   width:         40px;
   height:        40px;
-  background:    var(--bg-hero);
+  background:    #141414;
+  border:        1px solid var(--border-medium);
   border-radius: var(--radius-md);
   display:       flex;
   align-items:   center;
   justify-content: center;
   font-size:     18px;
   font-weight:   var(--font-bold);
-  color:         white;
+  color:         var(--green);
   letter-spacing:-0.03em;
   flex-shrink:   0;
 }
@@ -253,19 +254,20 @@
 
 .quickstart-header {
   padding:       var(--space-4) var(--space-5);
-  background:    var(--blue-800);
-  color:         white;
+  background:    #1a1a1a;
+  border-bottom: 1px solid var(--border);
 }
 
 .quickstart-header h3 {
   font-size:   var(--text-sm);
   font-weight: var(--font-bold);
+  color:       var(--text-primary);
   margin-bottom:2px;
 }
 
 .quickstart-header p {
   font-size: var(--text-xs);
-  color:     rgba(255,255,255,0.65);
+  color:     var(--text-faint);
 }
 
 .quickstart-steps {
@@ -285,8 +287,9 @@
   flex-shrink:   0;
   width:         22px;
   height:        22px;
-  background:    var(--blue-100);
-  color:         var(--blue-600);
+  background:    rgba(34, 197, 94, 0.12);
+  border:        1px solid rgba(34, 197, 94, 0.3);
+  color:         var(--green);
   border-radius: var(--radius-full);
   display:       flex;
   align-items:   center;
@@ -315,8 +318,8 @@
   align-items:   flex-start;
   gap:           var(--space-4);
   padding:       var(--space-5);
-  background:    var(--success-bg);
-  border:        1px solid #6ee7b7;
+  background:    rgba(34, 197, 94, 0.08);
+  border:        1px solid rgba(34, 197, 94, 0.25);
   border-radius: var(--radius-md);
   margin-bottom: var(--space-6);
   animation:     pageFadeIn 0.4s var(--ease) both;
@@ -331,12 +334,12 @@
 .claim-success-text h3 {
   font-size:     var(--text-base);
   font-weight:   var(--font-semibold);
-  color:         #065f46;
+  color:         var(--text-primary);
   margin-bottom: var(--space-1);
 }
 
 .claim-success-text p {
   font-size:   var(--text-sm);
-  color:       #047857;
+  color:       var(--text-muted);
   line-height: var(--leading-normal);
 }

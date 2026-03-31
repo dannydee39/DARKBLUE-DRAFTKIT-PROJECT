@@ -66,7 +66,7 @@ DB.pages.login = function (container) {
 
         /* Logo / brand */
         '<div class="auth-logo">' +
-          '<div class="auth-logo-mark">DB</div>' +
+          '<img src="logo.png" alt="Dark Blue" style="width:64px;height:64px;border-radius:12px;display:block;margin:0 auto var(--space-3);">' +
           '<div class="auth-logo-name">Dark Blue API</div>' +
           '<div class="auth-logo-sub">Fantasy Baseball Valuation Engine</div>' +
         '</div>' +

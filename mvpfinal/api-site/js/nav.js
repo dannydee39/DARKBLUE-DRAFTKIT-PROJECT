@@ -51,7 +51,9 @@ DB.nav = (function () {
         <div class="container nav-inner">
           <!-- Logo -->
           <a href="#home" class="nav-logo" aria-label="Dark Blue API — Home">
-            <div class="nav-logo-mark">DB</div>
+            <div class="nav-logo-mark">
+              <img src="logo.png" width="28" height="28" alt="" style="display:block;border-radius:4px;">
+            </div>
             <div class="nav-logo-text">
               <span class="nav-logo-name">Dark Blue</span>
               <span class="nav-logo-sub">Valuation API</span>

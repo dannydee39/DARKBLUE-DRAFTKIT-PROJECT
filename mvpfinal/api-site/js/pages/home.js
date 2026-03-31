@@ -249,5 +249,69 @@ max_bid    = round(true_value × <span class="tok-num">0.92</span>)</pre>
         </div>
       </div>
     </section>
+
+    <!-- ⑦ Footer -->
+    <footer class="site-footer" role="contentinfo">
+      <div class="container">
+        <div class="footer-inner">
+          <!-- Brand column -->
+          <div class="footer-brand">
+            <div class="footer-logo">
+              <div class="footer-logo-mark">
+                <img src="logo.png" width="32" height="32" alt="" style="display:block;border-radius:6px;">
+              </div>
+              <span style="font-size:var(--text-sm);font-weight:var(--font-bold);color:var(--text-primary);">Dark Blue</span>
+            </div>
+            <p class="footer-tagline">
+              Real-time auction valuation API for fantasy baseball draft kits.
+              Built for speed, accuracy, and live draft conditions.
+            </p>
+          </div>
+
+          <!-- Product links -->
+          <div class="footer-links-group">
+            <span class="footer-links-title">Product</span>
+            <a href="#home"    class="footer-link">Home</a>
+            <a href="#pricing" class="footer-link">Pricing</a>
+            <a href="#docs"    class="footer-link">API Docs</a>
+          </div>
+
+          <!-- Account links -->
+          <div class="footer-links-group">
+            <span class="footer-links-title">Account</span>
+            <a href="#login"     class="footer-link">Sign In</a>
+            <a href="#pricing"   class="footer-link">Get a Key</a>
+            <a href="#dashboard" class="footer-link">Dashboard</a>
+          </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="footer-bottom">
+          <span class="footer-copy">&copy; ${new Date().getFullYear()} Dark Blue. All rights reserved.</span>
+          <div class="footer-status">
+            <span class="status-dot"></span>
+            All systems operational
+          </div>
+        </div>
+      </div>
+    </footer>
   `;
+
+  /* ── Typing animation on the hero code preview ───────────────────────────── */
+  _initTypingAnimation(container);
 };
+
+/**
+ * Animates a blinking cursor appended to the last line of the hero code block.
+ * Runs once per page load — restarts whenever the home page is re-rendered.
+ */
+function _initTypingAnimation(container) {
+  const pre = container.querySelector('.hero-preview .code-pre');
+  if (!pre) return;
+
+  // Append a blinking cursor element after the code
+  const cursor = document.createElement('span');
+  cursor.className = 'type-cursor';
+  cursor.setAttribute('aria-hidden', 'true');
+  pre.appendChild(cursor);
+}

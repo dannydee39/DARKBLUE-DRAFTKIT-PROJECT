@@ -62,13 +62,15 @@
   justify-content: center;
   width:           48px;
   height:          48px;
-  background:      var(--blue-900);
-  color:           #ffffff;
+  background:      #141414;
+  border:          1px solid var(--border-medium);
+  color:           var(--green);
   border-radius:   var(--radius-md);
   font-size:       var(--text-md);
   font-weight:     var(--font-extrabold);
   letter-spacing:  0.02em;
   margin-bottom:   var(--space-3);
+  box-shadow:      0 0 0 1px rgba(34,197,94,0.15), var(--shadow-green);
 }
 
 .auth-logo-name {

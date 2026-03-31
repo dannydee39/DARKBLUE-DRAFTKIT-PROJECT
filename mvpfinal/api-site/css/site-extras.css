@@ -187,8 +187,8 @@
 /* ── Success banner ───────────────────────────────────────────────────────── */
 
 .success-banner {
-  background:    #d1fae5;
-  border-bottom: 1px solid #6ee7b7;
+  background:    rgba(34, 197, 94, 0.08);
+  border-bottom: 1px solid rgba(34, 197, 94, 0.25);
   padding:       var(--space-4) 0;
 }
 
@@ -202,8 +202,8 @@
   flex-shrink:     0;
   width:           28px;
   height:          28px;
-  background:      #10b981;
-  color:           white;
+  background:      var(--green);
+  color:           #0d0d0d;
   border-radius:   var(--radius-full);
   display:         flex;
   align-items:     center;
@@ -215,7 +215,7 @@
 .success-body {
   flex:        1;
   font-size:   var(--text-sm);
-  color:       #065f46;
+  color:       var(--text-body);
   line-height: var(--leading-normal);
 }
 
@@ -231,7 +231,7 @@
   border:       none;
   cursor:       pointer;
   font-size:    20px;
-  color:        #065f46;
+  color:        var(--text-muted);
   line-height:  1;
   padding:      0 var(--space-1);
   opacity:      0.6;
@@ -377,8 +377,8 @@
   flex-shrink:    0;
 }
 
-.badge-get  { background: var(--success-bg);  color: #065f46; }
-.badge-post { background: var(--blue-100);    color: var(--blue-700); }
+.badge-get  { background: rgba(34, 197, 94, 0.12); color: var(--green); }
+.badge-post { background: rgba(34, 197, 94, 0.10); color: var(--green); }
 
 /* ── Required field badge ─────────────────────────────────────────────────── */
 

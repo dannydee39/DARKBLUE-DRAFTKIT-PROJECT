@@ -1,15 +1,8 @@
 /**
- * base.css
- * ─────────────────────────────────────────────────────────────────────────────
- * CSS reset, body defaults, and global typography.
- * Loaded after variables.css, before all other stylesheets.
- * ─────────────────────────────────────────────────────────────────────────────
+ * base.css — Reset, body defaults, global typography.
  */
 
-/* ── Reset ─────────────────────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -32,10 +25,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-img, svg {
-  display: block;
-  max-width: 100%;
-}
+img, svg { display: block; max-width: 100%; }
 
 a {
   color:           var(--text-accent);
@@ -43,9 +33,7 @@ a {
   transition:      color var(--duration-fast) var(--ease);
 }
 
-a:hover {
-  color: var(--blue-600);
-}
+a:hover { color: var(--green-light); }
 
 button {
   font-family: inherit;
@@ -54,18 +42,11 @@ button {
   background: transparent;
 }
 
-input, textarea, select {
-  font-family: inherit;
-  font-size:   inherit;
-}
-
-code, pre {
-  font-family: var(--font-mono);
-}
+input, textarea, select { font-family: inherit; font-size: inherit; }
+code, pre { font-family: var(--font-mono); }
 
 /* ── Layout Containers ─────────────────────────────────────────────────────── */
 
-/* Full-width wrapper with horizontal padding */
 .container {
   width: 100%;
   max-width: var(--content-width);
@@ -73,7 +54,6 @@ code, pre {
   padding-inline: var(--space-6);
 }
 
-/* Narrower content container for centered text sections */
 .container-narrow {
   width: 100%;
   max-width: var(--content-narrow);
@@ -81,7 +61,7 @@ code, pre {
   padding-inline: var(--space-6);
 }
 
-/* ── Typography helpers ────────────────────────────────────────────────────── */
+/* ── Typography helpers ─────────────────────────────────────────────────────── */
 
 .heading-xl {
   font-size:   var(--text-4xl);
@@ -126,57 +106,45 @@ code, pre {
   font-weight:    var(--font-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color:          var(--text-muted);
+  color:          var(--green);
 }
 
-/* ── Section spacing ───────────────────────────────────────────────────────── */
+/* ── Section spacing ─────────────────────────────────────────────────────────── */
 
-.section {
-  padding-block: var(--space-20);
-}
+.section     { padding-block: var(--space-20); }
+.section-sm  { padding-block: var(--space-12); }
+.section-alt { background: var(--bg-soft); }
 
-.section-sm {
-  padding-block: var(--space-12);
-}
+/* ── Page viewport ───────────────────────────────────────────────────────────── */
 
-/* Alternating section background */
-.section-alt {
-  background: var(--bg-soft);
-}
-
-/* ── Page viewport — all page content is injected here ───────────────────── */
-/* The nav is fixed, so the viewport needs top offset */
 #app-viewport {
   padding-top: var(--nav-height);
-  min-height: calc(100vh - var(--nav-height));
+  min-height:  calc(100vh - var(--nav-height));
 }
 
-/* ── Visibility helpers ────────────────────────────────────────────────────── */
-.hidden { display: none !important; }
-.sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border-width: 0;
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
+
+.hidden   { display: none !important; }
+.sr-only  {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
 }
 
-/* ── Utility ───────────────────────────────────────────────────────────────── */
-.text-center { text-align: center; }
-.text-left   { text-align: left;   }
-.mt-2  { margin-top: var(--space-2); }
-.mt-4  { margin-top: var(--space-4); }
-.mt-6  { margin-top: var(--space-6); }
-.mt-8  { margin-top: var(--space-8); }
+.text-center  { text-align: center; }
+.text-left    { text-align: left;   }
+.mt-2         { margin-top: var(--space-2); }
+.mt-4         { margin-top: var(--space-4); }
+.mt-6         { margin-top: var(--space-6); }
+.mt-8         { margin-top: var(--space-8); }
 
-/* ── Page transition fade ──────────────────────────────────────────────────── */
+/* ── Page transition ─────────────────────────────────────────────────────────── */
+
 .page-enter {
   animation: pageFadeIn var(--duration) var(--ease) both;
 }
 
 @keyframes pageFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0);    }
 }

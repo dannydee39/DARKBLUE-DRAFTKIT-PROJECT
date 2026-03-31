@@ -61,10 +61,10 @@
 }
 
 .docs-nav a.active {
-  color:        var(--blue-500);
+  color:        var(--green);
   font-weight:  var(--font-semibold);
-  border-color: var(--blue-400);
-  background:   var(--blue-50);
+  border-color: var(--green);
+  background:   rgba(34, 197, 94, 0.06);
 }
 
 .docs-nav .docs-nav-group {
@@ -120,8 +120,8 @@
   font-family:    var(--font-mono);
 }
 
-.method-badge.get  { background: var(--success-bg);  color: #065f46; }
-.method-badge.post { background: var(--blue-100);    color: var(--blue-600); }
+.method-badge.get  { background: rgba(34, 197, 94, 0.12); color: var(--green); }
+.method-badge.post { background: rgba(34, 197, 94, 0.10); color: var(--green); }
 
 /* Endpoint path display */
 .endpoint-path {
@@ -221,9 +221,9 @@
 }
 
 .callout-info {
-  background:  var(--blue-50);
-  border-left: 3px solid var(--blue-400);
-  color:       var(--blue-700);
+  background:  rgba(34, 197, 94, 0.06);
+  border-left: 3px solid var(--green);
+  color:       var(--text-body);
 }
 
 .callout-warn {
@@ -257,6 +257,6 @@
 
   .docs-nav a.active {
     border-left:  none;
-    border-bottom-color: var(--blue-400);
+    border-bottom-color: var(--green);
   }
 }

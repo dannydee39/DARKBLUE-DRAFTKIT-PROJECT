@@ -32,7 +32,8 @@ body {
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 input, select, textarea, button { font-family: inherit; }
@@ -796,13 +797,13 @@ a { color: var(--green); text-decoration: none; }
 
 /* ── Setup Screen ────────────────────────────────────────────────────────── */
 .setup-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 32px;
+  justify-content: flex-start;
+  padding: 40px 32px 48px;
   gap: 32px;
 }
 
@@ -830,6 +831,12 @@ a { color: var(--green); text-decoration: none; }
   letter-spacing: -0.02em;
 }
 .setup-sub { font-size: 13px; color: var(--muted2); margin-top: 12px; letter-spacing: 0.05em; }
+
+@media (min-height: 900px) {
+  .setup-page {
+    justify-content: center;
+  }
+}
 
 .setup-card {
   background: var(--bg2);

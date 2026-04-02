@@ -6,8 +6,16 @@
 // then clicks "Initialize Draft" which calls onInit with the form values.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DEFAULT_ROSTER, DEFAULT_SCORING } from "../constants.js";
+import {
+  countDraftEntries,
+  countTaxiEntries,
+  formatDraftTimestamp,
+  formatPoolLabel,
+  hasDraftStarted,
+  validateLeagueConfig,
+} from "../utils/draftSessions.js";
 
 /**
  * SetupScreen
@@ -20,7 +28,14 @@ import { DEFAULT_ROSTER, DEFAULT_SCORING } from "../constants.js";
  *                                  Signature: (formValues: LeagueConfig) => void
  * @returns {JSX.Element}
  */
-export default function SetupScreen({ onInit }) {
+export default function SetupScreen({
+  onInit,
+  drafts = [],
+  activeDraftId = null,
+  onResumeDraft,
+  onDuplicateDraft,
+  onDeleteDraft,
+}) {
   // ── Local form state ─────────────────────────────────────────────────────
   // This state is ONLY used on this screen. Once onInit() is called the
   // parent App component takes over and this component unmounts.
@@ -34,6 +49,13 @@ export default function SetupScreen({ onInit }) {
     scoring: { ...DEFAULT_SCORING },
     keeperLeague: true,
   });
+  const [creating, setCreating] = useState(false);
+
+  const validation = useMemo(() => validateLeagueConfig(form), [form]);
+  const totalRosterSlots = Object.entries(form.roster)
+    .filter(([slot]) => slot !== "TAXI")
+    .reduce((sum, [, count]) => sum + count, 0);
+  const scoringCount = Object.values(form.scoring).filter(Boolean).length;
 
   /**
    * Shorthand setter — merges a single key-value pair into form state.
@@ -42,6 +64,16 @@ export default function SetupScreen({ onInit }) {
    */
   function set(key, val) {
     setForm((prev) => ({ ...prev, [key]: val }));
+  }
+
+  async function handleInit() {
+    if (validation.errors.length > 0 || creating) return;
+    setCreating(true);
+    try {
+      await onInit(form);
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -61,86 +93,185 @@ export default function SetupScreen({ onInit }) {
       </div>
 
       {/* ── League Config Form ────────────────────────────────────────────── */}
-      <div className="setup-card">
-        <h2 className="setup-card-title">CREATE NEW DRAFT INSTANCE</h2>
+      <div className="setup-content">
+        <div className="setup-card">
+          <h2 className="setup-card-title">CREATE NEW DRAFT INSTANCE</h2>
 
-        {/* League name */}
-        <div className="form-group">
-          <label>LEAGUE NAME</label>
-          <input
-            value={form.name}
-            onChange={(e) => set("name", e.target.value)}
-            placeholder="e.g. Valuation Test League"
-          />
-        </div>
-
-        {/* Season year */}
-        <div className="form-group">
-          <label>SEASON YEAR</label>
-          <input
-            value={form.season}
-            onChange={(e) => set("season", e.target.value)}
-          />
-        </div>
-
-        {/* Owner count + budget side by side */}
-        <div className="form-row">
+          {/* League name */}
           <div className="form-group">
-            <label>OWNERS</label>
+            <label>LEAGUE NAME</label>
             <input
-              type="number"
-              value={form.owners}
-              min={2}
-              max={20}
-              onChange={(e) => set("owners", +e.target.value)}
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. Valuation Test League"
             />
           </div>
+
+          {/* Season year */}
           <div className="form-group">
-            <label>BUDGET / OWNER ($)</label>
+            <label>SEASON YEAR</label>
             <input
-              type="number"
-              value={form.budget}
-              min={100}
-              max={500}
-              onChange={(e) => set("budget", +e.target.value)}
+              value={form.season}
+              onChange={(e) => set("season", e.target.value)}
             />
           </div>
-        </div>
 
-        {/* Player pool selection
-            NOTE: The sample data is NL-only, so "NL Only" is the default.
-            Selecting "MLB (All)" will work but may show fewer players
-            until AL data files are added to sample/data/. */}
-        <div className="form-group">
-          <label>PLAYER POOL</label>
-          <div className="toggle-group">
-            {[
-              ["MLB", "MLB (All)"],
-              ["AL", "AL Only"],
-              ["NL", "NL Only"],
-            ].map(([val, label]) => (
-              <button
-                key={val}
-                className={`toggle-btn ${form.pool === val ? "active" : ""}`}
-                onClick={() => set("pool", val)}
-              >
-                {label}
-              </button>
-            ))}
+          {/* Owner count + budget side by side */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>OWNERS</label>
+              <input
+                type="number"
+                value={form.owners}
+                min={2}
+                max={20}
+                onChange={(e) => set("owners", +e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>BUDGET / OWNER ($)</label>
+              <input
+                type="number"
+                value={form.budget}
+                min={100}
+                max={500}
+                onChange={(e) => set("budget", +e.target.value)}
+              />
+            </div>
           </div>
+
+          <div className="form-group">
+            <label>PLAYER POOL</label>
+            <div className="toggle-group">
+              {[
+                ["MLB", "MLB (All)"],
+                ["AL", "AL Only"],
+                ["NL", "NL Only"],
+              ].map(([val, label]) => (
+                <button
+                  key={val}
+                  className={`toggle-btn ${form.pool === val ? "active" : ""}`}
+                  onClick={() => set("pool", val)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="setup-summary">
+            <div className="setup-summary-row">
+              <span>Scoring Categories</span>
+              <strong>{scoringCount} active</strong>
+            </div>
+            <div className="setup-summary-row">
+              <span>Main Roster Slots</span>
+              <strong>{totalRosterSlots}</strong>
+            </div>
+            <div className="setup-summary-row">
+              <span>Pool Mode</span>
+              <strong>{formatPoolLabel(form.pool)}</strong>
+            </div>
+          </div>
+
+          {(validation.errors.length > 0 || validation.warnings.length > 0) && (
+            <div className="setup-validation">
+              {validation.errors.map((error) => (
+                <div key={error} className="setup-validation-row error">
+                  {error}
+                </div>
+              ))}
+              {validation.warnings.map((warning) => (
+                <div key={warning} className="setup-validation-row warning">
+                  {warning}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            className="init-btn"
+            disabled={validation.errors.length > 0 || creating}
+            onClick={handleInit}
+          >
+            {creating ? "INITIALIZING…" : "INITIALIZE DRAFT →"}
+          </button>
+          <p className="setup-hint">
+            Each draft is saved locally so you can return to previous league setups and seasons.
+          </p>
         </div>
 
-        {/* Submit */}
-        <button
-          className="init-btn"
-          disabled={!form.name.trim()}
-          onClick={() => onInit(form)}
-        >
-          INITIALIZE DRAFT →
-        </button>
-        <p className="setup-hint">
-          Player pool auto-populated from NL sample data on initialization
-        </p>
+        <div className="setup-card setup-library-card">
+          <div className="setup-library-header">
+            <h2 className="setup-card-title">SAVED DRAFT LIBRARY</h2>
+            <span className="setup-library-count">{drafts.length} total</span>
+          </div>
+
+          {drafts.length === 0 && (
+            <p className="setup-library-empty">
+              No saved drafts yet. Create your first league setup to start a reusable draft library.
+            </p>
+          )}
+
+          {drafts.length > 0 && (
+            <div className="saved-draft-list">
+              {drafts.map((draft) => {
+                const draftLeague = draft.league || {};
+                const started = hasDraftStarted(draftLeague);
+                const mainPicks = countDraftEntries(draftLeague);
+                const taxiPicks = countTaxiEntries(draftLeague);
+
+                return (
+                  <div
+                    key={draft.id}
+                    className={`saved-draft-card ${draft.id === activeDraftId ? "active" : ""}`}
+                  >
+                    <div className="saved-draft-top">
+                      <div>
+                        <div className="saved-draft-name">{draftLeague.name || "Untitled League"}</div>
+                        <div className="saved-draft-meta">
+                          {draftLeague.season || "2025"} · {formatPoolLabel(draftLeague.pool)} · {draftLeague.owners || 0} owners
+                        </div>
+                      </div>
+                      <span className={`saved-draft-badge ${started ? "live" : "setup"}`}>
+                        {started ? "ACTIVE" : "SETUP"}
+                      </span>
+                    </div>
+
+                    <div className="saved-draft-stats">
+                      <span>{mainPicks} main picks</span>
+                      <span>{taxiPicks} taxi picks</span>
+                    </div>
+                    <div className="saved-draft-updated">
+                      Last saved: {formatDraftTimestamp(draft.updatedAt || draft.lastOpenedAt)}
+                    </div>
+
+                    <div className="saved-draft-actions">
+                      <button
+                        className="saved-draft-btn primary"
+                        onClick={() => onResumeDraft?.(draft.id)}
+                      >
+                        Resume
+                      </button>
+                      <button
+                        className="saved-draft-btn"
+                        onClick={() => onDuplicateDraft?.(draft.id)}
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        className="saved-draft-btn danger"
+                        onClick={() => onDeleteDraft?.(draft.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
     </div>

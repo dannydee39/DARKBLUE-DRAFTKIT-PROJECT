@@ -16,7 +16,7 @@
 //   App (league, players, notes)
 //   └─ DraftBoard (receives all draft actions as callbacks)
 //   └─ PlayerDictionary (receives players + notes)
-//   └─ LeagueSettings (receives league + setLeague)
+//   └─ LeagueSettings (receives league + safe-save handler)
 //   └─ KeeperSetup (receives league + setLeague + players)
 //   └─ TaxiSquad (receives league + players + onTaxiPick)
 //   └─ ApiSandbox (receives league + apiStatus)
@@ -37,6 +37,30 @@ import ApiSandbox        from "./components/ApiSandbox.jsx";
 // ── Shared constants and helpers ──────────────────────────────────────────────
 import { API_BASE, DEMO_KEY, DEFAULT_ROSTER, DEFAULT_SCORING } from "./constants.js";
 import { buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
+import {
+  buildDraftRecord,
+  buildTeamsFromConfig,
+  cloneLeagueConfig,
+  clonePlayers,
+  countDraftEntries,
+  createDraftId,
+  DRAFT_LIBRARY_STORAGE_KEY,
+  formatPoolLabel,
+  hasDraftStarted,
+  validateLeagueConfig,
+} from "./utils/draftSessions.js";
+
+const DEFAULT_LEAGUE = {
+  name: "",
+  season: "2025",
+  owners: 12,
+  budget: 260,
+  pool: "NL",
+  roster: { ...DEFAULT_ROSTER },
+  scoring: { ...DEFAULT_SCORING },
+  keeperLeague: true,
+  teams: [],
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SAMPLE_PICKS — hardcoded debug picks for fillSampleDraft().
@@ -64,6 +88,9 @@ export default function App() {
   // "setup" shows the league creation screen; "main" shows the full draft app.
   const [screen,    setScreen]    = useState("setup");
   const [activeTab, setActiveTab] = useState("board");
+  const [savedDrafts, setSavedDrafts] = useState([]);
+  const [activeDraftId, setActiveDraftId] = useState(null);
+  const [libraryReady, setLibraryReady] = useState(false);
 
   // ── API health state ──────────────────────────────────────────────────────
   // "checking" → "online" | "offline" based on GET /health response.
@@ -78,9 +105,8 @@ export default function App() {
   // The player whose card is currently showing in any right panel.
   const [selectedPlayer, setSelectedPlayer] = useState(null);
 
-  // ── Per-player notes (persisted in session only) ──────────────────────────
+  // ── Per-player notes (persisted inside the saved draft workspace) ─────────
   // Map of { [playerId]: noteText }. Saved when user blurs a notes textarea.
-  // Future enhancement: persist to localStorage or a DB.
   const [notes, setNotes] = useState({});
 
   // ── Shared valuation cache ────────────────────────────────────────────────
@@ -104,19 +130,9 @@ export default function App() {
   const [currentOwnerIdx, setCurrentOwnerIdx] = useState(0);
 
   // ── League configuration object ───────────────────────────────────────────
-  // This is the single source of truth for all league settings and team data.
-  // Teams array is populated when the user clicks "Initialize Draft".
-  const [league, setLeague] = useState({
-    name: "",
-    season: "2025",
-    owners: 12,
-    budget: 260,
-    pool: "NL",
-    roster: { ...DEFAULT_ROSTER },
-    scoring: { ...DEFAULT_SCORING },
-    keeperLeague: true,
-    teams: [],
-  });
+  // This is the single source of truth for the currently open draft workspace.
+  // Teams array is populated when the user creates or resumes a draft.
+  const [league, setLeague] = useState({ ...DEFAULT_LEAGUE });
 
   // ─────────────────────────────────────────────────────────────────────────
   // Effect: Poll API health on mount.
@@ -125,6 +141,60 @@ export default function App() {
     checkApiStatus();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Draft library hydration + persistence
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_LIBRARY_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) {
+        setSavedDrafts(parsed);
+      }
+    } catch {
+      setSavedDrafts([]);
+    } finally {
+      setLibraryReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!libraryReady) return;
+    window.localStorage.setItem(
+      DRAFT_LIBRARY_STORAGE_KEY,
+      JSON.stringify(savedDrafts)
+    );
+  }, [savedDrafts, libraryReady]);
+
+  useEffect(() => {
+    if (!libraryReady || !activeDraftId || screen !== "main") return;
+
+    setSavedDrafts((prev) => {
+      const draftIdx = prev.findIndex((draft) => draft.id === activeDraftId);
+      if (draftIdx === -1) return prev;
+
+      const current = prev[draftIdx];
+      const nextRecord = buildDraftRecord({
+        id: activeDraftId,
+        league,
+        players,
+        notes,
+        currentOwnerIdx,
+        createdAt: current.createdAt,
+      });
+
+      const next = [...prev];
+      next[draftIdx] = { ...current, ...nextRecord };
+      return next;
+    });
+  }, [activeDraftId, currentOwnerIdx, league, libraryReady, notes, players, screen]);
+
+  useEffect(() => {
+    setCurrentOwnerIdx((prev) =>
+      Math.min(prev, Math.max((league.teams?.length || 1) - 1, 0))
+    );
+  }, [league.teams?.length]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // draftStateKey + cache invalidation
@@ -260,22 +330,151 @@ export default function App() {
   //
   // @param {Object} formLeague - League config collected from SetupScreen
   // ─────────────────────────────────────────────────────────────────────────
-  function initDraft(formLeague) {
-    // Create one team entry per owner, each starting with full budget
-    const teams = Array.from({ length: formLeague.owners }, (_, i) => ({
-      id: i + 1,
-      name: `Owner ${i + 1}`,
-      budget_remaining: formLeague.budget,
-      roster: [],
-      taxiSquad: [],
-    }));
+  async function initDraft(formLeague) {
+    const normalized = cloneLeagueConfig(formLeague);
+    const validation = validateLeagueConfig(normalized);
+    if (validation.errors.length > 0) return;
 
-    const lg = { ...formLeague, teams };
+    const lg = {
+      ...normalized,
+      teams: buildTeamsFromConfig(normalized),
+    };
+    const loadedPlayers = await fetchPlayers(lg);
+    const draftId = createDraftId();
+
+    setActiveDraftId(draftId);
     setLeague(lg);
-    fetchPlayers(lg);      // load player pool from API
-    setScreen("main");     // switch to draft view
+    setPlayers(loadedPlayers);
+    setNotes({});
+    setSelectedPlayer(null);
+    setScreen("main");
     setActiveTab("board");
     setCurrentOwnerIdx(0);
+
+    setSavedDrafts((prev) => [
+      buildDraftRecord({
+        id: draftId,
+        league: lg,
+        players: loadedPlayers,
+        notes: {},
+        currentOwnerIdx: 0,
+      }),
+      ...prev.filter((draft) => draft.id !== draftId),
+    ]);
+  }
+
+  function resumeDraft(draftId) {
+    const draft = savedDrafts.find((entry) => entry.id === draftId);
+    if (!draft) return;
+
+    const restoredLeague = cloneLeagueConfig(draft.league);
+    const restoredPlayers = clonePlayers(draft.players || []);
+    const restoredNotes = { ...(draft.notes || {}) };
+    const ownerIdx = Math.min(
+      draft.currentOwnerIdx || 0,
+      Math.max((restoredLeague.teams?.length || 1) - 1, 0)
+    );
+
+    setActiveDraftId(draftId);
+    setLeague(restoredLeague);
+    setPlayers(restoredPlayers);
+    setNotes(restoredNotes);
+    setSelectedPlayer(null);
+    setScreen("main");
+    setActiveTab("board");
+    setCurrentOwnerIdx(ownerIdx);
+
+    setSavedDrafts((prev) =>
+      prev.map((entry) =>
+        entry.id === draftId
+          ? { ...entry, lastOpenedAt: new Date().toISOString() }
+          : entry
+      )
+    );
+  }
+
+  function duplicateDraft(draftId) {
+    const draft = savedDrafts.find((entry) => entry.id === draftId);
+    if (!draft) return;
+
+    const copyId = createDraftId();
+    const copiedLeague = cloneLeagueConfig(draft.league);
+    copiedLeague.name = `${copiedLeague.name || "Draft"} Copy`;
+
+    const copy = buildDraftRecord({
+      id: copyId,
+      league: copiedLeague,
+      players: clonePlayers(draft.players || []),
+      notes: { ...(draft.notes || {}) },
+      currentOwnerIdx: draft.currentOwnerIdx || 0,
+    });
+
+    setSavedDrafts((prev) => [copy, ...prev]);
+    setActiveDraftId(copyId);
+    setLeague(cloneLeagueConfig(copy.league));
+    setPlayers(clonePlayers(copy.players));
+    setNotes({ ...(copy.notes || {}) });
+    setSelectedPlayer(null);
+    setScreen("main");
+    setActiveTab("board");
+    setCurrentOwnerIdx(copy.currentOwnerIdx || 0);
+  }
+
+  function deleteDraft(draftId) {
+    if (!window.confirm("Delete this saved draft workspace?")) return;
+
+    setSavedDrafts((prev) => prev.filter((entry) => entry.id !== draftId));
+    if (draftId === activeDraftId) {
+      setActiveDraftId(null);
+      setLeague({ ...DEFAULT_LEAGUE });
+      setPlayers([]);
+      setNotes({});
+      setSelectedPlayer(null);
+      setCurrentOwnerIdx(0);
+      setScreen("setup");
+      setActiveTab("board");
+    }
+  }
+
+  async function applyLeagueSettings(nextLeagueConfig) {
+    const normalized = cloneLeagueConfig(nextLeagueConfig);
+    const validation = validateLeagueConfig(normalized);
+    if (validation.errors.length > 0) {
+      return { ok: false, message: validation.errors[0] };
+    }
+
+    const draftStarted = hasDraftStarted(league);
+
+    if (!draftStarted) {
+      const nextLeague = {
+        ...normalized,
+        teams: buildTeamsFromConfig(normalized, league.teams),
+      };
+
+      setLeague(nextLeague);
+      if (nextLeague.pool !== league.pool) {
+        const loadedPlayers = await fetchPlayers(nextLeague);
+        setPlayers(loadedPlayers);
+      }
+
+      return {
+        ok: true,
+        message: "Pre-draft setup saved. Owners, pool, budget, and roster structure are updated for this draft workspace.",
+      };
+    }
+
+    setLeague((prev) => ({
+      ...prev,
+      name: normalized.name,
+      season: normalized.season,
+      scoring: normalized.scoring,
+      keeperLeague: normalized.keeperLeague,
+    }));
+
+    return {
+      ok: true,
+      message: "Saved editable league metadata. Core setup fields stay locked after the draft starts.",
+    };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -523,7 +722,16 @@ export default function App() {
   // Render: Setup screen (before draft starts)
   // ─────────────────────────────────────────────────────────────────────────
   if (screen === "setup") {
-    return <SetupScreen onInit={initDraft} />;
+    return (
+      <SetupScreen
+        onInit={initDraft}
+        drafts={savedDrafts}
+        activeDraftId={activeDraftId}
+        onResumeDraft={resumeDraft}
+        onDuplicateDraft={duplicateDraft}
+        onDeleteDraft={deleteDraft}
+      />
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -534,6 +742,7 @@ export default function App() {
   const totalSlots      = rosterPositions.length;
   const slotsLeft       = totalSlots - (myTeam?.roster?.length || 0);
   const maxBid          = calcMaxBid(myTeam?.budget_remaining || 0, slotsLeft);
+  const totalRecordedPicks = countDraftEntries(league);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render: Main draft app
@@ -547,7 +756,9 @@ export default function App() {
           {/* League name + season */}
           <div className="nav-brand">
             <div className="nav-league">{league.name}</div>
-            <div className="nav-season">SEASON {league.season}</div>
+            <div className="nav-season">
+              SEASON {league.season} · {formatPoolLabel(league.pool)} · {savedDrafts.length} SAVED
+            </div>
           </div>
 
           {/* Tab navigation buttons */}
@@ -571,6 +782,14 @@ export default function App() {
         </div>
 
         <div className="nav-right">
+          <button
+            className="nav-utility-btn"
+            onClick={() => setScreen("setup")}
+            title="Open the saved draft library"
+          >
+            Draft Library
+          </button>
+
           {/* Sample Draft debug button — only shown on the board tab */}
           {activeTab === "board" && (
             <button
@@ -606,7 +825,9 @@ export default function App() {
             ↺
           </button>
           */}
-          <div className="nav-badge">IN PROGRESS</div>
+          <div className="nav-badge">
+            {totalRecordedPicks > 0 ? `${totalRecordedPicks} PICKS SAVED` : "SETUP READY"}
+          </div>
           <div className="nav-avatar" title="User profile">👤</div>
         </div>
       </nav>
@@ -682,7 +903,7 @@ export default function App() {
 
         {/* League Settings — scoring categories + roster config */}
         {activeTab === "settings" && (
-          <LeagueSettings league={league} setLeague={setLeague} />
+          <LeagueSettings league={league} onSaveSettings={applyLeagueSettings} />
         )}
 
         {/* Keeper Setup — pre-draft keeper contracts */}

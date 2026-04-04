@@ -93,6 +93,39 @@ export default function LeagueSettings({ league, onSaveSettings }) {
           </p>
         </div>
 
+        <div className="settings-card settings-commissioner-card" style={{ marginBottom: 12 }}>
+          <div className="settings-section-label">COMMISSIONER CONTROLS</div>
+          <div className="settings-lock-summary">
+            <span className="settings-lock-badge">
+              {draftStarted ? "Safety lock active" : "Available after first pick"}
+            </span>
+            <span className="settings-lock-copy">
+              {draftStarted
+                ? "Structural fields stay read-only once picks exist so the live board does not drift out of sync."
+                : "This override becomes useful after the draft begins, when you may need to expand budget or roster counts without rebuilding the workspace."}
+            </span>
+          </div>
+          <div className="toggle-group" style={{ marginTop: 10 }}>
+            <button
+              className={`toggle-btn ${!form.commissionerUnlocked ? "active" : ""}`}
+              disabled={!draftStarted}
+              onClick={() => setField("commissionerUnlocked", false)}
+            >
+              Keep Safety Lock
+            </button>
+            <button
+              className={`toggle-btn ${form.commissionerUnlocked ? "active" : ""}`}
+              disabled={!draftStarted}
+              onClick={() => setField("commissionerUnlocked", true)}
+            >
+              Commissioner Override
+            </button>
+          </div>
+          <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 10 }}>
+            Override allows budget and roster expansion only. Owner count, player pool, and roster shrinking still stay blocked mid-draft.
+          </p>
+        </div>
+
         {/* Scoring categories */}
         <div className="settings-card">
           <div className="settings-section-label">SCORING CATEGORIES</div>
@@ -149,7 +182,10 @@ export default function LeagueSettings({ league, onSaveSettings }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label>OWNERS</label>
+              <label>
+                OWNERS
+                {draftStarted && <span className="locked-hint">🔒 draft started</span>}
+              </label>
               <input
                 type="number"
                 value={form.owners}
@@ -158,18 +194,24 @@ export default function LeagueSettings({ league, onSaveSettings }) {
               />
             </div>
             <div className="form-group">
-              <label>BUDGET / OWNER ($)</label>
+              <label>
+                BUDGET / OWNER ($)
+                {draftStarted && <span className="locked-hint">🔒 draft started</span>}
+              </label>
               <input
                 type="number"
                 value={form.budget}
-                disabled={draftStarted}
+                disabled={draftStarted && !form.commissionerUnlocked}
                 onChange={(e) => setField("budget", +e.target.value)}
               />
             </div>
           </div>
 
           <div className="form-group">
-            <label>PLAYER POOL</label>
+            <label>
+              PLAYER POOL
+              {draftStarted && <span className="locked-hint">🔒 draft started</span>}
+            </label>
             <div className="toggle-group">
               {[
                 ["MLB", "MLB (All)"],
@@ -211,7 +253,10 @@ export default function LeagueSettings({ league, onSaveSettings }) {
       {/* ── Right Panel: Roster Configuration ─────────────────────────── */}
       <div className="settings-right">
         <div className="settings-card">
-          <div className="settings-section-label">ROSTER CONFIGURATION</div>
+          <div className="settings-section-label">
+            ROSTER CONFIGURATION
+            {draftStarted && <span className="locked-hint">🔒 draft started</span>}
+          </div>
           <p style={{ fontSize: 10, color: "var(--muted)", marginBottom: 10 }}>
             Adjust how many slots each position gets. This affects the draft grid and max-bid calculations.
           </p>
@@ -229,7 +274,7 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                   <button
                     className="adj-btn"
                     onClick={() => adjRoster(slot, -1)}
-                    disabled={draftStarted || count <= 0}
+                    disabled={(draftStarted && !form.commissionerUnlocked) || count <= 0}
                     title={`Remove one ${slot} slot`}
                   >
                     −
@@ -238,7 +283,7 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                   <button
                     className="adj-btn"
                     onClick={() => adjRoster(slot, 1)}
-                    disabled={draftStarted}
+                    disabled={draftStarted && !form.commissionerUnlocked}
                     title={`Add one ${slot} slot`}
                   >
                     +

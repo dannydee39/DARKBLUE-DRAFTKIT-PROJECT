@@ -50,6 +50,8 @@ import {
   validateLeagueConfig,
 } from "./utils/draftSessions.js";
 
+const MAX_HISTORY_SNAPSHOTS = 30;
+
 const DEFAULT_LEAGUE = {
   name: "",
   season: "2025",
@@ -59,6 +61,7 @@ const DEFAULT_LEAGUE = {
   roster: { ...DEFAULT_ROSTER },
   scoring: { ...DEFAULT_SCORING },
   keeperLeague: true,
+  commissionerUnlocked: false,
   teams: [],
 };
 
@@ -108,6 +111,7 @@ export default function App() {
   // ── Per-player notes (persisted inside the saved draft workspace) ─────────
   // Map of { [playerId]: noteText }. Saved when user blurs a notes textarea.
   const [notes, setNotes] = useState({});
+  const [favorites, setFavorites] = useState({});
 
   // ── Shared valuation cache ────────────────────────────────────────────────
   // Single source of truth for API valuation results, shared across
@@ -128,6 +132,9 @@ export default function App() {
   // ── Current active owner (index into league.teams) ────────────────────────
   // Controls which team row is highlighted and whose budget/max-bid is shown.
   const [currentOwnerIdx, setCurrentOwnerIdx] = useState(0);
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
+  const [boardNotice, setBoardNotice] = useState(null);
 
   // ── League configuration object ───────────────────────────────────────────
   // This is the single source of truth for the currently open draft workspace.
@@ -141,6 +148,52 @@ export default function App() {
     checkApiStatus();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!boardNotice) return;
+    const timeoutId = window.setTimeout(() => setBoardNotice(null), 2600);
+    return () => window.clearTimeout(timeoutId);
+  }, [boardNotice]);
+
+  function clearDraftHistory() {
+    setUndoStack([]);
+    setRedoStack([]);
+  }
+
+  function captureDraftSnapshot() {
+    return {
+      league: cloneLeagueConfig(league),
+      players: clonePlayers(players),
+      currentOwnerIdx,
+      selectedPlayerId: selectedPlayer?.id ?? null,
+    };
+  }
+
+  function restoreDraftSnapshot(snapshot) {
+    if (!snapshot) return;
+
+    const restoredLeague = cloneLeagueConfig(snapshot.league);
+    const restoredPlayers = clonePlayers(snapshot.players || []);
+    const nextOwnerIdx = Math.min(
+      snapshot.currentOwnerIdx || 0,
+      Math.max((restoredLeague.teams?.length || 1) - 1, 0)
+    );
+
+    setLeague(restoredLeague);
+    setPlayers(restoredPlayers);
+    setCurrentOwnerIdx(nextOwnerIdx);
+    setSelectedPlayer(
+      snapshot.selectedPlayerId != null
+        ? restoredPlayers.find((player) => player.id === snapshot.selectedPlayerId) || null
+        : null
+    );
+  }
+
+  function pushUndoSnapshot() {
+    const snapshot = captureDraftSnapshot();
+    setUndoStack((prev) => [...prev.slice(-(MAX_HISTORY_SNAPSHOTS - 1)), snapshot]);
+    setRedoStack([]);
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Draft library hydration + persistence
@@ -180,6 +233,7 @@ export default function App() {
         league,
         players,
         notes,
+        favorites,
         currentOwnerIdx,
         createdAt: current.createdAt,
       });
@@ -188,7 +242,7 @@ export default function App() {
       next[draftIdx] = { ...current, ...nextRecord };
       return next;
     });
-  }, [activeDraftId, currentOwnerIdx, league, libraryReady, notes, players, screen]);
+  }, [activeDraftId, currentOwnerIdx, favorites, league, libraryReady, notes, players, screen]);
 
   useEffect(() => {
     setCurrentOwnerIdx((prev) =>
@@ -346,10 +400,13 @@ export default function App() {
     setLeague(lg);
     setPlayers(loadedPlayers);
     setNotes({});
+    setFavorites({});
     setSelectedPlayer(null);
     setScreen("main");
     setActiveTab("board");
     setCurrentOwnerIdx(0);
+    clearDraftHistory();
+    setBoardNotice({ tone: "info", message: "New draft workspace initialized." });
 
     setSavedDrafts((prev) => [
       buildDraftRecord({
@@ -357,6 +414,7 @@ export default function App() {
         league: lg,
         players: loadedPlayers,
         notes: {},
+        favorites: {},
         currentOwnerIdx: 0,
       }),
       ...prev.filter((draft) => draft.id !== draftId),
@@ -370,6 +428,7 @@ export default function App() {
     const restoredLeague = cloneLeagueConfig(draft.league);
     const restoredPlayers = clonePlayers(draft.players || []);
     const restoredNotes = { ...(draft.notes || {}) };
+    const restoredFavorites = { ...(draft.favorites || {}) };
     const ownerIdx = Math.min(
       draft.currentOwnerIdx || 0,
       Math.max((restoredLeague.teams?.length || 1) - 1, 0)
@@ -379,10 +438,16 @@ export default function App() {
     setLeague(restoredLeague);
     setPlayers(restoredPlayers);
     setNotes(restoredNotes);
+    setFavorites(restoredFavorites);
     setSelectedPlayer(null);
     setScreen("main");
     setActiveTab("board");
     setCurrentOwnerIdx(ownerIdx);
+    clearDraftHistory();
+    setBoardNotice({
+      tone: "info",
+      message: `Resumed ${restoredLeague.name || "saved draft"}.`,
+    });
 
     setSavedDrafts((prev) =>
       prev.map((entry) =>
@@ -406,6 +471,7 @@ export default function App() {
       league: copiedLeague,
       players: clonePlayers(draft.players || []),
       notes: { ...(draft.notes || {}) },
+      favorites: { ...(draft.favorites || {}) },
       currentOwnerIdx: draft.currentOwnerIdx || 0,
     });
 
@@ -414,10 +480,16 @@ export default function App() {
     setLeague(cloneLeagueConfig(copy.league));
     setPlayers(clonePlayers(copy.players));
     setNotes({ ...(copy.notes || {}) });
+    setFavorites({ ...(copy.favorites || {}) });
     setSelectedPlayer(null);
     setScreen("main");
     setActiveTab("board");
     setCurrentOwnerIdx(copy.currentOwnerIdx || 0);
+    clearDraftHistory();
+    setBoardNotice({
+      tone: "info",
+      message: `Opened duplicate workspace for ${copiedLeague.name}.`,
+    });
   }
 
   function deleteDraft(draftId) {
@@ -429,8 +501,11 @@ export default function App() {
       setLeague({ ...DEFAULT_LEAGUE });
       setPlayers([]);
       setNotes({});
+      setFavorites({});
       setSelectedPlayer(null);
       setCurrentOwnerIdx(0);
+      clearDraftHistory();
+      setBoardNotice(null);
       setScreen("setup");
       setActiveTab("board");
     }
@@ -448,6 +523,7 @@ export default function App() {
     if (!draftStarted) {
       const nextLeague = {
         ...normalized,
+        commissionerUnlocked: false,
         teams: buildTeamsFromConfig(normalized, league.teams),
       };
 
@@ -463,18 +539,58 @@ export default function App() {
       };
     }
 
+    const rosterShrinks = Object.entries(normalized.roster || {}).some(
+      ([slot, count]) => Number(count || 0) < Number(league.roster?.[slot] || 0)
+    );
+
+    if (normalized.commissionerUnlocked && rosterShrinks) {
+      return {
+        ok: false,
+        message: "Commissioner override can expand roster counts mid-draft, but it will not shrink existing slot totals.",
+      };
+    }
+
+    pushUndoSnapshot();
+
     setLeague((prev) => ({
       ...prev,
       name: normalized.name,
       season: normalized.season,
       scoring: normalized.scoring,
       keeperLeague: normalized.keeperLeague,
+      commissionerUnlocked: normalized.commissionerUnlocked,
+      budget: normalized.commissionerUnlocked ? normalized.budget : prev.budget,
+      roster: normalized.commissionerUnlocked ? normalized.roster : prev.roster,
+      teams: normalized.commissionerUnlocked
+        ? prev.teams.map((team) => {
+            const spent = prev.budget - team.budget_remaining;
+            return {
+              ...team,
+              budget_remaining: Math.max(0, normalized.budget - spent),
+            };
+          })
+        : prev.teams,
     }));
+
+    const ignoredChanges = [];
+    if (normalized.owners !== league.owners) ignoredChanges.push("owner count");
+    if (normalized.pool !== league.pool) ignoredChanges.push("player pool");
 
     return {
       ok: true,
-      message: "Saved editable league metadata. Core setup fields stay locked after the draft starts.",
+      message: normalized.commissionerUnlocked
+        ? `Commissioner override saved metadata, budget, and expanded roster settings.${ignoredChanges.length ? ` Ignored mid-draft changes to ${ignoredChanges.join(" and ")}.` : ""}`
+        : "Saved editable league metadata. Core setup fields stay locked after the draft starts.",
     };
+  }
+
+  function canPlayerFillSlot(player, slotPos) {
+    if (!player || !slotPos) return false;
+    if (slotPos === "BN") return true;
+    if (slotPos === "UTIL") {
+      return player.pos?.some((pos) => !["SP", "RP"].includes(pos));
+    }
+    return player.pos?.includes(slotPos);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -491,7 +607,59 @@ export default function App() {
   // @param {number} slotIndex  - Roster slot index the player is placed into
   // @param {string} draftedPos - Position label of the slot (e.g. "OF", "UTIL")
   // ─────────────────────────────────────────────────────────────────────────
-  function recordSale(player, price, teamId, slotIndex, draftedPos) {
+  function recordSale(player, price, teamId, slotIndex, draftedPos, options = {}) {
+    const slotLabels = buildRosterPositions(league.roster);
+    const slotPos = slotLabels[slotIndex];
+    const currentTeam = league.teams.find((team) => team.id === teamId);
+    const currentPlayer = players.find((candidate) => candidate.id === player?.id);
+    const numericPrice = Number(price);
+
+    if (!currentTeam) {
+      setBoardNotice({ tone: "warning", message: "Could not record sale because that team no longer exists." });
+      return false;
+    }
+
+    if (!currentPlayer) {
+      setBoardNotice({ tone: "warning", message: "Could not record sale because that player is missing from the pool." });
+      return false;
+    }
+
+    if (currentPlayer.drafted) {
+      setBoardNotice({ tone: "warning", message: `${currentPlayer.name} is already drafted in this workspace.` });
+      return false;
+    }
+
+    if (!Number.isFinite(numericPrice) || numericPrice < 1) {
+      setBoardNotice({ tone: "warning", message: "Sale amount must be a valid dollar value." });
+      return false;
+    }
+
+    if (slotPos == null || draftedPos !== slotPos) {
+      setBoardNotice({ tone: "warning", message: "The selected roster slot is no longer valid. Re-open the sale modal and try again." });
+      return false;
+    }
+
+    if (!canPlayerFillSlot(currentPlayer, slotPos)) {
+      setBoardNotice({ tone: "warning", message: `${currentPlayer.name} cannot be placed into the ${slotPos} slot.` });
+      return false;
+    }
+
+    if (currentTeam.roster.some((entry) => entry.slotIndex === slotIndex)) {
+      setBoardNotice({ tone: "warning", message: `${currentTeam.name} already has a player in that slot.` });
+      return false;
+    }
+
+    if (currentTeam.budget_remaining < numericPrice) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${currentTeam.name} only has $${currentTeam.budget_remaining} left, so this sale would overrun the budget.`,
+      });
+      return false;
+    }
+
+    const actionTime = Date.now();
+    pushUndoSnapshot();
+
     // Update the winning team's budget and roster
     setLeague((prev) => ({
       ...prev,
@@ -499,15 +667,17 @@ export default function App() {
         if (t.id !== teamId) return t;
         return {
           ...t,
-          budget_remaining: t.budget_remaining - price,
+          budget_remaining: t.budget_remaining - numericPrice,
           roster: [
             ...t.roster,
             {
+              playerId: currentPlayer.id,
               name: player.name,
-              price,
+              price: numericPrice,
               pos: player.pos,
               slotIndex,
               draftedPos,
+              draftedAt: actionTime,
             },
           ],
         };
@@ -518,10 +688,24 @@ export default function App() {
     setPlayers((prev) =>
       prev.map((p) =>
         p.id === player.id
-          ? { ...p, drafted: true, draftedBy: teamId, draftPrice: price }
+          ? {
+              ...p,
+              drafted: true,
+              draftedBy: teamId,
+              draftPrice: numericPrice,
+              draftedAt: actionTime,
+            }
           : p
       )
     );
+
+    setBoardNotice({
+      tone: "success",
+      message:
+        options.notice ||
+        `${player.name} recorded to ${currentTeam.name} for $${numericPrice}.`,
+    });
+    return true;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -536,6 +720,9 @@ export default function App() {
   //    SP=8, SP=9, RP=10, RP=11, UTIL=12, BN=13, BN=14]
   // ─────────────────────────────────────────────────────────────────────────
   function fillSampleDraft() {
+    const baseTime = Date.now();
+    pushUndoSnapshot();
+
     // Build accumulated per-team changes: teamId → { budgetDelta, newRoster[] }
     const teamChanges = {};
     // Track which player IDs were drafted so we can update players state at once
@@ -561,11 +748,13 @@ export default function App() {
       }
       teamChanges[team.id].budgetDelta -= pick.price;
       teamChanges[team.id].newRoster.push({
+        playerId: player.id,
         name: player.name,
         price: pick.price,
         pos: player.pos,
         slotIndex: pick.slotIndex,
         draftedPos: pick.draftedPos,
+        draftedAt: baseTime + draftedPlayerIds.size,
       });
 
       draftedPlayerIds.add(player.id);
@@ -589,10 +778,15 @@ export default function App() {
     setPlayers((prev) =>
       prev.map((p) =>
         draftedPlayerIds.has(p.id)
-          ? { ...p, drafted: true }
+          ? { ...p, drafted: true, draftedAt: baseTime + p.id }
           : p
       )
     );
+
+    setBoardNotice({
+      tone: "info",
+      message: "Sample draft loaded for board QA.",
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -602,43 +796,7 @@ export default function App() {
   // removes that entry, and restores the player to the available pool.
   // ─────────────────────────────────────────────────────────────────────────
   function undoLast() {
-    // Find the last drafted player by scanning teams from the end
-    let lastTeamId = null;
-    let lastEntry  = null;
-    for (let i = league.teams.length - 1; i >= 0; i--) {
-      const t = league.teams[i];
-      if (t.roster.length > 0) {
-        lastTeamId = t.id;
-        lastEntry  = t.roster[t.roster.length - 1];
-        break;
-      }
-    }
-    if (!lastTeamId || !lastEntry) return; // nothing to undo
-
-    // Remove the last entry and refund the budget
-    setLeague((prev) => ({
-      ...prev,
-      teams: prev.teams.map((t) => {
-        if (t.id !== lastTeamId) return t;
-        return {
-          ...t,
-          budget_remaining: t.budget_remaining + lastEntry.price,
-          roster: t.roster.slice(0, -1),
-        };
-      }),
-    }));
-
-    // Return the player to the available pool
-    const p = players.find((pl) => pl.name === lastEntry.name);
-    if (p) {
-      setPlayers((prev) =>
-        prev.map((pl) =>
-          pl.id === p.id
-            ? { ...pl, drafted: false, draftedBy: null, draftPrice: null }
-            : pl
-        )
-      );
-    }
+    undoLastAction();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -648,18 +806,33 @@ export default function App() {
   // @param {string} playerName - Name of the player to remove
   // @param {number} teamId     - ID of the team to remove them from
   // ─────────────────────────────────────────────────────────────────────────
-  function undoSale(playerName, teamId) {
-    const p = players.find((pl) => pl.name === playerName);
+  function undoSale(playerId, teamId, slotIndex) {
+    const p = players.find((pl) => pl.id === playerId);
+    const team = league.teams.find((entry) => entry.id === teamId);
+    const rosterEntry = team?.roster.find(
+      (entry) => entry.slotIndex === slotIndex && (entry.playerId === playerId || entry.name === p?.name)
+    );
+
+    if (!team || !rosterEntry) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Could not remove that player because the roster entry changed.",
+      });
+      return;
+    }
+
+    pushUndoSnapshot();
 
     setLeague((prev) => ({
       ...prev,
       teams: prev.teams.map((t) => {
         if (t.id !== teamId) return t;
-        const entry = t.roster.find((r) => r.name === playerName);
         return {
           ...t,
-          budget_remaining: t.budget_remaining + (entry?.price || 0),
-          roster: t.roster.filter((r) => r.name !== playerName),
+          budget_remaining: t.budget_remaining + (rosterEntry?.price || 0),
+          roster: t.roster.filter(
+            (r) => !(r.slotIndex === slotIndex && (r.playerId === playerId || r.name === rosterEntry.name))
+          ),
         };
       }),
     }));
@@ -669,11 +842,22 @@ export default function App() {
       setPlayers((prev) =>
         prev.map((pl) =>
           pl.id === p.id
-            ? { ...pl, drafted: false, draftedBy: null, draftPrice: null }
+            ? {
+                ...pl,
+                drafted: false,
+                draftedBy: null,
+                draftPrice: null,
+                draftedAt: null,
+              }
             : pl
         )
       );
     }
+
+    setBoardNotice({
+      tone: "warning",
+      message: `${rosterEntry.name} removed from the board.`,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -684,6 +868,8 @@ export default function App() {
   // @param {number} teamId - Team ID to add the taxi pick to
   // ─────────────────────────────────────────────────────────────────────────
   function addTaxiPick(player, teamId) {
+    pushUndoSnapshot();
+
     setLeague((prev) => ({
       ...prev,
       teams: prev.teams.map((t) => {
@@ -692,7 +878,7 @@ export default function App() {
           ...t,
           taxiSquad: [
             ...(t.taxiSquad || []),
-            { name: player.name, price: 1, pos: player.pos },
+            { playerId: player.id, name: player.name, price: 1, pos: player.pos },
           ],
         };
       }),
@@ -706,6 +892,41 @@ export default function App() {
           : p
       )
     );
+
+    setBoardNotice({
+      tone: "info",
+      message: `${player.name} added to taxi squad for $1.`,
+    });
+  }
+
+  function redoLastAction() {
+    if (redoStack.length === 0) return;
+    const snapshot = redoStack[redoStack.length - 1];
+    const currentSnapshot = captureDraftSnapshot();
+    setUndoStack((prevUndo) => [...prevUndo.slice(-(MAX_HISTORY_SNAPSHOTS - 1)), currentSnapshot]);
+    setRedoStack((prevRedo) => prevRedo.slice(0, -1));
+    restoreDraftSnapshot(snapshot);
+    setBoardNotice({
+      tone: "info",
+      message: "Redid the last reverted board change.",
+    });
+  }
+
+  function redoLast() {
+    redoLastAction();
+  }
+
+  function undoLastAction() {
+    if (undoStack.length === 0) return;
+    const snapshot = undoStack[undoStack.length - 1];
+    const currentSnapshot = captureDraftSnapshot();
+    setRedoStack((prevRedo) => [...prevRedo.slice(-(MAX_HISTORY_SNAPSHOTS - 1)), currentSnapshot]);
+    setUndoStack((prevUndo) => prevUndo.slice(0, -1));
+    restoreDraftSnapshot(snapshot);
+    setBoardNotice({
+      tone: "warning",
+      message: "Undid the last board change.",
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -715,7 +936,21 @@ export default function App() {
   // @param {string} text     - Note text to save
   // ─────────────────────────────────────────────────────────────────────────
   function saveNote(playerId, text) {
-    setNotes((prev) => ({ ...prev, [playerId]: text }));
+    setNotes((prev) => {
+      const next = { ...prev };
+      if (text?.trim()) next[playerId] = text;
+      else delete next[playerId];
+      return next;
+    });
+  }
+
+  function toggleFavorite(playerId) {
+    setFavorites((prev) => {
+      const next = { ...prev };
+      if (next[playerId]) delete next[playerId];
+      else next[playerId] = true;
+      return next;
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -871,12 +1106,15 @@ export default function App() {
             setSelectedPlayer={setSelectedPlayer}
             onSale={recordSale}
             onUndo={undoLast}
+            onRedo={redoLast}
             onUndoCell={undoSale}
             onFillSample={fillSampleDraft}
             currentOwnerIdx={currentOwnerIdx}
             setCurrentOwnerIdx={setCurrentOwnerIdx}
             notes={notes}
+            favorites={favorites}
             saveNote={saveNote}
+            toggleFavorite={toggleFavorite}
             apiStatus={apiStatus}
             rosterPositions={rosterPositions}
             totalSlots={totalSlots}
@@ -884,6 +1122,9 @@ export default function App() {
             valuationCache={valuationCache}
             requestValuation={requestValuation}
             draftStateKey={draftStateKey}
+            canUndo={undoStack.length > 0}
+            canRedo={redoStack.length > 0}
+            boardNotice={boardNotice}
           />
         )}
 
@@ -894,7 +1135,9 @@ export default function App() {
             selectedPlayer={selectedPlayer}
             setSelectedPlayer={setSelectedPlayer}
             notes={notes}
+            favorites={favorites}
             saveNote={saveNote}
+            toggleFavorite={toggleFavorite}
             valuationCache={valuationCache}
             requestValuation={requestValuation}
             draftStateKey={draftStateKey}

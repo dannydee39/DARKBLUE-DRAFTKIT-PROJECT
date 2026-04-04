@@ -29,14 +29,29 @@ import { posColor, formatStat } from "../utils/helpers.js";
  * @param {Function}      props.saveNote  - Callback: (playerId, text) => void
  * @returns {JSX.Element}
  */
-export default function PlayerCard({ player, valuation, notes, saveNote }) {
+export default function PlayerCard({
+  player,
+  valuation,
+  notes,
+  favorites,
+  saveNote,
+  toggleFavorite,
+}) {
   // Local note text mirrors the stored note but allows typing without re-renders
   const [localNote, setLocalNote] = useState("");
+  const [savedPulse, setSavedPulse] = useState(false);
 
   // Sync local note when the selected player changes
   useEffect(() => {
     setLocalNote(notes?.[player.id] ?? player.note ?? "");
+    setSavedPulse(false);
   }, [player.id, notes]);
+
+  useEffect(() => {
+    if (!savedPulse) return;
+    const timeoutId = window.setTimeout(() => setSavedPulse(false), 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [savedPulse]);
 
   // ── Max Bid Display ───────────────────────────────────────────────────────
   // Priority: API recommendation → player's pre-calculated base value
@@ -110,7 +125,17 @@ export default function PlayerCard({ player, valuation, notes, saveNote }) {
           photoUrl={player.photoUrl || null}  // ← real photo if available
         />
         <div className="pc-info">
-          <div className="pc-name">{player.name}</div>
+          <div className="pc-name-row">
+            <div className="pc-name">{player.name}</div>
+            <button
+              type="button"
+              className={`favorite-btn compact ${favorites?.[player.id] ? "active" : ""}`}
+              onClick={() => toggleFavorite(player.id)}
+              title={favorites?.[player.id] ? "Remove favorite" : "Favorite this player"}
+            >
+              ★
+            </button>
+          </div>
 
           {/* Position eligibility badges */}
           <div className="pc-badges">
@@ -123,6 +148,7 @@ export default function PlayerCard({ player, valuation, notes, saveNote }) {
                 {p}
               </span>
             ))}
+            {player.depth && <span className="depth-badge">{player.depth}</span>}
           </div>
 
           {/* Max bid (from API or base value) */}
@@ -180,35 +206,37 @@ export default function PlayerCard({ player, valuation, notes, saveNote }) {
         </div>
       )}
 
-      {/* ── Position Eligibility ─────────────────────────────────────────── */}
-      <div className="pc-section-label">ELIGIBILITY</div>
-      <div className="pc-badges" style={{ marginBottom: 6 }}>
-        {player.pos.map((p) => (
-          <span
-            key={p}
-            className="pos-badge"
-            style={{ background: posColor(p) }}
-          >
-            {p}
-          </span>
-        ))}
-        {player.depth && (
-          <span className="depth-badge">{player.depth}</span>
-        )}
-      </div>
-
       {/* ── Personal Notes ───────────────────────────────────────────────── */}
       {/* Notes are stored by player ID in the App's `notes` state map.
           They persist across tab switches within the session (not persisted
           to localStorage yet — future enhancement). */}
-      <div className="pc-section-label">MY NOTES</div>
+      <div className="pc-section-label pc-notes-header">
+        <span>MY NOTES</span>
+        {savedPulse && <span className="pc-saved-indicator">✓ Saved</span>}
+      </div>
       <textarea
         className="pc-notes"
         value={localNote}
         onChange={(e) => setLocalNote(e.target.value)}
-        onBlur={() => saveNote(player.id, localNote)} // save on blur (focus loss)
+        onBlur={() => {
+          saveNote(player.id, localNote);
+          setSavedPulse(true);
+        }}
+        rows={5}
         placeholder="Add a scouting note…"
       />
+      {localNote && (
+        <button
+          type="button"
+          className="pc-clear-note-btn"
+          onClick={() => {
+            setLocalNote("");
+            saveNote(player.id, "");
+          }}
+        >
+          Clear note
+        </button>
+      )}
     </div>
   );
 }

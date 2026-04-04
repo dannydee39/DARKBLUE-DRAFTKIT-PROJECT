@@ -32,7 +32,9 @@ export default function PlayerDictionary({
   selectedPlayer,
   setSelectedPlayer,
   notes,
+  favorites,
   saveNote,
+  toggleFavorite,
   valuationCache,    // shared valuation cache from App
   requestValuation,  // (player) => void
   draftStateKey,     // changes on every pick/undo to trigger re-fetches
@@ -42,6 +44,8 @@ export default function PlayerDictionary({
   const [posFilter, setPosFilter]   = useState("ALL");  // position filter
   const [tierFilter, setTierFilter] = useState("ALL");  // tier filter
   const [showDrafted, setShowDrafted] = useState(false); // show drafted players
+  const [hasNotesOnly, setHasNotesOnly] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   // ── Valuation requests ────────────────────────────────────────────────────
   // Request valuation for the selected player whenever it changes or draft
@@ -61,6 +65,7 @@ export default function PlayerDictionary({
   // ── Filtering Logic ───────────────────────────────────────────────────────
   // Apply all active filters to produce the visible player list
   const filtered = players.filter((p) => {
+    const noteText = notes[p.id] || p.note;
     // Hide drafted players unless explicitly shown
     if (!showDrafted && p.drafted) return false;
 
@@ -78,6 +83,8 @@ export default function PlayerDictionary({
 
     // Tier filter — must match exactly (Elite / Starter / Bench)
     if (tierFilter !== "ALL" && p.tier !== tierFilter) return false;
+    if (hasNotesOnly && !noteText) return false;
+    if (favoritesOnly && !favorites?.[p.id]) return false;
 
     return true;
   });
@@ -149,10 +156,37 @@ export default function PlayerDictionary({
               {" "}Show Drafted
             </label>
 
+            <button
+              className={`notes-filter-btn ${hasNotesOnly ? "active" : ""}`}
+              onClick={() => setHasNotesOnly((prev) => !prev)}
+            >
+              Has Notes
+            </button>
+
+            <button
+              className={`notes-filter-btn ${favoritesOnly ? "active" : ""}`}
+              onClick={() => setFavoritesOnly((prev) => !prev)}
+            >
+              Favorites
+            </button>
+
             {/* Result count */}
             <span className="avail-count">{filtered.length} players</span>
           </div>
         </div>
+
+        {filtered.length === 0 && (
+          <div className="cp-empty dict-empty-state" style={{ marginBottom: 16 }}>
+            <div className="dict-empty-title">
+              {favoritesOnly ? "No favorite players match this view" : "No players match the current filters"}
+            </div>
+            <div className="dict-empty-copy">
+              {favoritesOnly
+                ? "Star a player from the dictionary, board, or player card to keep them in your favorites list."
+                : "Try clearing one of the filters or broadening the search."}
+            </div>
+          </div>
+        )}
 
         {/* ── Player Grid — grouped by tier ────────────────────────────── */}
         {TIERS.map((tier) => {
@@ -175,7 +209,9 @@ export default function PlayerDictionary({
                     player={p}
                     isSelected={selectedPlayer?.id === p.id}
                     note={notes[p.id] || p.note}
+                    isFavorite={Boolean(favorites?.[p.id])}
                     liveValue={valuationCache[p.id]?.max_bid_recommendation}
+                    onToggleFavorite={() => toggleFavorite(p.id)}
                     onClick={() => setSelectedPlayer(p)}
                   />
                 ))}
@@ -193,10 +229,18 @@ export default function PlayerDictionary({
             player={selectedPlayer}
             valuation={valuationCache[selectedPlayer?.id] ?? null}
             notes={notes}
+            favorites={favorites}
             saveNote={saveNote}
+            toggleFavorite={toggleFavorite}
           />
         ) : (
-          <div className="cp-empty">Select a player to view card</div>
+          <div className="cp-empty dict-empty-state">
+            <div className="dict-empty-title">Select a player to view card</div>
+            <div className="dict-empty-copy">
+              Use search, filters, or the notes-only toggle to jump to players you already marked up.
+            </div>
+            <div className="dict-empty-meta">{filtered.length} players currently visible</div>
+          </div>
         )}
 
         {/* Recommended players — top 4 undrafted in current filter */}
@@ -264,7 +308,15 @@ export default function PlayerDictionary({
  * @param {string}   props.note       - Note text (from notes map or player.note)
  * @param {Function} props.onClick    - Click handler
  */
-function DictCard({ player, isSelected, note, liveValue, onClick }) {
+function DictCard({
+  player,
+  isSelected,
+  note,
+  isFavorite,
+  liveValue,
+  onClick,
+  onToggleFavorite,
+}) {
   return (
     <div
       className={`dict-card ${isSelected ? "selected" : ""} ${player.drafted ? "drafted" : ""}`}
@@ -273,23 +325,38 @@ function DictCard({ player, isSelected, note, liveValue, onClick }) {
     >
       {/* Top row: name/team/pos + value */}
       <div className="dc-top">
-        <div>
-          <div className="dc-name">{player.name}</div>
-          <div className="dc-team">{player.team} · {player.league}</div>
-          <div className="dc-badges">
-            {player.pos.map((pos) => (
-              <span
-                key={pos}
-                className="pos-badge"
-                style={{ background: posColor(pos) }}
-              >
-                {pos}
-              </span>
-            ))}
+        <div className="dc-main">
+          <PlayerAvatar name={player.name} size={34} photoUrl={player.photoUrl} />
+          <div className="dc-copy">
+            <div className="dc-name">{player.name}</div>
+            <div className="dc-team">{player.team} · {player.league}</div>
+            <div className="dc-badges">
+              {player.pos.map((pos) => (
+                <span
+                  key={pos}
+                  className="pos-badge"
+                  style={{ background: posColor(pos) }}
+                >
+                  {pos}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
         <div className="dc-value green">${liveValue ?? player.baseValue}</div>
       </div>
+
+      <button
+        type="button"
+        className={`favorite-btn ${isFavorite ? "active" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+        title={isFavorite ? "Remove favorite" : "Favorite this player"}
+      >
+        ★
+      </button>
 
       {/* FPTS micro-display */}
       {player.fpts && (
@@ -306,12 +373,14 @@ function DictCard({ player, isSelected, note, liveValue, onClick }) {
       {/* Note preview (truncated) */}
       {note && (
         <div className="dc-note">
-          Note: {note.length > 40 ? note.slice(0, 40) + "…" : note}
+          <span className="dc-note-icon">✎</span>
+          {note.length > 55 ? note.slice(0, 55) + "…" : note}
         </div>
       )}
 
       {/* Drafted overlay badge */}
       {player.drafted && <div className="dc-drafted">DRAFTED</div>}
+      {note && <div className="dc-note-dot" />}
     </div>
   );
 }

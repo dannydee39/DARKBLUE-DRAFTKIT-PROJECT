@@ -37,11 +37,14 @@ export default function DraftBoard({
   setSelectedPlayer,
   onSale,          // (player, price, teamId, slotIndex, draftedPos) => void
   onUndo,
+  onRedo,
   onUndoCell,
   currentOwnerIdx,
   setCurrentOwnerIdx,
   notes,
+  favorites,
   saveNote,
+  toggleFavorite,
   apiStatus,
   rosterPositions, // flat ordered array e.g. ["C","1B","2B","3B","SS","OF","OF","OF","SP"...]
   totalSlots,
@@ -49,10 +52,15 @@ export default function DraftBoard({
   valuationCache,      // shared valuation cache from App { [playerId]: "loading" | apiResponse }
   requestValuation,    // (player) => void  — requests a valuation and stores it in the cache
   draftStateKey,       // compact string that changes on every pick/undo (cache version key)
+  canUndo = false,
+  canRedo = false,
+  boardNotice = null,
 }) {
   // ── Search / filter state (bottom search bar) ─────────────────────────────
   const [searchQ,   setSearchQ]   = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
+  const [notesOnly, setNotesOnly] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
 
   // ── Sale modal state ──────────────────────────────────────────────────────
   const [saleModal,     setSaleModal]     = useState(null);  // player obj or null
@@ -297,7 +305,8 @@ export default function DraftBoard({
     // The draftedPos is the position label of the selected slot
     // (could differ from player.pos[0] if going into UTIL or BN)
     const draftedPos = rosterPositions[saleSlot] || "BN";
-    onSale(saleModal, +salePrice, saleTeam, saleSlot, draftedPos);
+    const saved = onSale(saleModal, +salePrice, saleTeam, saleSlot, draftedPos);
+    if (saved === false) return;
     setSaleModal(null);
     setSalePrice("");
     setSaleSlot(null);
@@ -311,7 +320,14 @@ export default function DraftBoard({
   function handleFilledCellClick(entry, teamId, pos, e) {
     e.stopPropagation();
     setActiveCellSearch(null); // close any open inline search
-    setRemoveModal({ playerName: entry.name, teamId, price: entry.price, pos });
+    setRemoveModal({
+      playerId: entry.playerId,
+      playerName: entry.name,
+      teamId,
+      slotIndex: entry.slotIndex,
+      price: entry.price,
+      pos,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -336,7 +352,7 @@ export default function DraftBoard({
   // ─────────────────────────────────────────────────────────────────────────
   function confirmRemove() {
     if (!removeModal) return;
-    onUndoCell(removeModal.playerName, removeModal.teamId);
+    onUndoCell(removeModal.playerId, removeModal.teamId, removeModal.slotIndex);
     setRemoveModal(null);
   }
 
@@ -355,6 +371,7 @@ export default function DraftBoard({
   // Filtered player list for the bottom search bar autocomplete.
   // ─────────────────────────────────────────────────────────────────────────
   const filteredPlayers = players.filter((p) => {
+    const noteText = notes?.[p.id] || p.note;
     if (p.drafted) return false;
     if (searchQ) {
       const q = searchQ.toLowerCase();
@@ -363,6 +380,8 @@ export default function DraftBoard({
       }
     }
     if (posFilter !== "ALL" && !p.pos.includes(posFilter)) return false;
+    if (notesOnly && !noteText) return false;
+    if (favoritesOnly && !favorites?.[p.id]) return false;
     return true;
   });
 
@@ -429,10 +448,33 @@ export default function DraftBoard({
             <span className="board-hint">
               Click filled cell to remove · click empty cell to search + add inline
             </span>
+            <div className="board-current-owner">
+              Now drafting: <strong>{myTeam?.name}</strong> · ${myTeam?.budget_remaining ?? league.budget} left · {slotsLeft} slots left
+            </div>
+            {boardNotice && (
+              <div className={`board-notice ${boardNotice.tone || "info"}`}>
+                {boardNotice.message}
+              </div>
+            )}
           </div>
-          <button className="undo-btn" onClick={onUndo} title="Undo last recorded sale">
-            ↩ Undo Last
-          </button>
+          <div className="board-actions">
+            <button
+              className="undo-btn"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title={canUndo ? "Undo the most recent board change" : "No board changes to undo"}
+            >
+              ↩ Undo
+            </button>
+            <button
+              className="undo-btn redo-btn"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title={canRedo ? "Redo the most recent undo" : "Redo becomes available after an undo"}
+            >
+              ↪ Redo
+            </button>
+          </div>
         </div>
 
         {/* ── Teams Grid ──────────────────────────────────────────────────── */}
@@ -789,6 +831,20 @@ export default function DraftBoard({
                   {p}
                 </button>
               ))}
+              <button
+                className={`notes-filter-btn ${notesOnly ? "active" : ""}`}
+                onClick={() => setNotesOnly((prev) => !prev)}
+                title="Only show players with notes"
+              >
+                Notes Only
+              </button>
+              <button
+                className={`notes-filter-btn ${favoritesOnly ? "active" : ""}`}
+                onClick={() => setFavoritesOnly((prev) => !prev)}
+                title="Only show favorite players"
+              >
+                Favorites
+              </button>
               <span className="avail-count">{filteredPlayers.length} available</span>
             </div>
           </div>
@@ -814,9 +870,12 @@ export default function DraftBoard({
                   <SearchResult
                     key={p.id}
                     player={p}
+                    noteText={notes?.[p.id] || p.note}
+                    isFavorite={Boolean(favorites?.[p.id])}
                     recValue={valuationCache[p.id]?.max_bid_recommendation}
                     onSelect={() => { setSelectedPlayer(p); setSearchQ(""); }}
                     onRecord={() => openSaleModal(p)}
+                    onToggleFavorite={() => toggleFavorite(p.id)}
                   />
                 ))}
                 {filteredPlayers.length > 8 && (
@@ -891,7 +950,9 @@ export default function DraftBoard({
               player={selectedPlayer}
               valuation={valuationCache[selectedPlayer?.id] ?? null}
               notes={notes}
+              favorites={favorites}
               saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
             />
           ) : (
             <div className="cp-empty">
@@ -908,6 +969,8 @@ export default function DraftBoard({
           </div>
           {recommendations
             .filter((p) => posFilter === "ALL" || p.pos.includes(posFilter))
+            .filter((p) => !notesOnly || notes?.[p.id] || p.note)
+            .filter((p) => !favoritesOnly || favorites?.[p.id])
             .slice(0, 4)
             .map((p) => (
               <div
@@ -917,7 +980,20 @@ export default function DraftBoard({
               >
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">
-                  <div className="rec-name">{p.name}</div>
+                  <div className="rec-name-row">
+                    <div className="rec-name">{p.name}</div>
+                    <button
+                      type="button"
+                      className={`favorite-btn compact ${favorites?.[p.id] ? "active" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(p.id);
+                      }}
+                      title={favorites?.[p.id] ? "Remove favorite" : "Favorite this player"}
+                    >
+                      ★
+                    </button>
+                  </div>
                   <div className="rec-team">{p.team}</div>
                   <div className="rec-pos">
                     {p.pos.map((pos) => (
@@ -926,6 +1002,9 @@ export default function DraftBoard({
                       </span>
                     ))}
                   </div>
+                  {(notes?.[p.id] || p.note) && (
+                    <div className="rec-note-pill">✎ note saved</div>
+                  )}
                 </div>
                 <div className="rec-right">
                   <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
@@ -936,8 +1015,15 @@ export default function DraftBoard({
               </div>
             ))}
           {posFilter !== "ALL" &&
-            recommendations.filter((p) => p.pos.includes(posFilter)).length === 0 &&
-            recommendations.slice(0, 2).map((p) => (
+            recommendations
+              .filter((p) => p.pos.includes(posFilter))
+              .filter((p) => !notesOnly || notes?.[p.id] || p.note)
+              .filter((p) => !favoritesOnly || favorites?.[p.id]).length === 0 &&
+            recommendations
+              .filter((p) => !notesOnly || notes?.[p.id] || p.note)
+              .filter((p) => !favoritesOnly || favorites?.[p.id])
+              .slice(0, 2)
+              .map((p) => (
               <div key={p.id} className="rec-row" onClick={() => setSelectedPlayer(p)}>
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">
@@ -981,6 +1067,14 @@ export default function DraftBoard({
                   </option>
                 ))}
               </select>
+              <div className="modal-hint" style={{ marginTop: 8 }}>
+                Active owner: <strong>{myTeam?.name}</strong>
+                {saleTeam !== myTeam?.id && (
+                  <>
+                    {" "}· Recording this to <strong>{league.teams.find((t) => t.id === saleTeam)?.name}</strong> instead
+                  </>
+                )}
+              </div>
             </div>
 
             {/* ── Position Slot Picker ─────────────────────────────────────── */}
@@ -1131,7 +1225,15 @@ export default function DraftBoard({
 // ─────────────────────────────────────────────────────────────────────────────
 // SearchResult — single row in the bottom search bar autocomplete dropdown
 // recValue: live API max_bid_recommendation when available; falls back to player.baseValue
-function SearchResult({ player, recValue, onSelect, onRecord }) {
+function SearchResult({
+  player,
+  noteText,
+  isFavorite,
+  recValue,
+  onSelect,
+  onRecord,
+  onToggleFavorite,
+}) {
   return (
     <div
       className="search-result"
@@ -1151,6 +1253,22 @@ function SearchResult({ player, recValue, onSelect, onRecord }) {
       {player.fpts && (
         <span style={{ fontSize: 9, color: "var(--muted)" }}>{player.fpts}pts</span>
       )}
+      {noteText && (
+        <span className="sr-note">
+          ✎ {noteText.length > 22 ? `${noteText.slice(0, 22)}…` : noteText}
+        </span>
+      )}
+      <button
+        type="button"
+        className={`favorite-btn compact ${isFavorite ? "active" : ""}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite();
+        }}
+        title={isFavorite ? "Remove favorite" : "Favorite this player"}
+      >
+        ★
+      </button>
       <span className="sr-value">${recValue ?? player.baseValue}</span>
       <button
         className="sr-record"

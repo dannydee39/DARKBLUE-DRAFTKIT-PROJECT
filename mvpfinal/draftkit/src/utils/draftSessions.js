@@ -28,6 +28,7 @@ export function cloneLeagueConfig(source = {}) {
     roster: { ...DEFAULT_ROSTER, ...(source.roster || {}) },
     scoring: { ...DEFAULT_SCORING, ...(source.scoring || {}) },
     keeperLeague: source.keeperLeague ?? true,
+    commissionerUnlocked: source.commissionerUnlocked ?? false,
     teams,
   };
 }
@@ -123,6 +124,7 @@ export function buildDraftRecord({
   league,
   players,
   notes,
+  favorites,
   currentOwnerIdx = 0,
   createdAt,
 }) {
@@ -136,6 +138,7 @@ export function buildDraftRecord({
     league: cloneLeagueConfig(league),
     players: clonePlayers(players),
     notes: { ...(notes || {}) },
+    favorites: { ...(favorites || {}) },
     currentOwnerIdx,
   };
 }

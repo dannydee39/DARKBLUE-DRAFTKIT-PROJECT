@@ -1067,31 +1067,32 @@ export default function App() {
         </div>
       </nav>
 
-      {/* ── Active Owner bar ──────────────────────────────────────────────── */}
-      <div className="owner-bar">
-        <div className="owner-info">
-          <div>
-            <div className="owner-label">YOUR OWNER</div>
-            <div className="owner-name">{myTeam?.name}</div>
-          </div>
-          <div className="owner-verified-badge">
-            <span className="verified-check">✓</span>{" "}
-            VERIFIED ${league.budget} budget
-          </div>
-        </div>
-        <div className="owner-right">
-          {/* Max bid indicator */}
-          <div className="max-bid-block">
-            <div className="max-bid-label">MAX BID</div>
-            <div className="max-bid-value">${maxBid}</div>
-          </div>
-          {/* Turn indicator */}
-          <div className="turn-block">
-            <span className="turn-label">Turn</span>
-            <span className="turn-name">{myTeam?.name}</span>
-            <span className="your-turn-badge">YOUR TURN</span>
-          </div>
-        </div>
+      <div className="owner-strip">
+        {league.teams.map((team, idx) => {
+          const teamSlotsLeft = totalSlots - (team.roster?.length || 0);
+          const teamMaxBid = calcMaxBid(team.budget_remaining, teamSlotsLeft);
+          const isActive = idx === currentOwnerIdx;
+
+          return (
+            <button
+              key={team.id}
+              type="button"
+              className={`owner-strip-card ${isActive ? "active" : ""}`}
+              onClick={() => setCurrentOwnerIdx(idx)}
+              title={`Set ${team.name} as the active owner`}
+            >
+              <div className="owner-strip-top">
+                <span className="owner-strip-name">{team.name}</span>
+                <span className="owner-strip-budget">${team.budget_remaining}</span>
+              </div>
+              <div className="owner-strip-meta">
+                <span>{team.roster.length}/{totalSlots} players</span>
+                <span>max ${teamMaxBid}</span>
+                {isActive && <span className="owner-strip-live">LIVE</span>}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Main Content Area (tab-driven) ────────────────────────────────── */}

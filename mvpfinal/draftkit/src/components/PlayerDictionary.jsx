@@ -64,30 +64,46 @@ export default function PlayerDictionary({
 
   // ── Filtering Logic ───────────────────────────────────────────────────────
   // Apply all active filters to produce the visible player list
-  const filtered = players.filter((p) => {
-    const noteText = notes[p.id] || p.note;
-    // Hide drafted players unless explicitly shown
-    if (!showDrafted && p.drafted) return false;
+  const filtered = players
+    .filter((p) => {
+      const noteText = notes[p.id] || p.note;
+      // Hide drafted players unless explicitly shown
+      if (!showDrafted && p.drafted) return false;
 
-    // Text search on name and team abbreviation
-    if (searchQ) {
-      const q = searchQ.toLowerCase();
-      if (
-        !p.name.toLowerCase().includes(q) &&
-        !(p.team || "").toLowerCase().includes(q)
-      ) return false;
-    }
+      // Text search on name and team abbreviation
+      if (searchQ) {
+        const q = searchQ.toLowerCase();
+        if (
+          !p.name.toLowerCase().includes(q) &&
+          !(p.team || "").toLowerCase().includes(q)
+        ) return false;
+      }
 
-    // Position filter — player must have this position in their eligibility list
-    if (posFilter !== "ALL" && !p.pos.includes(posFilter)) return false;
+      // Position filter — player must have this position in their eligibility list
+      if (posFilter !== "ALL" && !p.pos.includes(posFilter)) return false;
 
-    // Tier filter — must match exactly (Elite / Starter / Bench)
-    if (tierFilter !== "ALL" && p.tier !== tierFilter) return false;
-    if (hasNotesOnly && !noteText) return false;
-    if (favoritesOnly && !favorites?.[p.id]) return false;
+      // Tier filter — must match exactly (Elite / Starter / Bench)
+      if (tierFilter !== "ALL" && p.tier !== tierFilter) return false;
+      if (hasNotesOnly && !noteText) return false;
+      if (favoritesOnly && !favorites?.[p.id]) return false;
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      const aFavorite = favorites?.[a.id] ? 1 : 0;
+      const bFavorite = favorites?.[b.id] ? 1 : 0;
+      if (aFavorite !== bFavorite) return bFavorite - aFavorite;
+
+      const aHasNote = (notes?.[a.id] || a.note) ? 1 : 0;
+      const bHasNote = (notes?.[b.id] || b.note) ? 1 : 0;
+      if (aHasNote !== bHasNote) return bHasNote - aHasNote;
+
+      const aValue = valuationCache[a.id]?.max_bid_recommendation ?? a.baseValue ?? 0;
+      const bValue = valuationCache[b.id]?.max_bid_recommendation ?? b.baseValue ?? 0;
+      if (aValue !== bValue) return bValue - aValue;
+
+      return a.name.localeCompare(b.name);
+    });
 
   // ── Group By Tier ─────────────────────────────────────────────────────────
   // Organise filtered players into groups by tier for titled sections.
@@ -343,20 +359,21 @@ function DictCard({
             </div>
           </div>
         </div>
-        <div className="dc-value green">${liveValue ?? player.baseValue}</div>
+        <div className="dc-top-right">
+          <button
+            type="button"
+            className={`favorite-btn compact ${isFavorite ? "active" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            title={isFavorite ? "Remove favorite" : "Favorite this player"}
+          >
+            ★
+          </button>
+          <div className="dc-value green">${liveValue ?? player.baseValue}</div>
+        </div>
       </div>
-
-      <button
-        type="button"
-        className={`favorite-btn ${isFavorite ? "active" : ""}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleFavorite();
-        }}
-        title={isFavorite ? "Remove favorite" : "Favorite this player"}
-      >
-        ★
-      </button>
 
       {/* FPTS micro-display */}
       {player.fpts && (

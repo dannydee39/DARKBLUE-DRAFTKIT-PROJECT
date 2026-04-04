@@ -22,11 +22,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660271/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 842
+    "fpts": 842,
+    "mlbId": 660271
   },
   {
     "id": 2,
@@ -50,11 +51,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665742/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 788
+    "fpts": 788,
+    "mlbId": 665742
   },
   {
     "id": 3,
@@ -78,11 +80,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663656/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 726
+    "fpts": 726,
+    "mlbId": 663656
   },
   {
     "id": 4,
@@ -106,11 +109,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/596019/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 721
+    "fpts": 721,
+    "mlbId": 596019
   },
   {
     "id": 5,
@@ -134,11 +138,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665487/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 721
+    "fpts": 721,
+    "mlbId": 665487
   },
   {
     "id": 6,
@@ -162,11 +167,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/607208/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 701
+    "fpts": 701,
+    "mlbId": 607208
   },
   {
     "id": 7,
@@ -190,11 +196,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682998/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 691
+    "fpts": 691,
+    "mlbId": 682998
   },
   {
     "id": 8,
@@ -218,11 +225,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682829/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 668
+    "fpts": 668,
+    "mlbId": 682829
   },
   {
     "id": 9,
@@ -246,11 +254,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/606466/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 661
+    "fpts": 661,
+    "mlbId": 606466
   },
   {
     "id": 10,
@@ -274,11 +283,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/673357/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 653
+    "fpts": 653,
+    "mlbId": 673357
   },
   {
     "id": 11,
@@ -302,11 +312,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665833/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 642
+    "fpts": 642,
+    "mlbId": 665833
   },
   {
     "id": 12,
@@ -330,11 +341,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/656941/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 637
+    "fpts": 637,
+    "mlbId": 656941
   },
   {
     "id": 13,
@@ -358,11 +370,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592518/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 631
+    "fpts": 631,
+    "mlbId": 592518
   },
   {
     "id": 14,
@@ -386,11 +399,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694192/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 630
+    "fpts": 630,
+    "mlbId": 694192
   },
   {
     "id": 15,
@@ -414,11 +428,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691718/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 610
+    "fpts": 610,
+    "mlbId": 691718
   },
   {
     "id": 16,
@@ -442,11 +457,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660670/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 604
+    "fpts": 604,
+    "mlbId": 660670
   },
   {
     "id": 17,
@@ -470,11 +486,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/701538/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 594
+    "fpts": 594,
+    "mlbId": 701538
   },
   {
     "id": 18,
@@ -498,11 +515,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672695/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 593
+    "fpts": 593,
+    "mlbId": 672695
   },
   {
     "id": 19,
@@ -526,11 +544,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/646240/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 590
+    "fpts": 590,
+    "mlbId": 646240
   },
   {
     "id": 20,
@@ -554,11 +573,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/605141/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Elite",
-    "fpts": 579
+    "fpts": 579,
+    "mlbId": 605141
   },
   {
     "id": 21,
@@ -582,11 +602,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/642715/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 573
+    "fpts": 573,
+    "mlbId": 642715
   },
   {
     "id": 22,
@@ -610,11 +631,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682928/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 568
+    "fpts": 568,
+    "mlbId": 682928
   },
   {
     "id": 23,
@@ -638,11 +660,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/547180/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 568
+    "fpts": 568,
+    "mlbId": 547180
   },
   {
     "id": 24,
@@ -666,11 +689,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/608324/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 566
+    "fpts": 566,
+    "mlbId": 608324
   },
   {
     "id": 25,
@@ -694,11 +718,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592885/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 559
+    "fpts": 559,
+    "mlbId": 592885
   },
   {
     "id": 26,
@@ -722,11 +747,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668930/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 551
+    "fpts": 551,
+    "mlbId": 668930
   },
   {
     "id": 27,
@@ -750,11 +776,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/518692/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 545
+    "fpts": 545,
+    "mlbId": 518692
   },
   {
     "id": 28,
@@ -778,11 +805,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/593428/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 542
+    "fpts": 542,
+    "mlbId": 593428
   },
   {
     "id": 29,
@@ -806,11 +834,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686217/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 537
+    "fpts": 537,
+    "mlbId": 686217
   },
   {
     "id": 30,
@@ -834,11 +863,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669065/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 536
+    "fpts": 536,
+    "mlbId": 669065
   },
   {
     "id": 31,
@@ -862,11 +892,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666160/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 535
+    "fpts": 535,
+    "mlbId": 666160
   },
   {
     "id": 32,
@@ -890,11 +921,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/621566/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 532
+    "fpts": 532,
+    "mlbId": 621566
   },
   {
     "id": 33,
@@ -918,11 +950,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663538/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 530
+    "fpts": 530,
+    "mlbId": 663538
   },
   {
     "id": 34,
@@ -946,11 +979,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668804/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 526
+    "fpts": 526,
+    "mlbId": 668804
   },
   {
     "id": 35,
@@ -974,11 +1008,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/695578/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 523
+    "fpts": 523,
+    "mlbId": 695578
   },
   {
     "id": 36,
@@ -1003,11 +1038,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669364/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 520
+    "fpts": 520,
+    "mlbId": 669364
   },
   {
     "id": 37,
@@ -1031,11 +1067,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683737/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 517
+    "fpts": 517,
+    "mlbId": 683737
   },
   {
     "id": 38,
@@ -1059,11 +1096,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666182/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 516
+    "fpts": 516,
+    "mlbId": 666182
   },
   {
     "id": 39,
@@ -1087,11 +1125,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/805300/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 510
+    "fpts": 510,
+    "mlbId": 805300
   },
   {
     "id": 40,
@@ -1115,11 +1154,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/656305/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 507
+    "fpts": 507,
+    "mlbId": 656305
   },
   {
     "id": 41,
@@ -1143,11 +1183,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/543760/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 504
+    "fpts": 504,
+    "mlbId": 543760
   },
   {
     "id": 42,
@@ -1171,11 +1212,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/650333/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 501
+    "fpts": 501,
+    "mlbId": 650333
   },
   {
     "id": 43,
@@ -1199,11 +1241,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/673548/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 499
+    "fpts": 499,
+    "mlbId": 673548
   },
   {
     "id": 44,
@@ -1227,11 +1270,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/696100/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 498
+    "fpts": 498,
+    "mlbId": 696100
   },
   {
     "id": 45,
@@ -1255,11 +1299,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668715/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 496
+    "fpts": 496,
+    "mlbId": 668715
   },
   {
     "id": 46,
@@ -1283,11 +1328,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/657656/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 494
+    "fpts": 494,
+    "mlbId": 657656
   },
   {
     "id": 47,
@@ -1311,11 +1357,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/645277/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 491
+    "fpts": 491,
+    "mlbId": 645277
   },
   {
     "id": 48,
@@ -1339,11 +1386,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664040/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 490
+    "fpts": 490,
+    "mlbId": 664040
   },
   {
     "id": 49,
@@ -1367,11 +1415,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663586/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 488
+    "fpts": 488,
+    "mlbId": 663586
   },
   {
     "id": 50,
@@ -1395,11 +1444,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/621020/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 482
+    "fpts": 482,
+    "mlbId": 621020
   },
   {
     "id": 51,
@@ -1423,11 +1473,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/593871/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 480
+    "fpts": 480,
+    "mlbId": 593871
   },
   {
     "id": 52,
@@ -1451,11 +1502,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/671739/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 476
+    "fpts": 476,
+    "mlbId": 671739
   },
   {
     "id": 53,
@@ -1480,11 +1532,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672640/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 474
+    "fpts": 474,
+    "mlbId": 672640
   },
   {
     "id": 54,
@@ -1508,11 +1561,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666969/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 473
+    "fpts": 473,
+    "mlbId": 666969
   },
   {
     "id": 55,
@@ -1536,11 +1590,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/808982/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 473
+    "fpts": 473,
+    "mlbId": 808982
   },
   {
     "id": 56,
@@ -1565,11 +1620,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/676475/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 471
+    "fpts": 471,
+    "mlbId": 676475
   },
   {
     "id": 57,
@@ -1593,11 +1649,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/702222/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 468
+    "fpts": 468,
+    "mlbId": 702222
   },
   {
     "id": 58,
@@ -1621,11 +1678,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694208/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 467
+    "fpts": 467,
+    "mlbId": 694208
   },
   {
     "id": 59,
@@ -1649,11 +1707,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687462/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 466
+    "fpts": 466,
+    "mlbId": 687462
   },
   {
     "id": 60,
@@ -1677,11 +1736,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/571448/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 463
+    "fpts": 463,
+    "mlbId": 571448
   },
   {
     "id": 61,
@@ -1705,11 +1765,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/681082/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 461
+    "fpts": 461,
+    "mlbId": 681082
   },
   {
     "id": 62,
@@ -1733,11 +1794,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669257/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 460
+    "fpts": 460,
+    "mlbId": 669257
   },
   {
     "id": 63,
@@ -1761,11 +1823,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664023/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 454
+    "fpts": 454,
+    "mlbId": 664023
   },
   {
     "id": 64,
@@ -1789,11 +1852,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/606192/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 453
+    "fpts": 453,
+    "mlbId": 606192
   },
   {
     "id": 65,
@@ -1817,11 +1881,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/472610/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 452
+    "fpts": 452,
+    "mlbId": 472610
   },
   {
     "id": 66,
@@ -1846,11 +1911,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682622/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 452
+    "fpts": 452,
+    "mlbId": 682622
   },
   {
     "id": 67,
@@ -1874,11 +1940,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/661388/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 450
+    "fpts": 450,
+    "mlbId": 661388
   },
   {
     "id": 68,
@@ -1902,11 +1969,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686668/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 450
+    "fpts": 450,
+    "mlbId": 686668
   },
   {
     "id": 69,
@@ -1930,11 +1998,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/571970/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 449
+    "fpts": 449,
+    "mlbId": 571970
   },
   {
     "id": 70,
@@ -1958,11 +2027,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687363/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 449
+    "fpts": 449,
+    "mlbId": 687363
   },
   {
     "id": 71,
@@ -1986,11 +2056,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686611/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 449
+    "fpts": 449,
+    "mlbId": 686611
   },
   {
     "id": 72,
@@ -2014,11 +2085,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682663/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 447
+    "fpts": 447,
+    "mlbId": 682663
   },
   {
     "id": 73,
@@ -2042,11 +2114,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683357/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 446
+    "fpts": 446,
+    "mlbId": 683357
   },
   {
     "id": 74,
@@ -2070,11 +2143,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/671218/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 440
+    "fpts": 440,
+    "mlbId": 671218
   },
   {
     "id": 75,
@@ -2098,11 +2172,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664761/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Starter",
-    "fpts": 438
+    "fpts": 438,
+    "mlbId": 664761
   },
   {
     "id": 76,
@@ -2126,11 +2201,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/805811/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 438
+    "fpts": 438,
+    "mlbId": 805811
   },
   {
     "id": 77,
@@ -2154,11 +2230,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/701398/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 436
+    "fpts": 436,
+    "mlbId": 701398
   },
   {
     "id": 78,
@@ -2182,11 +2259,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/671289/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 431
+    "fpts": 431,
+    "mlbId": 671289
   },
   {
     "id": 79,
@@ -2210,11 +2288,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/671056/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 431
+    "fpts": 431,
+    "mlbId": 671056
   },
   {
     "id": 80,
@@ -2238,11 +2317,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/678662/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 427
+    "fpts": 427,
+    "mlbId": 678662
   },
   {
     "id": 81,
@@ -2266,11 +2346,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/681624/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 425
+    "fpts": 425,
+    "mlbId": 681624
   },
   {
     "id": 82,
@@ -2294,11 +2375,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683734/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 425
+    "fpts": 425,
+    "mlbId": 683734
   },
   {
     "id": 83,
@@ -2322,11 +2404,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/553993/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 423
+    "fpts": 423,
+    "mlbId": 553993
   },
   {
     "id": 84,
@@ -2350,11 +2433,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/622761/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 421
+    "fpts": 421,
+    "mlbId": 622761
   },
   {
     "id": 85,
@@ -2378,11 +2462,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687597/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 417
+    "fpts": 417,
+    "mlbId": 687597
   },
   {
     "id": 86,
@@ -2406,11 +2491,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/467793/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 415
+    "fpts": 415,
+    "mlbId": 467793
   },
   {
     "id": 87,
@@ -2435,11 +2521,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/656811/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 413
+    "fpts": 413,
+    "mlbId": 656811
   },
   {
     "id": 88,
@@ -2463,11 +2550,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666149/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 410
+    "fpts": 410,
+    "mlbId": 666149
   },
   {
     "id": 89,
@@ -2491,11 +2579,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/802139/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 409
+    "fpts": 409,
+    "mlbId": 802139
   },
   {
     "id": 90,
@@ -2519,11 +2608,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691026/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 408
+    "fpts": 408,
+    "mlbId": 691026
   },
   {
     "id": 91,
@@ -2547,11 +2637,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/643565/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 407
+    "fpts": 407,
+    "mlbId": 643565
   },
   {
     "id": 92,
@@ -2575,11 +2666,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668901/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 407
+    "fpts": 407,
+    "mlbId": 668901
   },
   {
     "id": 93,
@@ -2603,11 +2695,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/670770/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 402
+    "fpts": 402,
+    "mlbId": 670770
   },
   {
     "id": 94,
@@ -2631,11 +2724,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/681393/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 401
+    "fpts": 401,
+    "mlbId": 681393
   },
   {
     "id": 95,
@@ -2659,11 +2753,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669016/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 396
+    "fpts": 396,
+    "mlbId": 669016
   },
   {
     "id": 96,
@@ -2687,11 +2782,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686948/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 395
+    "fpts": 395,
+    "mlbId": 686948
   },
   {
     "id": 97,
@@ -2715,11 +2811,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/681198/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 394
+    "fpts": 394,
+    "mlbId": 681198
   },
   {
     "id": 98,
@@ -2743,11 +2840,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/695734/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 388
+    "fpts": 388,
+    "mlbId": 695734
   },
   {
     "id": 99,
@@ -2771,11 +2869,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682641/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 387
+    "fpts": 387,
+    "mlbId": 682641
   },
   {
     "id": 100,
@@ -2799,11 +2898,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691720/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 387
+    "fpts": 387,
+    "mlbId": 691720
   },
   {
     "id": 101,
@@ -2827,11 +2927,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663993/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 383
+    "fpts": 383,
+    "mlbId": 663993
   },
   {
     "id": 102,
@@ -2856,11 +2957,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664238/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 383
+    "fpts": 383,
+    "mlbId": 664238
   },
   {
     "id": 103,
@@ -2884,11 +2986,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/656976/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 383
+    "fpts": 383,
+    "mlbId": 656976
   },
   {
     "id": 104,
@@ -2913,11 +3016,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/609280/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 380
+    "fpts": 380,
+    "mlbId": 609280
   },
   {
     "id": 105,
@@ -2941,11 +3045,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/701807/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 380
+    "fpts": 380,
+    "mlbId": 701807
   },
   {
     "id": 106,
@@ -2969,11 +3074,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/673490/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 378
+    "fpts": 378,
+    "mlbId": 673490
   },
   {
     "id": 107,
@@ -2997,11 +3103,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669743/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 378
+    "fpts": 378,
+    "mlbId": 669743
   },
   {
     "id": 108,
@@ -3025,11 +3132,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/693304/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 374
+    "fpts": 374,
+    "mlbId": 693304
   },
   {
     "id": 109,
@@ -3053,11 +3161,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/808975/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 372
+    "fpts": 372,
+    "mlbId": 808975
   },
   {
     "id": 110,
@@ -3081,11 +3190,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663968/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 371
+    "fpts": 371,
+    "mlbId": 663968
   },
   {
     "id": 111,
@@ -3110,11 +3220,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/650859/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 371
+    "fpts": 371,
+    "mlbId": 650859
   },
   {
     "id": 112,
@@ -3138,11 +3249,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663886/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 371
+    "fpts": 371,
+    "mlbId": 663886
   },
   {
     "id": 113,
@@ -3166,11 +3278,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/657757/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 371
+    "fpts": 371,
+    "mlbId": 657757
   },
   {
     "id": 114,
@@ -3194,11 +3307,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672515/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 369
+    "fpts": 369,
+    "mlbId": 672515
   },
   {
     "id": 115,
@@ -3222,11 +3336,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669304/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 369
+    "fpts": 369,
+    "mlbId": 669304
   },
   {
     "id": 116,
@@ -3250,11 +3365,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/630105/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 368
+    "fpts": 368,
+    "mlbId": 630105
   },
   {
     "id": 117,
@@ -3278,11 +3394,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/595777/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 367
+    "fpts": 367,
+    "mlbId": 595777
   },
   {
     "id": 118,
@@ -3306,11 +3423,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/678894/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 367
+    "fpts": 367,
+    "mlbId": 678894
   },
   {
     "id": 119,
@@ -3334,11 +3452,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/680574/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 365
+    "fpts": 365,
+    "mlbId": 680574
   },
   {
     "id": 120,
@@ -3362,11 +3481,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687401/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 362
+    "fpts": 362,
+    "mlbId": 687401
   },
   {
     "id": 121,
@@ -3390,11 +3510,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592663/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 360
+    "fpts": 360,
+    "mlbId": 592663
   },
   {
     "id": 122,
@@ -3418,11 +3539,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669003/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 360
+    "fpts": 360,
+    "mlbId": 669003
   },
   {
     "id": 123,
@@ -3446,11 +3568,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/573262/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 359
+    "fpts": 359,
+    "mlbId": 573262
   },
   {
     "id": 124,
@@ -3474,11 +3597,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/696285/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 359
+    "fpts": 359,
+    "mlbId": 696285
   },
   {
     "id": 125,
@@ -3502,11 +3626,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666152/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 358
+    "fpts": 358,
+    "mlbId": 666152
   },
   {
     "id": 126,
@@ -3530,11 +3655,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665804/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 355
+    "fpts": 355,
+    "mlbId": 665804
   },
   {
     "id": 127,
@@ -3558,11 +3684,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665923/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 354
+    "fpts": 354,
+    "mlbId": 665923
   },
   {
     "id": 128,
@@ -3587,11 +3714,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683146/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 350
+    "fpts": 350,
+    "mlbId": 683146
   },
   {
     "id": 129,
@@ -3615,11 +3743,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691781/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 350
+    "fpts": 350,
+    "mlbId": 691781
   },
   {
     "id": 130,
@@ -3643,11 +3772,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665052/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 350
+    "fpts": 350,
+    "mlbId": 665052
   },
   {
     "id": 131,
@@ -3671,11 +3801,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691783/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 349
+    "fpts": 349,
+    "mlbId": 691783
   },
   {
     "id": 132,
@@ -3699,11 +3830,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/690987/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 348
+    "fpts": 348,
+    "mlbId": 690987
   },
   {
     "id": 133,
@@ -3727,11 +3859,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664056/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 343
+    "fpts": 343,
+    "mlbId": 664056
   },
   {
     "id": 134,
@@ -3755,11 +3888,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/680728/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 343
+    "fpts": 343,
+    "mlbId": 680728
   },
   {
     "id": 135,
@@ -3783,11 +3917,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665839/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 342
+    "fpts": 342,
+    "mlbId": 665839
   },
   {
     "id": 136,
@@ -3811,11 +3946,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666181/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 340
+    "fpts": 340,
+    "mlbId": 666181
   },
   {
     "id": 137,
@@ -3840,11 +3976,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669477/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 338
+    "fpts": 338,
+    "mlbId": 669477
   },
   {
     "id": 138,
@@ -3868,11 +4005,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682653/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 338
+    "fpts": 338,
+    "mlbId": 682653
   },
   {
     "id": 139,
@@ -3896,11 +4034,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/807713/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 337
+    "fpts": 337,
+    "mlbId": 807713
   },
   {
     "id": 140,
@@ -3925,11 +4064,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669242/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 337
+    "fpts": 337,
+    "mlbId": 669242
   },
   {
     "id": 141,
@@ -3953,11 +4093,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592206/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 336
+    "fpts": 336,
+    "mlbId": 592206
   },
   {
     "id": 142,
@@ -3981,11 +4122,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/681715/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 336
+    "fpts": 336,
+    "mlbId": 681715
   },
   {
     "id": 143,
@@ -4009,11 +4151,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/527038/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 333
+    "fpts": 333,
+    "mlbId": 527038
   },
   {
     "id": 144,
@@ -4039,11 +4182,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669707/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 333
+    "fpts": 333,
+    "mlbId": 669707
   },
   {
     "id": 145,
@@ -4067,11 +4211,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663368/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 332
+    "fpts": 332,
+    "mlbId": 663368
   },
   {
     "id": 146,
@@ -4095,11 +4240,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691728/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 329
+    "fpts": 329,
+    "mlbId": 691728
   },
   {
     "id": 147,
@@ -4123,11 +4269,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/650559/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 327
+    "fpts": 327,
+    "mlbId": 650559
   },
   {
     "id": 148,
@@ -4151,11 +4298,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682626/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 327
+    "fpts": 327,
+    "mlbId": 682626
   },
   {
     "id": 149,
@@ -4179,11 +4327,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664983/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 326
+    "fpts": 326,
+    "mlbId": 664983
   },
   {
     "id": 150,
@@ -4209,11 +4358,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694374/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 325
+    "fpts": 325,
+    "mlbId": 694374
   },
   {
     "id": 151,
@@ -4237,11 +4387,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/542303/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 324
+    "fpts": 324,
+    "mlbId": 542303
   },
   {
     "id": 152,
@@ -4265,11 +4416,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/642201/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 324
+    "fpts": 324,
+    "mlbId": 642201
   },
   {
     "id": 153,
@@ -4293,11 +4445,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665953/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 324
+    "fpts": 324,
+    "mlbId": 665953
   },
   {
     "id": 154,
@@ -4321,11 +4474,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/457705/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 322
+    "fpts": 322,
+    "mlbId": 457705
   },
   {
     "id": 155,
@@ -4349,11 +4503,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663647/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 322
+    "fpts": 322,
+    "mlbId": 663647
   },
   {
     "id": 156,
@@ -4377,11 +4532,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666624/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 321
+    "fpts": 321,
+    "mlbId": 666624
   },
   {
     "id": 157,
@@ -4405,11 +4561,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666185/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 317
+    "fpts": 317,
+    "mlbId": 666185
   },
   {
     "id": 158,
@@ -4434,11 +4591,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/641343/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 315
+    "fpts": 315,
+    "mlbId": 641343
   },
   {
     "id": 159,
@@ -4462,11 +4620,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686823/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 314
+    "fpts": 314,
+    "mlbId": 686823
   },
   {
     "id": 160,
@@ -4490,11 +4649,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687859/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 313
+    "fpts": 313,
+    "mlbId": 687859
   },
   {
     "id": 161,
@@ -4518,11 +4678,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/642086/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 312
+    "fpts": 312,
+    "mlbId": 642086
   },
   {
     "id": 162,
@@ -4546,11 +4707,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687952/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 312
+    "fpts": 312,
+    "mlbId": 687952
   },
   {
     "id": 163,
@@ -4577,11 +4739,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/643289/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 311
+    "fpts": 311,
+    "mlbId": 643289
   },
   {
     "id": 164,
@@ -4606,11 +4769,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/624641/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 310
+    "fpts": 310,
+    "mlbId": 624641
   },
   {
     "id": 165,
@@ -4634,11 +4798,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682848/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 310
+    "fpts": 310,
+    "mlbId": 682848
   },
   {
     "id": 166,
@@ -4662,11 +4827,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/695238/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 307
+    "fpts": 307,
+    "mlbId": 695238
   },
   {
     "id": 167,
@@ -4690,11 +4856,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668709/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 306
+    "fpts": 306,
+    "mlbId": 668709
   },
   {
     "id": 168,
@@ -4719,11 +4886,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/689414/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 306
+    "fpts": 306,
+    "mlbId": 689414
   },
   {
     "id": 169,
@@ -4747,11 +4915,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/679032/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 306
+    "fpts": 306,
+    "mlbId": 679032
   },
   {
     "id": 170,
@@ -4775,11 +4944,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669911/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 306
+    "fpts": 306,
+    "mlbId": 669911
   },
   {
     "id": 171,
@@ -4805,11 +4975,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/650489/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 305
+    "fpts": 305,
+    "mlbId": 650489
   },
   {
     "id": 172,
@@ -4833,11 +5004,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663609/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 304
+    "fpts": 304,
+    "mlbId": 663609
   },
   {
     "id": 173,
@@ -4861,11 +5033,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/676724/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 304
+    "fpts": 304,
+    "mlbId": 676724
   },
   {
     "id": 174,
@@ -4889,11 +5062,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/677950/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 303
+    "fpts": 303,
+    "mlbId": 677950
   },
   {
     "id": 175,
@@ -4917,11 +5091,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663457/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 302
+    "fpts": 302,
+    "mlbId": 663457
   },
   {
     "id": 176,
@@ -4945,11 +5120,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/502054/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 302
+    "fpts": 302,
+    "mlbId": 502054
   },
   {
     "id": 177,
@@ -4973,11 +5149,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/545121/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 301
+    "fpts": 301,
+    "mlbId": 545121
   },
   {
     "id": 178,
@@ -5001,11 +5178,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/688363/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 301
+    "fpts": 301,
+    "mlbId": 688363
   },
   {
     "id": 179,
@@ -5029,11 +5207,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687529/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 300
+    "fpts": 300,
+    "mlbId": 687529
   },
   {
     "id": 180,
@@ -5057,11 +5236,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687221/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 299
+    "fpts": 299,
+    "mlbId": 687221
   },
   {
     "id": 181,
@@ -5085,11 +5265,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682634/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 298
+    "fpts": 298,
+    "mlbId": 682634
   },
   {
     "id": 182,
@@ -5113,11 +5294,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/608348/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 297
+    "fpts": 297,
+    "mlbId": 608348
   },
   {
     "id": 183,
@@ -5141,11 +5323,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/823550/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 296
+    "fpts": 296,
+    "mlbId": 823550
   },
   {
     "id": 184,
@@ -5169,11 +5352,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665561/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 294
+    "fpts": 294,
+    "mlbId": 665561
   },
   {
     "id": 185,
@@ -5197,11 +5381,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660688/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 293
+    "fpts": 293,
+    "mlbId": 660688
   },
   {
     "id": 186,
@@ -5225,11 +5410,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669134/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 293
+    "fpts": 293,
+    "mlbId": 669134
   },
   {
     "id": 187,
@@ -5253,11 +5439,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/678489/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 293
+    "fpts": 293,
+    "mlbId": 678489
   },
   {
     "id": 188,
@@ -5281,11 +5468,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694377/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 290
+    "fpts": 290,
+    "mlbId": 694377
   },
   {
     "id": 189,
@@ -5309,11 +5497,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663604/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 289
+    "fpts": 289,
+    "mlbId": 663604
   },
   {
     "id": 190,
@@ -5339,11 +5528,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/500743/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 288
+    "fpts": 288,
+    "mlbId": 500743
   },
   {
     "id": 191,
@@ -5367,11 +5557,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691023/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 288
+    "fpts": 288,
+    "mlbId": 691023
   },
   {
     "id": 192,
@@ -5395,11 +5586,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/667472/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 285
+    "fpts": 285,
+    "mlbId": 667472
   },
   {
     "id": 193,
@@ -5423,11 +5615,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666971/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 284
+    "fpts": 284,
+    "mlbId": 666971
   },
   {
     "id": 194,
@@ -5451,11 +5644,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/543510/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 282
+    "fpts": 282,
+    "mlbId": 543510
   },
   {
     "id": 195,
@@ -5479,11 +5673,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672012/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 281
+    "fpts": 281,
+    "mlbId": 672012
   },
   {
     "id": 196,
@@ -5507,11 +5702,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663698/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 280
+    "fpts": 280,
+    "mlbId": 663698
   },
   {
     "id": 197,
@@ -5535,11 +5731,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/688760/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 279
+    "fpts": 279,
+    "mlbId": 688760
   },
   {
     "id": 198,
@@ -5563,11 +5760,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/596142/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 276
+    "fpts": 276,
+    "mlbId": 596142
   },
   {
     "id": 199,
@@ -5591,11 +5789,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/650968/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 276
+    "fpts": 276,
+    "mlbId": 650968
   },
   {
     "id": 200,
@@ -5619,11 +5818,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668731/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 276
+    "fpts": 276,
+    "mlbId": 668731
   },
   {
     "id": 201,
@@ -5647,11 +5847,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672279/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 275
+    "fpts": 275,
+    "mlbId": 672279
   },
   {
     "id": 202,
@@ -5675,11 +5876,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/641680/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 271
+    "fpts": 271,
+    "mlbId": 641680
   },
   {
     "id": 203,
@@ -5704,11 +5906,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/602104/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 271
+    "fpts": 271,
+    "mlbId": 602104
   },
   {
     "id": 204,
@@ -5732,11 +5935,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/701675/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 271
+    "fpts": 271,
+    "mlbId": 701675
   },
   {
     "id": 205,
@@ -5760,11 +5964,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666023/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 269
+    "fpts": 269,
+    "mlbId": 666023
   },
   {
     "id": 206,
@@ -5789,11 +5994,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/695336/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 268
+    "fpts": 268,
+    "mlbId": 695336
   },
   {
     "id": 207,
@@ -5817,11 +6023,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672275/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 266
+    "fpts": 266,
+    "mlbId": 672275
   },
   {
     "id": 208,
@@ -5846,11 +6053,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669357/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 264
+    "fpts": 264,
+    "mlbId": 669357
   },
   {
     "id": 209,
@@ -5874,11 +6082,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669004/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 263
+    "fpts": 263,
+    "mlbId": 669004
   },
   {
     "id": 210,
@@ -5902,11 +6111,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/805249/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 263
+    "fpts": 263,
+    "mlbId": 805249
   },
   {
     "id": 211,
@@ -5930,11 +6140,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/677595/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 262
+    "fpts": 262,
+    "mlbId": 677595
   },
   {
     "id": 212,
@@ -5958,11 +6169,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/624424/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 258
+    "fpts": 258,
+    "mlbId": 624424
   },
   {
     "id": 213,
@@ -5986,11 +6198,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/593160/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 258
+    "fpts": 258,
+    "mlbId": 593160
   },
   {
     "id": 214,
@@ -6014,11 +6227,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/621438/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 258
+    "fpts": 258,
+    "mlbId": 621438
   },
   {
     "id": 215,
@@ -6042,11 +6256,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/606992/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 258
+    "fpts": 258,
+    "mlbId": 606992
   },
   {
     "id": 216,
@@ -6070,11 +6285,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686894/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 256
+    "fpts": 256,
+    "mlbId": 686894
   },
   {
     "id": 217,
@@ -6098,11 +6314,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/605353/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 254
+    "fpts": 254,
+    "mlbId": 605353
   },
   {
     "id": 218,
@@ -6126,11 +6343,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/677588/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 252
+    "fpts": 252,
+    "mlbId": 677588
   },
   {
     "id": 219,
@@ -6154,11 +6372,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/690924/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 252
+    "fpts": 252,
+    "mlbId": 690924
   },
   {
     "id": 220,
@@ -6182,11 +6401,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/502110/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 251
+    "fpts": 251,
+    "mlbId": 502110
   },
   {
     "id": 221,
@@ -6210,11 +6430,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/680779/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 251
+    "fpts": 251,
+    "mlbId": 680779
   },
   {
     "id": 222,
@@ -6238,11 +6459,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669289/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 248
+    "fpts": 248,
+    "mlbId": 669289
   },
   {
     "id": 223,
@@ -6266,11 +6488,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/689172/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 246
+    "fpts": 246,
+    "mlbId": 689172
   },
   {
     "id": 224,
@@ -6294,11 +6517,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669261/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 244
+    "fpts": 244,
+    "mlbId": 669261
   },
   {
     "id": 225,
@@ -6322,11 +6546,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666464/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 244
+    "fpts": 244,
+    "mlbId": 666464
   },
   {
     "id": 226,
@@ -6350,11 +6575,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/571657/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 243
+    "fpts": 243,
+    "mlbId": 571657
   },
   {
     "id": 227,
@@ -6378,11 +6604,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663897/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 242
+    "fpts": 242,
+    "mlbId": 663897
   },
   {
     "id": 228,
@@ -6408,11 +6635,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691594/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 240
+    "fpts": 240,
+    "mlbId": 691594
   },
   {
     "id": 229,
@@ -6436,11 +6664,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/676369/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 239
+    "fpts": 239,
+    "mlbId": 676369
   },
   {
     "id": 230,
@@ -6464,11 +6693,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/805373/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 238
+    "fpts": 238,
+    "mlbId": 805373
   },
   {
     "id": 231,
@@ -6492,11 +6722,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/676801/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 237
+    "fpts": 237,
+    "mlbId": 676801
   },
   {
     "id": 232,
@@ -6520,11 +6751,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/640492/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 236
+    "fpts": 236,
+    "mlbId": 640492
   },
   {
     "id": 233,
@@ -6548,11 +6780,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682988/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 235
+    "fpts": 235,
+    "mlbId": 682988
   },
   {
     "id": 234,
@@ -6576,11 +6809,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686780/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 234
+    "fpts": 234,
+    "mlbId": 686780
   },
   {
     "id": 235,
@@ -6605,11 +6839,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/690022/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 234
+    "fpts": 234,
+    "mlbId": 690022
   },
   {
     "id": 236,
@@ -6633,11 +6868,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/804606/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 233
+    "fpts": 233,
+    "mlbId": 804606
   },
   {
     "id": 237,
@@ -6661,11 +6897,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592178/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 231
+    "fpts": 231,
+    "mlbId": 592178
   },
   {
     "id": 238,
@@ -6689,11 +6926,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/624431/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 229
+    "fpts": 229,
+    "mlbId": 624431
   },
   {
     "id": 239,
@@ -6717,11 +6955,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/620443/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 228
+    "fpts": 228,
+    "mlbId": 620443
   },
   {
     "id": 240,
@@ -6746,11 +6985,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666397/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 227
+    "fpts": 227,
+    "mlbId": 666397
   },
   {
     "id": 241,
@@ -6774,11 +7014,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/666163/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 221
+    "fpts": 221,
+    "mlbId": 666163
   },
   {
     "id": 242,
@@ -6802,11 +7043,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669221/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 218
+    "fpts": 218,
+    "mlbId": 669221
   },
   {
     "id": 243,
@@ -6830,11 +7072,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/681909/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 215
+    "fpts": 215,
+    "mlbId": 681909
   },
   {
     "id": 244,
@@ -6860,11 +7103,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/578428/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 211
+    "fpts": 211,
+    "mlbId": 578428
   },
   {
     "id": 245,
@@ -6888,11 +7132,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664034/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 210
+    "fpts": 210,
+    "mlbId": 664034
   },
   {
     "id": 246,
@@ -6916,11 +7161,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592696/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 200
+    "fpts": 200,
+    "mlbId": 592696
   },
   {
     "id": 247,
@@ -6944,11 +7190,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/518792/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 199
+    "fpts": 199,
+    "mlbId": 518792
   },
   {
     "id": 248,
@@ -6972,11 +7219,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/701496/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 198
+    "fpts": 198,
+    "mlbId": 701496
   },
   {
     "id": 249,
@@ -7000,11 +7248,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669899/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 198
+    "fpts": 198,
+    "mlbId": 669899
   },
   {
     "id": 250,
@@ -7028,11 +7277,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/608385/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 197
+    "fpts": 197,
+    "mlbId": 608385
   },
   {
     "id": 251,
@@ -7056,11 +7306,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/814439/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 196
+    "fpts": 196,
+    "mlbId": 814439
   },
   {
     "id": 252,
@@ -7084,11 +7335,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/596146/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 195
+    "fpts": 195,
+    "mlbId": 596146
   },
   {
     "id": 253,
@@ -7112,11 +7364,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/624512/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 193
+    "fpts": 193,
+    "mlbId": 624512
   },
   {
     "id": 254,
@@ -7140,11 +7393,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683083/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 193
+    "fpts": 193,
+    "mlbId": 683083
   },
   {
     "id": 255,
@@ -7168,11 +7422,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/623912/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 192
+    "fpts": 192,
+    "mlbId": 623912
   },
   {
     "id": 256,
@@ -7197,11 +7452,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683766/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 186
+    "fpts": 186,
+    "mlbId": 683766
   },
   {
     "id": 257,
@@ -7225,11 +7481,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660681/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 183
+    "fpts": 183,
+    "mlbId": 660681
   },
   {
     "id": 258,
@@ -7253,11 +7510,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669369/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 182
+    "fpts": 182,
+    "mlbId": 669369
   },
   {
     "id": 259,
@@ -7281,11 +7539,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672642/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 182
+    "fpts": 182,
+    "mlbId": 672642
   },
   {
     "id": 260,
@@ -7309,11 +7568,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/702518/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 181
+    "fpts": 181,
+    "mlbId": 702518
   },
   {
     "id": 261,
@@ -7337,11 +7597,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/687551/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 179
+    "fpts": 179,
+    "mlbId": 687551
   },
   {
     "id": 262,
@@ -7365,11 +7626,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/677956/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 176
+    "fpts": 176,
+    "mlbId": 677956
   },
   {
     "id": 263,
@@ -7393,11 +7655,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/641658/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 174
+    "fpts": 174,
+    "mlbId": 641658
   },
   {
     "id": 264,
@@ -7421,11 +7684,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/682997/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 174
+    "fpts": 174,
+    "mlbId": 682997
   },
   {
     "id": 265,
@@ -7449,11 +7713,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668845/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 174
+    "fpts": 174,
+    "mlbId": 668845
   },
   {
     "id": 266,
@@ -7477,11 +7742,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669200/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 174
+    "fpts": 174,
+    "mlbId": 669200
   },
   {
     "id": 267,
@@ -7505,11 +7771,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/695257/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 173
+    "fpts": 173,
+    "mlbId": 695257
   },
   {
     "id": 268,
@@ -7533,11 +7800,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/444482/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 171
+    "fpts": 171,
+    "mlbId": 444482
   },
   {
     "id": 269,
@@ -7561,11 +7829,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694175/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 170
+    "fpts": 170,
+    "mlbId": 694175
   },
   {
     "id": 270,
@@ -7589,11 +7858,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691373/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 169
+    "fpts": 169,
+    "mlbId": 691373
   },
   {
     "id": 271,
@@ -7617,11 +7887,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/699013/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 169
+    "fpts": 169,
+    "mlbId": 699013
   },
   {
     "id": 272,
@@ -7645,11 +7916,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/542932/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 168
+    "fpts": 168,
+    "mlbId": 542932
   },
   {
     "id": 273,
@@ -7673,11 +7945,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/595281/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 168
+    "fpts": 168,
+    "mlbId": 595281
   },
   {
     "id": 274,
@@ -7701,11 +7974,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/665877/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 168
+    "fpts": 168,
+    "mlbId": 665877
   },
   {
     "id": 275,
@@ -7729,11 +8003,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694362/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 167
+    "fpts": 167,
+    "mlbId": 694362
   },
   {
     "id": 276,
@@ -7757,11 +8032,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691185/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 164
+    "fpts": 164,
+    "mlbId": 691185
   },
   {
     "id": 277,
@@ -7785,11 +8061,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663536/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 163
+    "fpts": 163,
+    "mlbId": 663536
   },
   {
     "id": 278,
@@ -7813,11 +8090,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663494/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 163
+    "fpts": 163,
+    "mlbId": 663494
   },
   {
     "id": 279,
@@ -7841,11 +8119,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/694673/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 161
+    "fpts": 161,
+    "mlbId": 694673
   },
   {
     "id": 280,
@@ -7869,11 +8148,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/670032/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 159
+    "fpts": 159,
+    "mlbId": 670032
   },
   {
     "id": 281,
@@ -7897,11 +8177,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/804668/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 159
+    "fpts": 159,
+    "mlbId": 804668
   },
   {
     "id": 282,
@@ -7925,11 +8206,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/690976/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 159
+    "fpts": 159,
+    "mlbId": 690976
   },
   {
     "id": 283,
@@ -7953,11 +8235,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/809707/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 158
+    "fpts": 158,
+    "mlbId": 809707
   },
   {
     "id": 284,
@@ -7981,11 +8264,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/592122/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 157
+    "fpts": 157,
+    "mlbId": 592122
   },
   {
     "id": 285,
@@ -8009,11 +8293,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/608671/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 153
+    "fpts": 153,
+    "mlbId": 608671
   },
   {
     "id": 286,
@@ -8037,11 +8322,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691740/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 153
+    "fpts": 153,
+    "mlbId": 691740
   },
   {
     "id": 287,
@@ -8065,11 +8351,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/683679/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 153
+    "fpts": 153,
+    "mlbId": 683679
   },
   {
     "id": 288,
@@ -8095,11 +8382,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/571771/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 152
+    "fpts": 152,
+    "mlbId": 571771
   },
   {
     "id": 289,
@@ -8123,11 +8411,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/693409/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 152
+    "fpts": 152,
+    "mlbId": 693409
   },
   {
     "id": 290,
@@ -8151,11 +8440,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/594807/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 150
+    "fpts": 150,
+    "mlbId": 594807
   },
   {
     "id": 291,
@@ -8179,11 +8469,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660644/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 150
+    "fpts": 150,
+    "mlbId": 660644
   },
   {
     "id": 292,
@@ -8207,11 +8498,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/695670/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 138
+    "fpts": 138,
+    "mlbId": 695670
   },
   {
     "id": 293,
@@ -8235,11 +8527,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/596117/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 137
+    "fpts": 137,
+    "mlbId": 596117
   },
   {
     "id": 294,
@@ -8263,11 +8556,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/678225/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 133
+    "fpts": 133,
+    "mlbId": 678225
   },
   {
     "id": 295,
@@ -8291,11 +8585,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/669222/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 132
+    "fpts": 132,
+    "mlbId": 669222
   },
   {
     "id": 296,
@@ -8319,11 +8614,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691620/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 131
+    "fpts": 131,
+    "mlbId": 691620
   },
   {
     "id": 297,
@@ -8347,11 +8643,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/686452/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 130
+    "fpts": 130,
+    "mlbId": 686452
   },
   {
     "id": 298,
@@ -8375,11 +8672,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691788/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 124
+    "fpts": 124,
+    "mlbId": 691788
   },
   {
     "id": 299,
@@ -8403,11 +8701,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/699625/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 123
+    "fpts": 123,
+    "mlbId": 699625
   },
   {
     "id": 300,
@@ -8431,11 +8730,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/518735/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 122
+    "fpts": 122,
+    "mlbId": 518735
   },
   {
     "id": 301,
@@ -8459,11 +8759,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/664954/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 120
+    "fpts": 120,
+    "mlbId": 664954
   },
   {
     "id": 302,
@@ -8487,11 +8788,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/680577/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 119
+    "fpts": 119,
+    "mlbId": 680577
   },
   {
     "id": 303,
@@ -8515,11 +8817,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/691182/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 114
+    "fpts": 114,
+    "mlbId": 691182
   },
   {
     "id": 304,
@@ -8543,11 +8846,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/595909/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 113
+    "fpts": 113,
+    "mlbId": 595909
   },
   {
     "id": 305,
@@ -8571,11 +8875,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/657077/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 112
+    "fpts": 112,
+    "mlbId": 657077
   },
   {
     "id": 306,
@@ -8599,11 +8904,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/663584/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 109
+    "fpts": 109,
+    "mlbId": 663584
   },
   {
     "id": 307,
@@ -8627,11 +8933,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/543228/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 108
+    "fpts": 108,
+    "mlbId": 543228
   },
   {
     "id": 308,
@@ -8655,11 +8962,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/672744/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 108
+    "fpts": 108,
+    "mlbId": 672744
   },
   {
     "id": 309,
@@ -8683,11 +8991,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/457759/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 105
+    "fpts": 105,
+    "mlbId": 457759
   },
   {
     "id": 310,
@@ -8711,11 +9020,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/668832/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 104
+    "fpts": 104,
+    "mlbId": 668832
   },
   {
     "id": 311,
@@ -8739,11 +9049,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660707/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 103
+    "fpts": 103,
+    "mlbId": 660707
   },
   {
     "id": 312,
@@ -8767,11 +9078,12 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/643265/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 103
+    "fpts": 103,
+    "mlbId": 643265
   },
   {
     "id": 313,
@@ -8795,10 +9107,11 @@
     "whip": null,
     "w": null,
     "sv": null,
-    "photoUrl": null,
+    "photoUrl": "https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/542194/headshot/67/current",
     "injury": null,
     "note": null,
     "depth": "Bench",
-    "fpts": 102
+    "fpts": 102,
+    "mlbId": 542194
   }
 ]

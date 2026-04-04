@@ -8,16 +8,18 @@
 // ── API Config ────────────────────────────────────────────────────────────────
 // API_BASE: valuation API endpoint.
 // Production should be provided via VITE_API_BASE at build time.
-export const API_BASE =
+export const API_BASE = (
   import.meta.env.VITE_API_BASE ||
   (import.meta.env.PROD
     ? "https://draftapi.anythingavenue.com"
-    : "http://localhost:3001");
+    : "http://localhost:3001")
+).trim();
 
 // PROD_DISPLAY_URL: shown in the API Sandbox UI so users know what endpoint
 // they're hitting in production. Does NOT affect actual fetch() calls.
-export const PROD_DISPLAY_URL =
-  import.meta.env.VITE_API_BASE || "https://draftapi.anythingavenue.com";
+export const PROD_DISPLAY_URL = (
+  import.meta.env.VITE_API_BASE || "https://draftapi.anythingavenue.com"
+).trim();
 
 // DEMO_KEY: Hardcoded demo license key used while the API server is local.
 // In production this would come from the user's account settings or env vars.

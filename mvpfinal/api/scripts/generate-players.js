@@ -295,6 +295,7 @@ sorted.forEach((p, i) => {
  * era, so, whip, w, sv — null for hitters (set manually for two-way players)
  *
  * --- Future use ---
+ * mlbId       — MLB player ID used to derive a stable headshot URL
  * photoUrl    — Set to null; replace with a player headshot CDN URL
  *               to enable real photo display in PlayerAvatar component.
  *               Format: "https://your-cdn.com/headshots/{name-slug}.jpg"
@@ -334,6 +335,7 @@ const playersJson = sorted.map((p, i) => ({
   sv:   null,
 
   // ── Future photo integration ──
+  mlbId: null,
   // Replace null with a URL to display real player headshots in the UI.
   // The PlayerAvatar component in App.jsx checks this field first before
   // falling back to the initials-circle avatar.

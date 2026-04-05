@@ -30,6 +30,8 @@ import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import { posColor, calcMaxBid, getValueClass } from "../utils/helpers.js";
 
+const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
+
 function normalizePosLabel(value) {
   return String(value || "").trim().toUpperCase();
 }
@@ -52,7 +54,6 @@ function sortPlayersForScout(players, {
   favoritesOnly,
   favorites,
   notes,
-  valuationCache,
   slotPos,
 }) {
   const q = searchQ.trim().toLowerCase();
@@ -82,8 +83,8 @@ function sortPlayersForScout(players, {
       const bHasNote = (notes?.[b.id] || b.note) ? 1 : 0;
       if (aHasNote !== bHasNote) return bHasNote - aHasNote;
 
-      const aValue = valuationCache?.[a.id]?.max_bid_recommendation ?? a.baseValue ?? 0;
-      const bValue = valuationCache?.[b.id]?.max_bid_recommendation ?? b.baseValue ?? 0;
+      const aValue = a.baseValue ?? 0;
+      const bValue = b.baseValue ?? 0;
       if (aValue !== bValue) return bValue - aValue;
 
       return a.name.localeCompare(b.name);
@@ -138,6 +139,14 @@ export default function DraftBoard({
 
   // ── Grid tooltip hover state ──────────────────────────────────────────────
   const [hoveredCell, setHoveredCell] = useState(null);
+  const [hideScoutRailHelp, setHideScoutRailHelp] = useState(() => {
+    try {
+      return window.localStorage.getItem(SCOUT_RAIL_HELP_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [dismissScoutRailHelp, setDismissScoutRailHelp] = useState(false);
 
   const searchRef = useRef(null);
 
@@ -151,10 +160,10 @@ export default function DraftBoard({
         ...saleModal,
         pos: [
           ...new Set([
-            ...saleModal.pos,
+            ...(Array.isArray(saleModal.pos) ? saleModal.pos : []),
             ...customPosInput
               .toUpperCase()
-              .split(",")
+              .split(/[,\s]+/)
               .map((p) => p.trim())
               .filter(Boolean),
           ]),
@@ -183,6 +192,7 @@ export default function DraftBoard({
   function getValidSlotsForPlayer(player, teamId) {
     const team = league.teams.find((t) => t.id === teamId);
     if (!team) return [];
+    const playerPositions = (Array.isArray(player?.pos) ? player.pos : []).map(normalizePosLabel);
 
     // Occupied slot indices for this team
     const takenSlots = new Set(team.roster.map((r) => r.slotIndex));
@@ -199,8 +209,8 @@ export default function DraftBoard({
 
       if (slotPos === "UTIL") {
         // UTIL: accepts any hitter (player has at least one non-pitcher position)
-        const hasHitterEligibility = player.pos.some(
-          (p) => !["SP", "RP"].includes(p)
+        const hasHitterEligibility = playerPositions.some(
+          (p) => !["SP", "RP"].includes(normalizePosLabel(p))
         );
         if (hasHitterEligibility) {
           acc.push({ slotIdx: si, pos: slotPos });
@@ -209,7 +219,7 @@ export default function DraftBoard({
       }
 
       // Standard slot: player must have this position in their eligibility
-      if (player.pos.includes(slotPos)) {
+      if (playerPositions.includes(normalizePosLabel(slotPos))) {
         acc.push({ slotIdx: si, pos: slotPos });
       }
 
@@ -229,11 +239,23 @@ export default function DraftBoard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer?.id, draftStateKey]);
 
+  useEffect(() => {
+    try {
+      if (hideScoutRailHelp) {
+        window.localStorage.setItem(SCOUT_RAIL_HELP_STORAGE_KEY, "1");
+      } else {
+        window.localStorage.removeItem(SCOUT_RAIL_HELP_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage failures in private browsing or restricted environments.
+    }
+  }, [hideScoutRailHelp]);
+
   // Close modals on Escape
   useEffect(() => {
     function handleKey(e) {
       if (e.key === "Escape") {
-        setSaleModal(null);
+        closeSaleModal();
         setRemoveModal(null);
         setActiveCellSearch(null);
       }
@@ -250,6 +272,12 @@ export default function DraftBoard({
     setSaleSlot(slots[0]?.slotIdx ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleTeam, customPosInput]);
+
+  function handleSelectPlayer(player) {
+    if (!player) return;
+    setSelectedPlayer(player);
+    requestValuation(player);
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // getRecommendedBid — returns the best available bid suggestion for a player.
@@ -333,14 +361,18 @@ export default function DraftBoard({
     // The draftedPos is the position label of the selected slot
     // (could differ from player.pos[0] if going into UTIL or BN)
     const draftedPos = rosterPositions[saleSlot] || "BN";
-    const saved = onSale(saleModal, +salePrice, saleTeam, saleSlot, draftedPos);
+    const saved = onSale(extendedSalePlayer || saleModal, +salePrice, saleTeam, saleSlot, draftedPos);
     if (saved === false) return;
+    closeSaleModal();
+    setActiveCellSearch(null);
+    setSelectedPlayer(null);
+  }
+
+  function closeSaleModal() {
     setSaleModal(null);
     setSalePrice("");
     setSaleSlot(null);
     setCustomPosInput("");
-    setActiveCellSearch(null);
-    setSelectedPlayer(null);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -400,7 +432,6 @@ export default function DraftBoard({
         favoritesOnly: false,
         favorites,
         notes,
-        valuationCache,
         slotPos: pos,
       })[0] || null
     );
@@ -416,10 +447,9 @@ export default function DraftBoard({
         favoritesOnly,
         favorites,
         notes,
-        valuationCache,
         slotPos: activeCellSearch?.pos || null,
       }),
-    [activeCellSearch?.pos, favorites, favoritesOnly, notes, notesOnly, players, posFilter, searchQ, valuationCache]
+    [activeCellSearch?.pos, favorites, favoritesOnly, notes, notesOnly, players, posFilter, searchQ]
   );
 
   const recommendationRows = useMemo(
@@ -427,17 +457,24 @@ export default function DraftBoard({
     [scoutResults]
   );
 
-  // Pre-fetch valuations for the top scouting results so the right rail stays live.
   useEffect(() => {
-    scoutResults.slice(0, 8).forEach((p) => requestValuation(p));
+    const targets = scoutResults.slice(0, searchQ || activeCellSearch ? 4 : 2);
+    if (targets.length === 0) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      targets.forEach((player) => requestValuation(player));
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftStateKey, scoutResults]);
+  }, [activeCellSearch?.slotIdx, draftStateKey, favoritesOnly, notesOnly, posFilter, searchQ, scoutResults]);
 
   const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
   const activeContextTeam = activeCellSearch
     ? league.teams.find((team) => team.id === activeCellSearch.teamId) || null
     : null;
+  const showScoutRailHelper = !activeCellSearch && !hideScoutRailHelp && !dismissScoutRailHelp;
 
   // ─────────────────────────────────────────────────────────────────────────
   // undraftedByPos — count of undrafted players eligible at each position.
@@ -496,11 +533,6 @@ export default function DraftBoard({
                 </>
               )}
             </div>
-            {boardNotice && (
-              <div className={`board-notice ${boardNotice.tone || "info"}`}>
-                {boardNotice.message}
-              </div>
-            )}
           </div>
           <div className="board-actions">
             <button
@@ -519,6 +551,11 @@ export default function DraftBoard({
             >
               ↪ Redo
             </button>
+            {boardNotice && (
+              <div className={`board-toast ${boardNotice.tone || "info"}`} role="status" aria-live="polite">
+                {boardNotice.message}
+              </div>
+            )}
           </div>
         </div>
 
@@ -848,7 +885,56 @@ export default function DraftBoard({
       {/* ════════════════════════════════════════════════════════════════════
           RIGHT PANEL
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="right-panel">
+      <div className={`right-panel ${selectedPlayer ? "has-selected" : ""}`}>
+        {/* Current player section */}
+        <div className="current-player-section">
+          <div className="cp-header">PINNED PLAYER</div>
+
+          {selectedPlayer ? (
+            <>
+              <PlayerCard
+                player={selectedPlayer}
+                valuation={valuationCache[selectedPlayer?.id] ?? null}
+                notes={notes}
+                favorites={favorites}
+                saveNote={saveNote}
+                toggleFavorite={toggleFavorite}
+              />
+              <div className="player-card-actions">
+                <button
+                  className="record-sale-btn"
+                  onClick={() =>
+                    activeCellSearch
+                      ? openSaleModalForCell(
+                          selectedPlayer,
+                          activeCellSearch.teamId,
+                          activeCellSearch.slotIdx
+                        )
+                      : openSaleModal(selectedPlayer)
+                  }
+                >
+                  {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
+                </button>
+                {activeCellSearch && (
+                  <button
+                    type="button"
+                    className="undo-btn ghost-btn"
+                    onClick={() => setActiveCellSearch(null)}
+                  >
+                    Clear Slot
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="cp-empty">
+              Pick a player from the scouting rail or click a cell to lock the next slot.
+            </div>
+          )}
+        </div>
+
+        <div className="right-panel-body">
+
         {/* Budget summary */}
         <div className="panel-budget">
           <div>
@@ -885,14 +971,33 @@ export default function DraftBoard({
                 Clear Slot Focus
               </button>
             </div>
-          ) : (
+          ) : showScoutRailHelper ? (
             <div className="slot-context-banner muted">
               <div className="slot-context-title">Search lives here now</div>
               <div className="slot-context-copy">
                 Click a grid cell to lock a team and slot, then draft from the rail.
               </div>
+              <div className="slot-context-actions">
+                <button
+                  type="button"
+                  className="slot-context-clear secondary"
+                  onClick={() => setDismissScoutRailHelp(true)}
+                >
+                  Dismiss
+                </button>
+                <button
+                  type="button"
+                  className="slot-context-clear"
+                  onClick={() => {
+                    setDismissScoutRailHelp(true);
+                    setHideScoutRailHelp(true);
+                  }}
+                >
+                  Don't show again
+                </button>
+              </div>
             </div>
-          )}
+          ) : null}
 
           <div className="search-label-row scout-label-row">
             <span className="search-label">PLAYER SEARCH</span>
@@ -963,7 +1068,7 @@ export default function DraftBoard({
                 recValue={valuationCache[p.id]?.max_bid_recommendation}
                 contextTag={activeCellSearch ? `Fits ${activeCellSearch.pos}` : null}
                 actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
-                onSelect={() => setSelectedPlayer(p)}
+                onSelect={() => handleSelectPlayer(p)}
                 onRecord={() =>
                   activeCellSearch
                     ? openSaleModalForCell(p, activeCellSearch.teamId, activeCellSearch.slotIdx)
@@ -984,53 +1089,6 @@ export default function DraftBoard({
           </div>
         </div>
 
-        {/* Current player section */}
-        <div className="current-player-section">
-          <div className="cp-header">PINNED PLAYER</div>
-
-          {selectedPlayer ? (
-            <>
-              <PlayerCard
-                player={selectedPlayer}
-                valuation={valuationCache[selectedPlayer?.id] ?? null}
-                notes={notes}
-                favorites={favorites}
-                saveNote={saveNote}
-                toggleFavorite={toggleFavorite}
-              />
-              <div className="player-card-actions">
-                <button
-                  className="record-sale-btn"
-                  onClick={() =>
-                    activeCellSearch
-                      ? openSaleModalForCell(
-                          selectedPlayer,
-                          activeCellSearch.teamId,
-                          activeCellSearch.slotIdx
-                        )
-                      : openSaleModal(selectedPlayer)
-                  }
-                >
-                  {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
-                </button>
-                {activeCellSearch && (
-                  <button
-                    type="button"
-                    className="undo-btn ghost-btn"
-                    onClick={() => setActiveCellSearch(null)}
-                  >
-                    Clear Slot
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="cp-empty">
-              Pick a player from the scouting rail or click a cell to lock the next slot.
-            </div>
-          )}
-        </div>
-
         {/* Recommendations */}
         <div className="recommendations">
           <div className="rec-header">
@@ -1047,7 +1105,7 @@ export default function DraftBoard({
               <div
                 key={p.id}
                 className="rec-row"
-                onClick={() => setSelectedPlayer(p)}
+                onClick={() => handleSelectPlayer(p)}
               >
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">
@@ -1091,6 +1149,7 @@ export default function DraftBoard({
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
@@ -1098,13 +1157,13 @@ export default function DraftBoard({
           Opened by: "Record Sale" button, search result, or inline cell search
       ════════════════════════════════════════════════════════════════════ */}
       {saleModal && (
-        <div className="modal-overlay" onClick={() => setSaleModal(null)}>
+        <div className="modal-overlay" onClick={closeSaleModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>RECORD AUCTION SALE</h3>
             <p className="modal-player">{saleModal.name}</p>
 
             <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
-              {saleModal.pos.map((p) => (
+              {(Array.isArray(saleModal.pos) ? saleModal.pos : []).map((p) => (
                 <span key={p} className="pos-badge" style={{ background: posColor(p) }}>{p}</span>
               ))}
               <span className={`tier-badge ${saleModal.tier?.toLowerCase()}`}>
@@ -1195,11 +1254,17 @@ export default function DraftBoard({
             </div>
 
             {/* API / base value hint */}
-            {valuationCache[saleModal?.id] && valuationCache[saleModal?.id] !== "loading" ? (
+            {valuationCache[saleModal?.id] &&
+            valuationCache[saleModal?.id] !== "loading" &&
+            !valuationCache[saleModal?.id]?.error ? (
               <div className="modal-hint">
                 API suggests: <strong>${valuationCache[saleModal?.id].max_bid_recommendation}</strong> max bid
                 {valuationCache[saleModal?.id].true_dollar_value && <> · TDV: <strong>${valuationCache[saleModal?.id].true_dollar_value}</strong></>}
                 {valuationCache[saleModal?.id].scarcity_tier && <> · {valuationCache[saleModal?.id].scarcity_tier}</>}
+              </div>
+            ) : valuationCache[saleModal?.id]?.error ? (
+              <div className="modal-hint">
+                Base value: <strong>${saleModal.baseValue}</strong> · {valuationCache[saleModal?.id].message}
               </div>
             ) : (
               <div className="modal-hint">
@@ -1209,7 +1274,7 @@ export default function DraftBoard({
             )}
 
             <div className="modal-actions">
-              <button className="modal-cancel" onClick={() => setSaleModal(null)}>
+              <button className="modal-cancel" onClick={closeSaleModal}>
                 Cancel
               </button>
               <button

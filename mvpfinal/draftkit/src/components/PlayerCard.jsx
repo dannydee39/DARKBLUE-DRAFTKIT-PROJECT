@@ -40,6 +40,11 @@ export default function PlayerCard({
   // Local note text mirrors the stored note but allows typing without re-renders
   const [localNote, setLocalNote] = useState("");
   const [savedPulse, setSavedPulse] = useState(false);
+  const valuationFailed = Boolean(
+    valuation &&
+    valuation !== "loading" &&
+    valuation.error
+  );
 
   // Sync local note when the selected player changes
   useEffect(() => {
@@ -59,6 +64,8 @@ export default function PlayerCard({
   const maxBid =
     valuation === "loading"
       ? "…"
+      : valuationFailed
+      ? player.baseValue
       : valuation?.max_bid_recommendation ?? player.baseValue;
 
   // ── Pitcher vs. Hitter detection ────────────────────────────────────────
@@ -196,6 +203,13 @@ export default function PlayerCard({
               · {player.pos[0]} SCARCITY: {scarcityLabel}
             </span>
           )}
+        </div>
+      )}
+
+      {valuationFailed && (
+        <div className="pc-news">
+          <span className="news-tag">[API]</span>{" "}
+          {valuation.message || "Live valuation was unavailable. Showing the base value instead."}
         </div>
       )}
 

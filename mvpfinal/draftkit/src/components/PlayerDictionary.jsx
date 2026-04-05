@@ -10,7 +10,7 @@
 //  - Inline note preview on each card
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import { TIERS } from "../constants.js";
@@ -46,6 +46,12 @@ export default function PlayerDictionary({
   const [showDrafted, setShowDrafted] = useState(false); // show drafted players
   const [hasNotesOnly, setHasNotesOnly] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const rightPanelRef = useRef(null);
+
+  function handleSelectPlayer(player) {
+    if (!player) return;
+    setSelectedPlayer(player);
+  }
 
   // ── Valuation requests ────────────────────────────────────────────────────
   // Request valuation for the selected player whenever it changes or draft
@@ -55,12 +61,10 @@ export default function PlayerDictionary({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer?.id, draftStateKey]);
 
-  // Pre-fetch valuations for the top 4 available players so the recommendation
-  // panel and DictCards show live values instead of base values.
   useEffect(() => {
-    players.filter((p) => !p.drafted).slice(0, 4).forEach((p) => requestValuation(p));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftStateKey]);
+    if (!selectedPlayer) return;
+    rightPanelRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selectedPlayer?.id]);
 
   // ── Filtering Logic ───────────────────────────────────────────────────────
   // Apply all active filters to produce the visible player list
@@ -98,8 +102,8 @@ export default function PlayerDictionary({
       const bHasNote = (notes?.[b.id] || b.note) ? 1 : 0;
       if (aHasNote !== bHasNote) return bHasNote - aHasNote;
 
-      const aValue = valuationCache[a.id]?.max_bid_recommendation ?? a.baseValue ?? 0;
-      const bValue = valuationCache[b.id]?.max_bid_recommendation ?? b.baseValue ?? 0;
+      const aValue = a.baseValue ?? 0;
+      const bValue = b.baseValue ?? 0;
       if (aValue !== bValue) return bValue - aValue;
 
       return a.name.localeCompare(b.name);
@@ -228,7 +232,7 @@ export default function PlayerDictionary({
                     isFavorite={Boolean(favorites?.[p.id])}
                     liveValue={valuationCache[p.id]?.max_bid_recommendation}
                     onToggleFavorite={() => toggleFavorite(p.id)}
-                    onClick={() => setSelectedPlayer(p)}
+                    onClick={() => handleSelectPlayer(p)}
                   />
                 ))}
               </div>
@@ -238,7 +242,7 @@ export default function PlayerDictionary({
       </div>
 
       {/* ── Right Panel: Selected Player Card ─────────────────────────────── */}
-      <div className="right-panel">
+      <div className="right-panel" ref={rightPanelRef}>
         <div className="panel-section-label">PLAYER CARD</div>
         {selectedPlayer ? (
           <PlayerCard
@@ -275,7 +279,7 @@ export default function PlayerDictionary({
               <div
                 key={p.id}
                 className="rec-row"
-                onClick={() => setSelectedPlayer(p)}
+                onClick={() => handleSelectPlayer(p)}
               >
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">

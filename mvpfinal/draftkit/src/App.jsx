@@ -51,6 +51,8 @@ import {
 } from "./utils/draftSessions.js";
 
 const MAX_HISTORY_SNAPSHOTS = 30;
+const VALUATION_REQUEST_TIMEOUT_MS = 7000;
+const VALUATION_ERROR_RETRY_MS = 10000;
 
 const DEFAULT_LEAGUE = {
   name: "",
@@ -121,6 +123,7 @@ export default function App() {
   const valuationCacheRef = useRef({});    // mirrors valuationCache; used in requestValuation
                                            // to avoid stale-closure reads of the state variable
   const inFlightRef     = useRef(new Set());   // player IDs with active requests
+  const loadingStartedRef = useRef({});        // playerId -> request start timestamp
   const cacheVersionRef = useRef(0);           // incremented on cache invalidation
 
   // Keep the ref in sync with state so requestValuation always reads fresh values
@@ -264,6 +267,7 @@ export default function App() {
   useEffect(() => {
     cacheVersionRef.current += 1;
     inFlightRef.current.clear();
+    loadingStartedRef.current = {};
     // BUG FIX: clear the ref SYNCHRONOUSLY here, not just via the
     // valuationCache state→useEffect chain. The pre-fetch in DraftBoard
     // reads from valuationCacheRef directly to avoid stale closures.
@@ -300,16 +304,42 @@ export default function App() {
   // @param {Object} player - Player object to valuate
   // ─────────────────────────────────────────────────────────────────────────
   async function requestValuation(player) {
-    if (!player || apiStatus !== "online") return;
+    if (!player) return;
     // Read from ref (not state) to avoid stale closure — state variable would
     // still reference the old cache object after a cache-clear triggered by a pick.
     const cached = valuationCacheRef.current[player.id];
-    if (cached && cached !== "loading") return;
+    if (cached && cached !== "loading" && !cached?.error) return;
+    if (
+      cached?.error &&
+      Date.now() - (cached.timestamp || 0) < VALUATION_ERROR_RETRY_MS
+    ) {
+      return;
+    }
+    if (
+      cached === "loading" &&
+      Date.now() - (loadingStartedRef.current[player.id] || 0) < VALUATION_REQUEST_TIMEOUT_MS
+    ) {
+      return;
+    }
+    if (apiStatus !== "online") {
+      setValuationCache((prev) => ({
+        ...prev,
+        [player.id]: {
+          error: true,
+          message: "Live valuation is offline. Showing the base value instead.",
+          timestamp: Date.now(),
+        },
+      }));
+      return;
+    }
     // Request already in-flight for this player
     if (inFlightRef.current.has(player.id)) return;
 
     const version = cacheVersionRef.current;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), VALUATION_REQUEST_TIMEOUT_MS);
     inFlightRef.current.add(player.id);
+    loadingStartedRef.current[player.id] = Date.now();
     setValuationCache((prev) => ({ ...prev, [player.id]: "loading" }));
     try {
       const draftState = {
@@ -329,23 +359,46 @@ export default function App() {
       const r = await fetch(`${API_BASE}/v1/valuate`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-License-Key": DEMO_KEY },
+        signal: controller.signal,
         body: JSON.stringify({ license_key: DEMO_KEY, draft_state: draftState }),
       });
       const data = await r.json();
       // Discard stale response if the draft state changed while we were waiting
       if (cacheVersionRef.current === version) {
-        setValuationCache((prev) => ({ ...prev, [player.id]: data }));
+        if (!r.ok || data?.error || data?.max_bid_recommendation == null) {
+          setValuationCache((prev) => ({
+            ...prev,
+            [player.id]: {
+              error: true,
+              message:
+                data?.message ||
+                data?.error ||
+                "Live valuation was unavailable. Showing the base value instead.",
+              timestamp: Date.now(),
+            },
+          }));
+        } else {
+          setValuationCache((prev) => ({ ...prev, [player.id]: data }));
+        }
       }
-    } catch {
+    } catch (error) {
       if (cacheVersionRef.current === version) {
-        setValuationCache((prev) => {
-          const next = { ...prev };
-          delete next[player.id];
-          return next;
-        });
+        setValuationCache((prev) => ({
+          ...prev,
+            [player.id]: {
+              error: true,
+              message:
+                error?.name === "AbortError"
+                ? "Live valuation timed out. Showing the base value instead."
+                : error?.message || "Live valuation was unavailable. Showing the base value instead.",
+              timestamp: Date.now(),
+            },
+          }));
       }
     } finally {
+      window.clearTimeout(timeoutId);
       inFlightRef.current.delete(player.id);
+      delete loadingStartedRef.current[player.id];
     }
   }
 
@@ -586,11 +639,15 @@ export default function App() {
 
   function canPlayerFillSlot(player, slotPos) {
     if (!player || !slotPos) return false;
-    if (slotPos === "BN") return true;
-    if (slotPos === "UTIL") {
-      return player.pos?.some((pos) => !["SP", "RP"].includes(pos));
+
+    const normalizedSlot = String(slotPos).trim().toUpperCase();
+    const positions = (player.pos || []).map((pos) => String(pos).trim().toUpperCase());
+
+    if (normalizedSlot === "BN") return true;
+    if (normalizedSlot === "UTIL") {
+      return positions.some((pos) => !["SP", "RP"].includes(pos));
     }
-    return player.pos?.includes(slotPos);
+    return positions.includes(normalizedSlot);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -612,6 +669,14 @@ export default function App() {
     const slotPos = slotLabels[slotIndex];
     const currentTeam = league.teams.find((team) => team.id === teamId);
     const currentPlayer = players.find((candidate) => candidate.id === player?.id);
+    const effectivePlayer = currentPlayer
+      ? {
+          ...currentPlayer,
+          pos: Array.from(
+            new Set([...(currentPlayer.pos || []), ...((player?.pos || []).map((pos) => String(pos).trim().toUpperCase()))])
+          ),
+        }
+      : null;
     const numericPrice = Number(price);
 
     if (!currentTeam) {
@@ -639,7 +704,7 @@ export default function App() {
       return false;
     }
 
-    if (!canPlayerFillSlot(currentPlayer, slotPos)) {
+    if (!canPlayerFillSlot(effectivePlayer, slotPos)) {
       setBoardNotice({ tone: "warning", message: `${currentPlayer.name} cannot be placed into the ${slotPos} slot.` });
       return false;
     }
@@ -674,7 +739,7 @@ export default function App() {
               playerId: currentPlayer.id,
               name: player.name,
               price: numericPrice,
-              pos: player.pos,
+              pos: effectivePlayer.pos,
               slotIndex,
               draftedPos,
               draftedAt: actionTime,
@@ -1083,12 +1148,18 @@ export default function App() {
             >
               <div className="owner-strip-top">
                 <span className="owner-strip-name">{team.name}</span>
-                <span className="owner-strip-budget">${team.budget_remaining}</span>
+                {isActive && <span className="owner-strip-live">ON CLOCK</span>}
               </div>
-              <div className="owner-strip-meta">
-                <span>{team.roster.length}/{totalSlots} players</span>
-                <span>max ${teamMaxBid}</span>
-                {isActive && <span className="owner-strip-live">LIVE</span>}
+              <div className="owner-strip-stats">
+                <span className="owner-strip-stat owner-strip-stat-budget budget" title={`${team.budget_remaining} budget left`}>
+                  ${team.budget_remaining}
+                </span>
+                <span className="owner-strip-stat owner-strip-stat-roster" title={`${team.roster.length} of ${totalSlots} roster slots filled`}>
+                  {team.roster.length}/{totalSlots}
+                </span>
+                <span className="owner-strip-stat owner-strip-stat-max" title={`Maximum bid ${teamMaxBid}`}>
+                  max {teamMaxBid}
+                </span>
               </div>
             </button>
           );

@@ -31,6 +31,7 @@ import PlayerCard from "./PlayerCard.jsx";
 import { posColor, calcMaxBid, getValueClass } from "../utils/helpers.js";
 
 const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
+const SCOUT_RAIL_TAB_STORAGE_KEY = "draftkit-scout-rail-tab";
 
 function normalizePosLabel(value) {
   return String(value || "").trim().toUpperCase();
@@ -122,6 +123,14 @@ export default function DraftBoard({
   const [posFilter, setPosFilter] = useState("ALL");
   const [notesOnly, setNotesOnly] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [activeRailTab, setActiveRailTab] = useState(() => {
+    try {
+      return window.localStorage.getItem(SCOUT_RAIL_TAB_STORAGE_KEY) || "search";
+    } catch {
+      return "search";
+    }
+  });
+  const [isPinnedExpanded, setIsPinnedExpanded] = useState(false);
 
   // ── Sale modal state ──────────────────────────────────────────────────────
   const [saleModal,     setSaleModal]     = useState(null);  // player obj or null
@@ -250,6 +259,20 @@ export default function DraftBoard({
       // Ignore storage failures in private browsing or restricted environments.
     }
   }, [hideScoutRailHelp]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SCOUT_RAIL_TAB_STORAGE_KEY, activeRailTab);
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [activeRailTab]);
+
+  useEffect(() => {
+    if (!selectedPlayer) {
+      setIsPinnedExpanded(false);
+    }
+  }, [selectedPlayer?.id]);
 
   // Close modals on Escape
   useEffect(() => {
@@ -892,42 +915,75 @@ export default function DraftBoard({
 
           {selectedPlayer ? (
             <>
-              <PlayerCard
-                player={selectedPlayer}
-                valuation={valuationCache[selectedPlayer?.id] ?? null}
-                notes={notes}
-                favorites={favorites}
-                saveNote={saveNote}
-                toggleFavorite={toggleFavorite}
-              />
-              <div className="player-card-actions">
+              <div className="pinned-player-shell">
                 <button
-                  className="record-sale-btn"
-                  onClick={() =>
-                    activeCellSearch
-                      ? openSaleModalForCell(
-                          selectedPlayer,
-                          activeCellSearch.teamId,
-                          activeCellSearch.slotIdx
-                        )
-                      : openSaleModal(selectedPlayer)
-                  }
+                  type="button"
+                  className="pinned-player-strip"
+                  onClick={() => setIsPinnedExpanded((prev) => !prev)}
                 >
-                  {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
+                  <div className="pinned-player-main">
+                    <PlayerAvatar
+                      name={selectedPlayer.name}
+                      size={36}
+                      photoUrl={selectedPlayer.photoUrl}
+                    />
+                    <div className="pinned-player-copy">
+                      <div className="pinned-player-name">{selectedPlayer.name}</div>
+                      <div className="pinned-player-meta">
+                        <span>{selectedPlayer.team}</span>
+                        <span>·</span>
+                        <span>{(selectedPlayer.pos || []).join("/")}</span>
+                        <span>·</span>
+                        <span className="green">${getRecommendedBid(selectedPlayer)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="pinned-player-toggle">
+                    {isPinnedExpanded ? "Hide" : "Expand"}
+                  </span>
                 </button>
-                {activeCellSearch && (
-                  <button
-                    type="button"
-                    className="undo-btn ghost-btn"
-                    onClick={() => setActiveCellSearch(null)}
-                  >
-                    Clear Slot
-                  </button>
+
+                {isPinnedExpanded && (
+                  <>
+                    <PlayerCard
+                      player={selectedPlayer}
+                      valuation={valuationCache[selectedPlayer?.id] ?? null}
+                      notes={notes}
+                      favorites={favorites}
+                      saveNote={saveNote}
+                      toggleFavorite={toggleFavorite}
+                    />
+                    <div className="player-card-actions">
+                      <button
+                        className="record-sale-btn"
+                        onClick={() =>
+                          activeCellSearch
+                            ? openSaleModalForCell(
+                                selectedPlayer,
+                                activeCellSearch.teamId,
+                                activeCellSearch.slotIdx
+                              )
+                            : openSaleModal(selectedPlayer)
+                        }
+                      >
+                        {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
+                      </button>
+                      {activeCellSearch && (
+                        <button
+                          type="button"
+                          className="undo-btn ghost-btn"
+                          onClick={() => setActiveCellSearch(null)}
+                        >
+                          Clear Slot
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </>
           ) : (
-            <div className="cp-empty">
+            <div className="cp-empty pinned-player-empty">
               Pick a player from the scouting rail or click a cell to lock the next slot.
             </div>
           )}
@@ -935,172 +991,171 @@ export default function DraftBoard({
 
         <div className="right-panel-body">
         <div className="panel-section-label">SCOUT RAIL</div>
-        <div className="scout-panel">
-          {activeCellSearch && activeContextTeam ? (
-            <div className="slot-context-banner">
-              <div className="slot-context-title">
-                Filling {activeContextTeam.name} · {activeCellSearch.pos}
-              </div>
-              <div className="slot-context-copy">
-                Eligible fits are filtered in. Favorites and players with notes rise to the top.
-              </div>
-              <button
-                type="button"
-                className="slot-context-clear"
-                onClick={() => setActiveCellSearch(null)}
-              >
-                Clear Slot Focus
-              </button>
-            </div>
-          ) : showScoutRailHelper ? (
-            <div className="slot-context-banner muted">
-              <div className="slot-context-title">Search lives here now</div>
-              <div className="slot-context-copy">
-                Click a grid cell to lock a team and slot, then draft from the rail.
-              </div>
-              <div className="slot-context-actions">
-                <button
-                  type="button"
-                  className="slot-context-clear secondary"
-                  onClick={() => setDismissScoutRailHelp(true)}
-                >
-                  Dismiss
-                </button>
+        <div className="rail-tabs">
+          <button
+            type="button"
+            className={`rail-tab ${activeRailTab === "search" ? "active" : ""}`}
+            onClick={() => setActiveRailTab("search")}
+          >
+            Search
+          </button>
+          <button
+            type="button"
+            className={`rail-tab ${activeRailTab === "best" ? "active" : ""}`}
+            onClick={() => setActiveRailTab("best")}
+          >
+            Best Available
+          </button>
+        </div>
+
+        {activeRailTab === "search" ? (
+          <div className="scout-panel tabbed-scout-panel">
+            {activeCellSearch && activeContextTeam ? (
+              <div className="slot-context-banner">
+                <div className="slot-context-title">
+                  Filling {activeContextTeam.name} · {activeCellSearch.pos}
+                </div>
+                <div className="slot-context-copy">
+                  Eligible fits are filtered in. Favorites and players with notes rise to the top.
+                </div>
                 <button
                   type="button"
                   className="slot-context-clear"
-                  onClick={() => {
-                    setDismissScoutRailHelp(true);
-                    setHideScoutRailHelp(true);
-                  }}
+                  onClick={() => setActiveCellSearch(null)}
                 >
-                  Don't show again
+                  Clear Slot Focus
                 </button>
               </div>
-            </div>
-          ) : null}
-
-          <div className="search-label-row scout-label-row">
-            <span className="search-label">PLAYER SEARCH</span>
-            <span className="search-hint">
-              Favorites rise first. Notes and live values stay visible while scouting.
-            </span>
-          </div>
-
-          <div className="pos-filters scout-filter-row">
-            {["ALL", "C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"].map((p) => (
-              <button
-                key={p}
-                className={`pos-filter ${posFilter === p ? "active" : ""}`}
-                onClick={() => setPosFilter(p)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              className={`notes-filter-btn ${notesOnly ? "active" : ""}`}
-              onClick={() => setNotesOnly((prev) => !prev)}
-              title="Only show players with notes"
-            >
-              Notes
-            </button>
-            <button
-              className={`notes-filter-btn ${favoritesOnly ? "active" : ""}`}
-              onClick={() => setFavoritesOnly((prev) => !prev)}
-              title="Only show favorite players"
-            >
-              Favorites
-            </button>
-          </div>
-
-          <input
-            ref={searchRef}
-            className="search-input scout-search-input"
-            placeholder={
-              activeCellSearch
-                ? `Search ${activeCellSearch.pos} fits for ${activeContextTeam?.name ?? "this slot"}`
-                : posFilter !== "ALL"
-                ? `Search ${posFilter} players…`
-                : "Search by name or team…"
-            }
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setPosFilter("ALL");
-                setSearchQ("");
-                setActiveCellSearch(null);
-              }
-            }}
-          />
-
-          <div className="scout-results-meta">
-            <span>{scoutResults.length} available</span>
-            {activeCellSearch && <span>slot locked</span>}
-          </div>
-
-          <div className="scout-results-list">
-            {scoutResults.slice(0, 10).map((p) => (
-              <SearchResult
-                key={p.id}
-                player={p}
-                noteText={notes?.[p.id] || p.note}
-                isFavorite={Boolean(favorites?.[p.id])}
-                recValue={valuationCache[p.id]?.max_bid_recommendation}
-                contextTag={activeCellSearch ? `Fits ${activeCellSearch.pos}` : null}
-                actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
-                onSelect={() => handleSelectPlayer(p)}
-                onRecord={() =>
-                  activeCellSearch
-                    ? openSaleModalForCell(p, activeCellSearch.teamId, activeCellSearch.slotIdx)
-                    : openSaleModal(p)
-                }
-                onToggleFavorite={() => toggleFavorite(p.id)}
-              />
-            ))}
-            {scoutResults.length === 0 && (
-              <div className="cp-empty scout-empty-state">
-                {searchQ
-                  ? `No available players match "${searchQ}".`
-                  : activeCellSearch
-                  ? `No ${activeCellSearch.pos} players are currently available.`
-                  : "No available players match the current filters."}
+            ) : showScoutRailHelper ? (
+              <div className="slot-context-banner muted">
+                <div className="slot-context-title">Search lives here now</div>
+                <div className="slot-context-copy">
+                  Click a grid cell to lock a team and slot, then draft from the rail.
+                </div>
+                <div className="slot-context-actions">
+                  <button
+                    type="button"
+                    className="slot-context-clear secondary"
+                    onClick={() => setDismissScoutRailHelp(true)}
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    className="slot-context-clear"
+                    onClick={() => {
+                      setDismissScoutRailHelp(true);
+                      setHideScoutRailHelp(true);
+                    }}
+                  >
+                    Don't show again
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            ) : null}
 
-        {/* Budget summary */}
-        <div className="panel-budget">
-          <div>
-            <div className="panel-label">BUDGET</div>
-            <div className="panel-value green">
-              ${myTeam?.budget_remaining ?? league.budget}
+            <div className="search-label-row scout-label-row">
+              <span className="search-label">PLAYER SEARCH</span>
+              <span className="search-hint">
+                Favorites rise first. Notes and live values stay visible while scouting.
+              </span>
+            </div>
+
+            <div className="pos-filters scout-filter-row">
+              {["ALL", "C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"].map((p) => (
+                <button
+                  key={p}
+                  className={`pos-filter ${posFilter === p ? "active" : ""}`}
+                  onClick={() => setPosFilter(p)}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                className={`notes-filter-btn ${notesOnly ? "active" : ""}`}
+                onClick={() => setNotesOnly((prev) => !prev)}
+                title="Only show players with notes"
+              >
+                Notes
+              </button>
+              <button
+                className={`notes-filter-btn ${favoritesOnly ? "active" : ""}`}
+                onClick={() => setFavoritesOnly((prev) => !prev)}
+                title="Only show favorite players"
+              >
+                Favorites
+              </button>
+            </div>
+
+            <input
+              ref={searchRef}
+              className="search-input scout-search-input"
+              placeholder={
+                activeCellSearch
+                  ? `Search ${activeCellSearch.pos} fits for ${activeContextTeam?.name ?? "this slot"}`
+                  : posFilter !== "ALL"
+                  ? `Search ${posFilter} players…`
+                  : "Search by name or team…"
+              }
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setPosFilter("ALL");
+                  setSearchQ("");
+                  setActiveCellSearch(null);
+                }
+              }}
+            />
+
+            <div className="scout-results-meta">
+              <span>{scoutResults.length} available</span>
+              {activeCellSearch && <span>slot locked</span>}
+            </div>
+
+            <div className="scout-results-list">
+              {scoutResults.slice(0, 10).map((p) => (
+                <SearchResult
+                  key={p.id}
+                  player={p}
+                  noteText={notes?.[p.id] || p.note}
+                  isFavorite={Boolean(favorites?.[p.id])}
+                  recValue={valuationCache[p.id]?.max_bid_recommendation}
+                  contextTag={activeCellSearch ? `Fits ${activeCellSearch.pos}` : null}
+                  actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
+                  onSelect={() => handleSelectPlayer(p)}
+                  onRecord={() =>
+                    activeCellSearch
+                      ? openSaleModalForCell(p, activeCellSearch.teamId, activeCellSearch.slotIdx)
+                      : openSaleModal(p)
+                  }
+                  onToggleFavorite={() => toggleFavorite(p.id)}
+                />
+              ))}
+              {scoutResults.length === 0 && (
+                <div className="cp-empty scout-empty-state">
+                  {searchQ
+                    ? `No available players match "${searchQ}".`
+                    : activeCellSearch
+                    ? `No ${activeCellSearch.pos} players are currently available.`
+                    : "No available players match the current filters."}
+                </div>
+              )}
             </div>
           </div>
-          <div>
-            <div className="panel-label">SLOTS LEFT</div>
-            <div className="panel-value">{slotsLeft}</div>
-          </div>
-          <div>
-            <div className="panel-label">MAX BID</div>
-            <div className="panel-value">${maxBid}</div>
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        <div className="recommendations">
-          <div className="rec-header">
-            BEST AVAILABLE{" "}
-            <span className="rec-sub">
-              {activeCellSearch
-                ? `${activeCellSearch.pos} Fits`
-                : posFilter !== "ALL"
-                ? posFilter
-                : "Overall"}
-            </span>
-          </div>
-          {recommendationRows.map((p) => (
+        ) : (
+          <div className="recommendations rail-tab-panel">
+            <div className="rec-header">
+              BEST AVAILABLE{" "}
+              <span className="rec-sub">
+                {activeCellSearch
+                  ? `${activeCellSearch.pos} Fits`
+                  : posFilter !== "ALL"
+                  ? posFilter
+                  : "Overall"}
+              </span>
+            </div>
+            {recommendationRows.map((p) => (
               <div
                 key={p.id}
                 className="rec-row"
@@ -1142,11 +1197,21 @@ export default function DraftBoard({
                 </div>
               </div>
             ))}
-          {recommendationRows.length === 0 && (
-            <div className="cp-empty scout-empty-state">
-              No best-available rows for the current view.
-            </div>
-          )}
+            {recommendationRows.length === 0 && (
+              <div className="cp-empty scout-empty-state">
+                No best-available rows for the current view.
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="panel-budget compact-budget-panel">
+          <button
+            type="button"
+            className={`rail-tab budget-pill active`}
+          >
+            ${myTeam?.budget_remaining ?? league.budget} · {slotsLeft} left · Max ${maxBid}
+          </button>
         </div>
         </div>
       </div>

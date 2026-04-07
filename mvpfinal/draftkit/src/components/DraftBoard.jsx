@@ -158,6 +158,9 @@ export default function DraftBoard({
   const [dismissScoutRailHelp, setDismissScoutRailHelp] = useState(false);
 
   const searchRef = useRef(null);
+  const pinnedPopoverRef = useRef(null);
+  const pinnedStripRef = useRef(null);
+  const previousFocusRef = useRef(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Derived: extend saleModal player with custom eligibility override.
@@ -274,18 +277,94 @@ export default function DraftBoard({
     }
   }, [selectedPlayer?.id]);
 
+  useEffect(() => {
+    if (!isPinnedExpanded || !selectedPlayer) return undefined;
+
+    previousFocusRef.current = document.activeElement;
+    const popoverEl = pinnedPopoverRef.current;
+    if (!popoverEl) return undefined;
+
+    const focusFirst = () => {
+      const focusables = popoverEl.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      } else {
+        popoverEl.focus();
+      }
+    };
+
+    const rafId = window.requestAnimationFrame(focusFirst);
+
+    const trapFocus = (event) => {
+      if (event.key !== "Tab") return;
+      const focusables = Array.from(
+        popoverEl.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute("disabled"));
+
+      if (focusables.length === 0) {
+        event.preventDefault();
+        popoverEl.focus();
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    popoverEl.addEventListener("keydown", trapFocus);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      popoverEl.removeEventListener("keydown", trapFocus);
+      const previous = previousFocusRef.current;
+      if (previous instanceof HTMLElement) {
+        previous.focus();
+      } else {
+        pinnedStripRef.current?.focus();
+      }
+    };
+  }, [isPinnedExpanded, selectedPlayer?.id]);
+
   // Close modals on Escape
   useEffect(() => {
     function handleKey(e) {
-      if (e.key === "Escape") {
+      if (e.key !== "Escape") return;
+
+      if (saleModal) {
         closeSaleModal();
+        return;
+      }
+
+      if (removeModal) {
         setRemoveModal(null);
+        return;
+      }
+
+      if (isPinnedExpanded) {
+        setIsPinnedExpanded(false);
+        return;
+      }
+
+      if (activeCellSearch) {
         setActiveCellSearch(null);
       }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [activeCellSearch, isPinnedExpanded, removeModal, saleModal]);
 
   // When saleTeam changes while modal is open, recalculate valid slots
   // and reset saleSlot to the first valid option
@@ -294,7 +373,7 @@ export default function DraftBoard({
     const slots = getValidSlotsForPlayer(extendedSalePlayer, saleTeam);
     setSaleSlot(slots[0]?.slotIdx ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleTeam, customPosInput]);
+  }, [customPosInput, saleModal?.id, saleTeam]);
 
   function handleSelectPlayer(player) {
     if (!player) return;
@@ -323,6 +402,7 @@ export default function DraftBoard({
   function openSaleModal(player) {
     // Kick off a valuation request immediately so the modal can update
     // its suggested bid as soon as the API responds (even after it opens).
+    setIsPinnedExpanded(false);
     requestValuation(player);
     const team = league.teams[currentOwnerIdx];
     const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
@@ -343,6 +423,7 @@ export default function DraftBoard({
   // @param {number} slotIdx - Slot index of the clicked cell
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModalForCell(player, teamId, slotIdx) {
+    setIsPinnedExpanded(false);
     requestValuation(player);   // same as openSaleModal — trigger early so bid updates live
     // Switch the active owner to the team being filled
     const ti = league.teams.findIndex((t) => t.id === teamId);
@@ -919,6 +1000,7 @@ export default function DraftBoard({
                 <button
                   type="button"
                   className="pinned-player-strip"
+                  ref={pinnedStripRef}
                   onClick={() => setIsPinnedExpanded((prev) => !prev)}
                 >
                   <div className="pinned-player-main">
@@ -939,47 +1021,9 @@ export default function DraftBoard({
                     </div>
                   </div>
                   <span className="pinned-player-toggle">
-                    {isPinnedExpanded ? "Hide" : "Expand"}
+                    {isPinnedExpanded ? "Close Card" : "Open Card"}
                   </span>
                 </button>
-
-                {isPinnedExpanded && (
-                  <>
-                    <PlayerCard
-                      player={selectedPlayer}
-                      valuation={valuationCache[selectedPlayer?.id] ?? null}
-                      notes={notes}
-                      favorites={favorites}
-                      saveNote={saveNote}
-                      toggleFavorite={toggleFavorite}
-                    />
-                    <div className="player-card-actions">
-                      <button
-                        className="record-sale-btn"
-                        onClick={() =>
-                          activeCellSearch
-                            ? openSaleModalForCell(
-                                selectedPlayer,
-                                activeCellSearch.teamId,
-                                activeCellSearch.slotIdx
-                              )
-                            : openSaleModal(selectedPlayer)
-                        }
-                      >
-                        {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
-                      </button>
-                      {activeCellSearch && (
-                        <button
-                          type="button"
-                          className="undo-btn ghost-btn"
-                          onClick={() => setActiveCellSearch(null)}
-                        >
-                          Clear Slot
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
               </div>
             </>
           ) : (
@@ -1101,6 +1145,7 @@ export default function DraftBoard({
               onChange={(e) => setSearchQ(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
+                  e.stopPropagation();
                   setPosFilter("ALL");
                   setSearchQ("");
                   setActiveCellSearch(null);
@@ -1215,6 +1260,69 @@ export default function DraftBoard({
         </div>
         </div>
       </div>
+
+      {selectedPlayer && isPinnedExpanded && (
+        <div
+          className="pinned-popover-backdrop"
+          onMouseDown={() => setIsPinnedExpanded(false)}
+        >
+          <div
+            className="pinned-popover"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedPlayer.name} details`}
+            tabIndex={-1}
+            ref={pinnedPopoverRef}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="pinned-popover-topbar">
+              <div className="pinned-popover-label">PLAYER DETAIL</div>
+              <button
+                type="button"
+                className="pinned-popover-close"
+                onClick={() => setIsPinnedExpanded(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <PlayerCard
+              player={selectedPlayer}
+              valuation={valuationCache[selectedPlayer?.id] ?? null}
+              notes={notes}
+              favorites={favorites}
+              saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
+            />
+
+            <div className="player-card-actions popover-actions">
+              <button
+                className="record-sale-btn"
+                onClick={() =>
+                  activeCellSearch
+                    ? openSaleModalForCell(
+                        selectedPlayer,
+                        activeCellSearch.teamId,
+                        activeCellSearch.slotIdx
+                      )
+                    : openSaleModal(selectedPlayer)
+                }
+              >
+                {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
+              </button>
+              {activeCellSearch && (
+                <button
+                  type="button"
+                  className="undo-btn ghost-btn"
+                  onClick={() => setActiveCellSearch(null)}
+                >
+                  Clear Slot
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════════════════════════════
           SALE MODAL

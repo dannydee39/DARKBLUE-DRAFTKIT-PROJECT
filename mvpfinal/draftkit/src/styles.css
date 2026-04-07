@@ -17,6 +17,7 @@
   --yellow:   #f59e0b;
   --blue:     #3b82f6;
   --purple:   #8b5cf6;
+  --draft-right-rail-width: 360px;
   --font:     'Alexandria', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --mono:     'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   --radius:   6px;
@@ -690,7 +691,7 @@ a { color: var(--green); text-decoration: none; }
 
 /* ── Right Panel ────────────────────────────────────────────────────────── */
 .right-panel {
-  width: 360px;
+  width: var(--draft-right-rail-width);
   flex-shrink: 0;
   min-height: 0;
   background: var(--bg2);
@@ -711,6 +712,10 @@ a { color: var(--green); text-decoration: none; }
 }
 
 @media (max-width: 1400px), (max-height: 860px) {
+  :root {
+    --draft-right-rail-width: 324px;
+  }
+
   .nav {
     height: 42px;
     padding: 0 12px;
@@ -783,72 +788,6 @@ a { color: var(--green); text-decoration: none; }
     font-size: 10px;
   }
 
-  .right-panel {
-    width: 324px;
-    padding: 8px;
-    gap: 8px;
-  }
-
-  .right-panel-body {
-    overflow: hidden;
-  }
-
-  .scout-panel {
-    flex: 1;
-  }
-
-  .current-player-section {
-    max-height: 42vh;
-    min-height: 0;
-    overflow-y: auto;
-    padding-right: 2px;
-  }
-
-  .panel-budget {
-    display: none;
-  }
-
-  .panel-value {
-    font-size: 20px;
-  }
-
-  .player-card {
-    padding: 10px;
-    gap: 6px;
-  }
-
-  .player-card-actions {
-    flex-wrap: wrap;
-  }
-
-  .pc-bid-val {
-    font-size: 20px;
-  }
-
-  .pc-news {
-    max-height: 50px;
-    overflow-y: auto;
-  }
-
-  .pc-notes {
-    min-height: 60px;
-  }
-
-  .scout-results-list {
-    flex: 1;
-    min-height: 120px;
-    max-height: none;
-    overflow-y: auto;
-  }
-
-  .recommendations {
-    max-height: 132px;
-    overflow-y: auto;
-  }
-
-  .slot-context-banner.muted {
-    display: none;
-  }
 }
 
 @media (max-width: 1320px), (max-height: 760px) {
@@ -908,23 +847,6 @@ a { color: var(--green); text-decoration: none; }
     margin-top: 4px;
   }
 
-  .right-panel {
-    width: 284px;
-  }
-
-  .right-panel-body {
-    overflow: hidden;
-    gap: 8px;
-  }
-
-  .scout-panel {
-    flex: 1;
-  }
-
-  .current-player-section {
-    max-height: 180px;
-  }
-
   .teams-table th {
     font-size: 9px;
     padding: 4px 5px;
@@ -948,17 +870,6 @@ a { color: var(--green); text-decoration: none; }
     max-width: 260px;
   }
 
-  .scout-results-list {
-    flex: 1;
-    min-height: 116px;
-    max-height: none;
-    overflow-y: auto;
-  }
-
-  .recommendations {
-    max-height: 144px;
-    overflow-y: auto;
-  }
 }
 
 @media (max-width: 1080px), (max-height: 700px) {
@@ -988,132 +899,9 @@ a { color: var(--green); text-decoration: none; }
     min-height: 320px;
   }
 
-  .right-panel {
-    width: 268px;
-    padding: 7px;
-  }
-
-  .current-player-section {
-    max-height: 140px;
-  }
-
-  .player-card {
-    padding: 9px;
-    gap: 5px;
-  }
-
-  .pc-main {
-    gap: 8px;
-  }
-
-  .pc-main .player-avatar {
-    width: 44px !important;
-    height: 44px !important;
-  }
-
-  .pc-name {
-    font-size: 13px;
-  }
-
-  .pc-team-league {
-    font-size: 8px;
-  }
-
-  .pc-stats {
-    gap: 3px;
-  }
-
-  .pc-stat {
-    padding: 4px;
-  }
-
-  .pcs-val {
-    font-size: 11px;
-  }
-
-  .pc-notes {
-    min-height: 44px;
-    max-height: 72px;
-  }
-
-  .scout-results-list {
-    min-height: 112px;
-  }
-
-  .slot-context-banner.muted {
-    display: none;
-  }
 }
 
 @media (max-width: 980px), (max-height: 640px) {
-  .right-panel {
-    gap: 6px;
-  }
-
-  .current-player-section {
-    max-height: 112px;
-  }
-
-  .player-card {
-    padding: 8px;
-    gap: 4px;
-  }
-
-  .pc-main {
-    gap: 7px;
-  }
-
-  .pc-main .player-avatar {
-    width: 40px !important;
-    height: 40px !important;
-  }
-
-  .pc-name {
-    font-size: 12px;
-  }
-
-  .pc-bid-val {
-    font-size: 18px;
-  }
-
-  .pc-maxbid {
-    margin-top: 2px;
-  }
-
-  .pc-stats,
-  .pc-news,
-  .pc-notes,
-  .pc-notes-header,
-  .pc-clear-note-btn {
-    display: none;
-  }
-
-  .panel-budget {
-    padding: 6px 8px;
-    gap: 8px;
-  }
-
-  .panel-value {
-    font-size: 18px;
-  }
-
-  .search-hint {
-    display: none;
-  }
-
-  .pos-filter,
-  .notes-filter-btn {
-    padding: 2px 6px;
-    font-size: 9px;
-  }
-
-  .scout-results-list {
-    min-height: 104px;
-  }
-
-  .recommendations {
-    max-height: 88px;
-  }
 }
 
 .panel-label { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; font-weight: 700; }
@@ -1497,6 +1285,82 @@ a { color: var(--green); text-decoration: none; }
   padding: 16px 14px;
 }
 
+.pinned-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.34);
+  backdrop-filter: blur(3px);
+  z-index: 880;
+}
+
+.pinned-popover {
+  position: fixed;
+  top: 76px;
+  right: calc(var(--draft-right-rail-width) + 20px);
+  width: min(500px, calc(100vw - var(--draft-right-rail-width) - 68px));
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  background: rgba(20,20,20,0.98);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 22px 44px rgba(0,0,0,0.45);
+  backdrop-filter: blur(12px);
+  z-index: 881;
+  animation: pinnedPopoverIn 140ms ease-out;
+}
+
+@keyframes pinnedPopoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pinned-popover-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  position: sticky;
+  top: -14px;
+  z-index: 2;
+  padding: 0 0 10px;
+  background: linear-gradient(180deg, rgba(20,20,20,0.99) 0%, rgba(20,20,20,0.96) 82%, rgba(20,20,20,0) 100%);
+}
+
+.pinned-popover-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--muted2);
+}
+
+.pinned-popover-close {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.pinned-popover-close:hover {
+  color: var(--white);
+  border-color: rgba(59,130,246,0.28);
+  background: rgba(59,130,246,0.08);
+}
+
+.popover-actions {
+  margin-top: 12px;
+}
+
 .rail-tabs {
   display: flex;
   gap: 6px;
@@ -1605,11 +1469,19 @@ a { color: var(--green); text-decoration: none; }
   .right-panel .slot-context-banner.muted {
     display: none;
   }
+
+  .pinned-popover {
+    top: 68px;
+    width: min(470px, calc(100vw - var(--draft-right-rail-width) - 54px));
+  }
 }
 
 @media (max-width: 1320px), (max-height: 760px) {
+  :root {
+    --draft-right-rail-width: 284px;
+  }
+
   .right-panel {
-    width: 284px;
   }
 
   .right-panel .right-panel-body {
@@ -1618,6 +1490,7 @@ a { color: var(--green); text-decoration: none; }
 
   .right-panel .current-player-section {
     max-height: 132px;
+    overflow-y: auto;
   }
 
   .right-panel .scout-results-list {
@@ -1627,11 +1500,21 @@ a { color: var(--green); text-decoration: none; }
   .right-panel .recommendations {
     max-height: none;
   }
+
+  .pinned-popover {
+    right: calc(var(--draft-right-rail-width) + 14px);
+    width: min(450px, calc(100vw - var(--draft-right-rail-width) - 38px));
+    top: 62px;
+    max-height: calc(100vh - 86px);
+  }
 }
 
 @media (max-width: 1080px), (max-height: 700px) {
+  :root {
+    --draft-right-rail-width: 268px;
+  }
+
   .right-panel {
-    width: 268px;
     padding: 7px;
   }
 
@@ -1681,6 +1564,14 @@ a { color: var(--green); text-decoration: none; }
   .right-panel .scout-results-list {
     min-height: 132px;
   }
+
+  .pinned-popover {
+    right: 24px;
+    width: min(430px, calc(100vw - 48px));
+    top: 54px;
+    max-height: calc(100vh - 72px);
+    padding: 12px;
+  }
 }
 
 @media (max-width: 980px), (max-height: 640px) {
@@ -1690,6 +1581,7 @@ a { color: var(--green); text-decoration: none; }
 
   .right-panel .current-player-section {
     max-height: 96px;
+    overflow-y: auto;
   }
 
   .right-panel .player-card {
@@ -1742,6 +1634,20 @@ a { color: var(--green); text-decoration: none; }
 
   .right-panel .recommendations {
     max-height: none;
+  }
+
+  .pinned-popover {
+    right: 16px;
+    width: min(410px, calc(100vw - 32px));
+    top: 48px;
+    max-height: calc(100vh - 60px);
+    padding: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinned-popover {
+    animation: none;
   }
 }
 

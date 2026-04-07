@@ -131,6 +131,7 @@ export default function DraftBoard({
     }
   });
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(false);
+  const [hoverPreviewPlayer, setHoverPreviewPlayer] = useState(null);
 
   // ── Sale modal state ──────────────────────────────────────────────────────
   const [saleModal,     setSaleModal]     = useState(null);  // player obj or null
@@ -161,6 +162,7 @@ export default function DraftBoard({
   const pinnedPopoverRef = useRef(null);
   const pinnedStripRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const hoverPreviewTimeoutRef = useRef(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Derived: extend saleModal player with custom eligibility override.
@@ -278,6 +280,14 @@ export default function DraftBoard({
   }, [selectedPlayer?.id]);
 
   useEffect(() => {
+    return () => {
+      if (hoverPreviewTimeoutRef.current) {
+        window.clearTimeout(hoverPreviewTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isPinnedExpanded || !selectedPlayer) return undefined;
 
     previousFocusRef.current = document.activeElement;
@@ -377,8 +387,32 @@ export default function DraftBoard({
 
   function handleSelectPlayer(player) {
     if (!player) return;
+    setHoverPreviewPlayer(null);
     setSelectedPlayer(player);
     requestValuation(player);
+  }
+
+  function clearHoverPreview() {
+    if (hoverPreviewTimeoutRef.current) {
+      window.clearTimeout(hoverPreviewTimeoutRef.current);
+      hoverPreviewTimeoutRef.current = null;
+    }
+    setHoverPreviewPlayer(null);
+  }
+
+  function scheduleHoverPreview(player) {
+    if (!player || isPinnedExpanded || saleModal || removeModal) return;
+    if (selectedPlayer?.id === player.id) return;
+    if (hoverPreviewTimeoutRef.current) {
+      window.clearTimeout(hoverPreviewTimeoutRef.current);
+    }
+    hoverPreviewTimeoutRef.current = window.setTimeout(() => {
+      setHoverPreviewPlayer(player);
+      const cachedValuation = valuationCache?.[player.id];
+      if (!cachedValuation) {
+        requestValuation(player);
+      }
+    }, 140);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -403,6 +437,7 @@ export default function DraftBoard({
     // Kick off a valuation request immediately so the modal can update
     // its suggested bid as soon as the API responds (even after it opens).
     setIsPinnedExpanded(false);
+    clearHoverPreview();
     requestValuation(player);
     const team = league.teams[currentOwnerIdx];
     const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
@@ -424,6 +459,7 @@ export default function DraftBoard({
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModalForCell(player, teamId, slotIdx) {
     setIsPinnedExpanded(false);
+    clearHoverPreview();
     requestValuation(player);   // same as openSaleModal — trigger early so bid updates live
     // Switch the active owner to the team being filled
     const ti = league.teams.findIndex((t) => t.id === teamId);
@@ -575,6 +611,8 @@ export default function DraftBoard({
 
   const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
+  const displayedPinnedPlayer = hoverPreviewPlayer ?? selectedPlayer;
+  const previewingPinnedPlayer = Boolean(hoverPreviewPlayer);
   const activeContextTeam = activeCellSearch
     ? league.teams.find((team) => team.id === activeCellSearch.teamId) || null
     : null;
@@ -989,39 +1027,46 @@ export default function DraftBoard({
       {/* ════════════════════════════════════════════════════════════════════
           RIGHT PANEL
       ════════════════════════════════════════════════════════════════════ */}
-      <div className={`right-panel ${selectedPlayer ? "has-selected" : ""}`}>
+      <div className={`right-panel ${displayedPinnedPlayer ? "has-selected" : ""}`}>
         {/* Current player section */}
         <div className="current-player-section">
-          <div className="cp-header">PINNED PLAYER</div>
+          <div className="cp-header">{previewingPinnedPlayer ? "PLAYER PREVIEW" : "PINNED PLAYER"}</div>
 
-          {selectedPlayer ? (
+          {displayedPinnedPlayer ? (
             <>
               <div className="pinned-player-shell">
                 <button
                   type="button"
-                  className="pinned-player-strip"
+                  className={`pinned-player-strip ${previewingPinnedPlayer ? "previewing" : ""}`}
                   ref={pinnedStripRef}
-                  onClick={() => setIsPinnedExpanded((prev) => !prev)}
+                  onClick={() => {
+                    if (previewingPinnedPlayer) {
+                      handleSelectPlayer(displayedPinnedPlayer);
+                      setIsPinnedExpanded(true);
+                      return;
+                    }
+                    setIsPinnedExpanded((prev) => !prev);
+                  }}
                 >
                   <div className="pinned-player-main">
                     <PlayerAvatar
-                      name={selectedPlayer.name}
+                      name={displayedPinnedPlayer.name}
                       size={36}
-                      photoUrl={selectedPlayer.photoUrl}
+                      photoUrl={displayedPinnedPlayer.photoUrl}
                     />
                     <div className="pinned-player-copy">
-                      <div className="pinned-player-name">{selectedPlayer.name}</div>
+                      <div className="pinned-player-name">{displayedPinnedPlayer.name}</div>
                       <div className="pinned-player-meta">
-                        <span>{selectedPlayer.team}</span>
+                        <span>{displayedPinnedPlayer.team}</span>
                         <span>·</span>
-                        <span>{(selectedPlayer.pos || []).join("/")}</span>
+                        <span>{(displayedPinnedPlayer.pos || []).join("/")}</span>
                         <span>·</span>
-                        <span className="green">${getRecommendedBid(selectedPlayer)}</span>
+                        <span className="green">${getRecommendedBid(displayedPinnedPlayer)}</span>
                       </div>
                     </div>
                   </div>
                   <span className="pinned-player-toggle">
-                    {isPinnedExpanded ? "Close Card" : "Open Card"}
+                    {previewingPinnedPlayer ? "Pin + Open" : isPinnedExpanded ? "Close Card" : "Open Card"}
                   </span>
                 </button>
               </div>
@@ -1158,7 +1203,7 @@ export default function DraftBoard({
               {activeCellSearch && <span>slot locked</span>}
             </div>
 
-            <div className="scout-results-list">
+            <div className="scout-results-list" onMouseLeave={clearHoverPreview}>
               {scoutResults.slice(0, 10).map((p) => (
                 <SearchResult
                   key={p.id}
@@ -1175,6 +1220,12 @@ export default function DraftBoard({
                       : openSaleModal(p)
                   }
                   onToggleFavorite={() => toggleFavorite(p.id)}
+                  onPreviewStart={() => scheduleHoverPreview(p)}
+                  onPreviewEnd={() => {
+                    if (hoverPreviewPlayer?.id === p.id) {
+                      clearHoverPreview();
+                    }
+                  }}
                 />
               ))}
               {scoutResults.length === 0 && (
@@ -1189,7 +1240,7 @@ export default function DraftBoard({
             </div>
           </div>
         ) : (
-          <div className="recommendations rail-tab-panel">
+          <div className="recommendations rail-tab-panel" onMouseLeave={clearHoverPreview}>
             <div className="rec-header">
               BEST AVAILABLE{" "}
               <span className="rec-sub">
@@ -1205,6 +1256,12 @@ export default function DraftBoard({
                 key={p.id}
                 className="rec-row"
                 onClick={() => handleSelectPlayer(p)}
+                onMouseEnter={() => scheduleHoverPreview(p)}
+                onMouseLeave={() => {
+                  if (hoverPreviewPlayer?.id === p.id) {
+                    clearHoverPreview();
+                  }
+                }}
               >
                 <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
                 <div className="rec-info">
@@ -1321,6 +1378,24 @@ export default function DraftBoard({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {hoverPreviewPlayer && !isPinnedExpanded && !saleModal && !removeModal && (
+        <div className="pinned-popover preview-popover" aria-hidden="true">
+          <div className="pinned-popover-topbar preview-topbar">
+            <div className="pinned-popover-label">HOVER PREVIEW</div>
+            <div className="preview-popover-copy">Click row to pin this player</div>
+          </div>
+          <PlayerCard
+            player={hoverPreviewPlayer}
+            valuation={valuationCache[hoverPreviewPlayer?.id] ?? null}
+            notes={notes}
+            favorites={favorites}
+            saveNote={saveNote}
+            toggleFavorite={toggleFavorite}
+            previewMode
+          />
         </div>
       )}
 
@@ -1527,11 +1602,15 @@ function SearchResult({
   onSelect,
   onRecord,
   onToggleFavorite,
+  onPreviewStart,
+  onPreviewEnd,
 }) {
   return (
     <div
       className="search-result"
       onClick={onSelect}
+      onMouseEnter={onPreviewStart}
+      onMouseLeave={onPreviewEnd}
       title={`View ${player.name}'s card`}
     >
       <PlayerAvatar name={player.name} size={28} photoUrl={player.photoUrl} />

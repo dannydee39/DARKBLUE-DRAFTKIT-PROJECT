@@ -12,7 +12,7 @@
 // This component is used in both DraftBoard and PlayerDictionary.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import { posColor, formatStat } from "../utils/helpers.js";
 
@@ -36,10 +36,13 @@ export default function PlayerCard({
   favorites,
   saveNote,
   toggleFavorite,
+  previewMode = false,
 }) {
   // Local note text mirrors the stored note but allows typing without re-renders
   const [localNote, setLocalNote] = useState("");
   const [savedPulse, setSavedPulse] = useState(false);
+  const previousPlayerIdRef = useRef(player.id);
+  const previousStoredNoteRef = useRef(notes?.[player.id] ?? player.note ?? "");
   const valuationFailed = Boolean(
     valuation &&
     valuation !== "loading" &&
@@ -48,9 +51,32 @@ export default function PlayerCard({
 
   // Sync local note when the selected player changes
   useEffect(() => {
-    setLocalNote(notes?.[player.id] ?? player.note ?? "");
+    const nextStoredNote = notes?.[player.id] ?? player.note ?? "";
+    if (!previewMode && previousPlayerIdRef.current !== player.id) {
+      const previousNote = previousStoredNoteRef.current;
+      if (localNote !== previousNote) {
+        saveNote(previousPlayerIdRef.current, localNote);
+      }
+    }
+
+    previousPlayerIdRef.current = player.id;
+    previousStoredNoteRef.current = nextStoredNote;
+    setLocalNote(nextStoredNote);
     setSavedPulse(false);
-  }, [player.id, notes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.id, previewMode]);
+
+  useEffect(() => {
+    const nextStoredNote = notes?.[player.id] ?? player.note ?? "";
+    if (
+      previousPlayerIdRef.current === player.id &&
+      localNote === previousStoredNoteRef.current
+    ) {
+      setLocalNote(nextStoredNote);
+    }
+    previousStoredNoteRef.current = nextStoredNote;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, player.id]);
 
   useEffect(() => {
     if (!savedPulse) return;
@@ -105,8 +131,17 @@ export default function PlayerCard({
       ? Object.values(valuation.position_scarcity)[0]
       : null;
 
+  const storedNote = notes?.[player.id] ?? player.note ?? "";
+  const isDirty = localNote !== storedNote;
+
+  function handleSaveNote() {
+    if (previewMode) return;
+    saveNote(player.id, localNote);
+    setSavedPulse(true);
+  }
+
   return (
-    <div className="player-card">
+    <div className={`player-card ${previewMode ? "preview-mode" : ""}`}>
 
       {/* ── Header: team / league + tier badge ─────────────────────────── */}
       <div className="pc-header">
@@ -137,7 +172,8 @@ export default function PlayerCard({
             <button
               type="button"
               className={`favorite-btn compact ${favorites?.[player.id] ? "active" : ""}`}
-              onClick={() => toggleFavorite(player.id)}
+              onClick={() => !previewMode && toggleFavorite(player.id)}
+              disabled={previewMode}
               title={favorites?.[player.id] ? "Remove favorite" : "Favorite this player"}
             >
               ★
@@ -225,31 +261,58 @@ export default function PlayerCard({
           They persist across tab switches within the session (not persisted
           to localStorage yet — future enhancement). */}
       <div className="pc-section-label pc-notes-header">
-        <span>MY NOTES</span>
-        {savedPulse && <span className="pc-saved-indicator">✓ Saved</span>}
+        <span>{previewMode ? "NOTES PREVIEW" : "MY NOTES"}</span>
+        {savedPulse && !previewMode && <span className="pc-saved-indicator">✓ Saved</span>}
       </div>
-      <textarea
-        className="pc-notes"
-        value={localNote}
-        onChange={(e) => setLocalNote(e.target.value)}
-        onBlur={() => {
-          saveNote(player.id, localNote);
-          setSavedPulse(true);
-        }}
-        rows={5}
-        placeholder="Add a scouting note…"
-      />
-      {localNote && (
-        <button
-          type="button"
-          className="pc-clear-note-btn"
-          onClick={() => {
-            setLocalNote("");
-            saveNote(player.id, "");
-          }}
-        >
-          Clear note
-        </button>
+      {previewMode ? (
+        <div className="pc-preview-note">
+          {storedNote || "Hovering a player previews the card here. Click to pin and edit notes."}
+        </div>
+      ) : (
+        <>
+          <textarea
+            className="pc-notes"
+            value={localNote}
+            onChange={(e) => setLocalNote(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && isDirty) {
+                e.preventDefault();
+                handleSaveNote();
+              }
+            }}
+            onBlur={() => {
+              if (isDirty) handleSaveNote();
+            }}
+            rows={5}
+            placeholder="Add a scouting note…"
+          />
+          <div className="pc-note-actions">
+            {isDirty ? (
+              <button
+                type="button"
+                className="record-sale-btn pc-save-note-btn"
+                onClick={handleSaveNote}
+              >
+                Save Note
+              </button>
+            ) : (
+              <span className="pc-note-status">{localNote ? "Notes synced" : "No note yet"}</span>
+            )}
+            {localNote && (
+              <button
+                type="button"
+                className="pc-clear-note-btn"
+                onClick={() => {
+                  setLocalNote("");
+                  saveNote(player.id, "");
+                  setSavedPulse(true);
+                }}
+              >
+                Clear note
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

@@ -934,25 +934,6 @@ export default function DraftBoard({
         </div>
 
         <div className="right-panel-body">
-
-        {/* Budget summary */}
-        <div className="panel-budget">
-          <div>
-            <div className="panel-label">BUDGET</div>
-            <div className="panel-value green">
-              ${myTeam?.budget_remaining ?? league.budget}
-            </div>
-          </div>
-          <div>
-            <div className="panel-label">SLOTS LEFT</div>
-            <div className="panel-value">{slotsLeft}</div>
-          </div>
-          <div>
-            <div className="panel-label">MAX BID</div>
-            <div className="panel-value">${maxBid}</div>
-          </div>
-        </div>
-
         <div className="panel-section-label">SCOUT RAIL</div>
         <div className="scout-panel">
           {activeCellSearch && activeContextTeam ? (
@@ -1086,6 +1067,24 @@ export default function DraftBoard({
                   : "No available players match the current filters."}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Budget summary */}
+        <div className="panel-budget">
+          <div>
+            <div className="panel-label">BUDGET</div>
+            <div className="panel-value green">
+              ${myTeam?.budget_remaining ?? league.budget}
+            </div>
+          </div>
+          <div>
+            <div className="panel-label">SLOTS LEFT</div>
+            <div className="panel-value">{slotsLeft}</div>
+          </div>
+          <div>
+            <div className="panel-label">MAX BID</div>
+            <div className="panel-value">${maxBid}</div>
           </div>
         </div>
 

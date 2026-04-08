@@ -392,6 +392,13 @@ export default function DraftBoard({
     requestValuation(player);
   }
 
+  function openPlayerCard(player) {
+    if (!player) return;
+    clearHoverPreview();
+    handleSelectPlayer(player);
+    setIsPinnedExpanded(true);
+  }
+
   function clearHoverPreview() {
     if (hoverPreviewTimeoutRef.current) {
       window.clearTimeout(hoverPreviewTimeoutRef.current);
@@ -1214,6 +1221,7 @@ export default function DraftBoard({
                   contextTag={activeCellSearch ? `Fits ${activeCellSearch.pos}` : null}
                   actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
                   onSelect={() => handleSelectPlayer(p)}
+                  onOpenCard={() => openPlayerCard(p)}
                   onRecord={() =>
                     activeCellSearch
                       ? openSaleModalForCell(p, activeCellSearch.teamId, activeCellSearch.slotIdx)
@@ -1600,6 +1608,7 @@ function SearchResult({
   contextTag,
   actionLabel = "Record Sale",
   onSelect,
+  onOpenCard,
   onRecord,
   onToggleFavorite,
   onPreviewStart,
@@ -1611,7 +1620,7 @@ function SearchResult({
       onClick={onSelect}
       onMouseEnter={onPreviewStart}
       onMouseLeave={onPreviewEnd}
-      title={`View ${player.name}'s card`}
+      title={`Pin ${player.name} in the scouting rail`}
     >
       <PlayerAvatar name={player.name} size={28} photoUrl={player.photoUrl} />
       <div className="sr-copy">
@@ -1648,12 +1657,25 @@ function SearchResult({
         ★
       </button>
       <span className="sr-value">${recValue ?? player.baseValue}</span>
-      <button
-        className="sr-record"
-        onClick={(e) => { e.stopPropagation(); onRecord(); }}
-      >
-        {actionLabel}
-      </button>
+      <div className="sr-actions">
+        <button
+          type="button"
+          className="sr-open-card"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCard();
+          }}
+        >
+          Open Card
+        </button>
+        <button
+          type="button"
+          className="sr-record"
+          onClick={(e) => { e.stopPropagation(); onRecord(); }}
+        >
+          {actionLabel}
+        </button>
+      </div>
     </div>
   );
 }

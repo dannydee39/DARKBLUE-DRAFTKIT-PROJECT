@@ -1,212 +1,197 @@
-/**
- * pricing.js
- * ─────────────────────────────────────────────────────────────────────────────
- * Pricing page renderer.
- *
- * Sections:
- *   1. Page header        — headline + subtitle
- *   2. Tier card grid     — Draft Day (free), Pro ($99/season), Enterprise (custom)
- *   3. FAQ strip          — 5 common licensing questions
- *
- * CTA flow (fake auth):
- *   - "Start Free"       → goes directly to #docs (show them demo key)
- *   - "Get License Key"  → stores plan in DB.state.fromPlan → navigates to #signup
- *   - "Contact Sales"    → alert with email address
- *
- * Uses existing CSS classes from:
- *   pricing.css  — .pricing-header, .pricing-grid, .tier-card, .popular-ribbon,
- *                  .tier-name, .tier-price, .tier-features, .pricing-faq, .faq-item
- *   base.css     — .container, .label, .heading-xl, .heading-md, .mt-2
- *   components.css — .btn, .btn-primary, .btn-secondary, .btn-full, .badge
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 window.DB = window.DB || {};
-DB.pages  = DB.pages || {};
+DB.pages = DB.pages || {};
 
 DB.pages.pricing = function (container) {
-
-  /* ── Tier definitions ─────────────────────────────────────────────────────
-     features: string → included, { text, missing: true } → not included.
-  ─────────────────────────────────────────────────────────────────────────── */
-  var TIERS = [
+  const tiers = [
     {
-      id:      'starter',
-      name:    'Draft Day',
-      price:   '$0',
-      period:  '',
-      tagline: 'Try the API with the shared demo key. Perfect for evaluation and one-off drafts.',
-      cta:     'Start Free',
-      ctaCls:  'btn-secondary',
+      id: 'starter',
+      name: 'Draft Day',
+      price: '$0',
+      period: 'shared demo key',
+      featured: false,
+      blurb: 'See the response shape and test the player endpoints before you buy.',
       features: [
-        'Shared demo key — DB-2026-DEMO-0001',
-        'Full access to /v1/valuate endpoint',
-        '20 req / 15 min rate limit (shared)',
-        'Full NL player pool (313 players)',
-        'JSON response with reasoning string',
-        { text: 'Dedicated license key',     missing: true },
-        { text: 'Commercial use rights',     missing: true },
-        { text: 'Multi-platform license',    missing: true },
+        'Shared demo key',
+        'Core player and valuation endpoints',
+        'Best for evaluation and class review',
       ],
+      cta: 'Start Free',
+      ctaClass: 'plan-cta-outline',
     },
     {
-      id:      'pro',
-      name:    'Pro',
-      price:   '$99',
-      period:  '/ season',
-      tagline: 'One key. One platform. Full auction season coverage without rate limit anxiety.',
-      cta:     'Get Your License Key',
-      ctaCls:  'btn-primary',
-      popular: true,
+      id: 'pro',
+      name: 'Pro',
+      price: '$99',
+      period: 'per season',
+      featured: true,
+      blurb: 'The cleanest path for a real DraftKit deployment with a dedicated key.',
       features: [
-        'Dedicated license key (yours alone)',
-        'Unlimited requests per season',
-        'Commercial use — 1 platform',
-        'Full player pool + all scoring configs',
-        'JSON response + human reasoning string',
-        'Email support within 48 h',
-        { text: 'Multi-platform license',    missing: true },
-        { text: 'White-label branding',      missing: true },
+        'Dedicated license key',
+        'Player pool, tiers, and live bid guidance',
+        'Built for real draft-day usage',
       ],
+      cta: 'Get License Key',
+      ctaClass: 'plan-cta-primary',
     },
     {
-      id:      'enterprise',
-      name:    'Enterprise',
-      price:   'Custom',
-      period:  '',
-      tagline: 'Multi-platform distribution, SLA guarantees, and white-label rights for platforms.',
-      cta:     'Contact Sales',
-      ctaCls:  'btn-secondary',
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 'Custom',
+      period: 'multi-platform',
+      featured: false,
+      blurb: 'For broader rollout, white-label plans, or custom onboarding support.',
       features: [
-        'Multi-platform license key(s)',
-        'Unlimited requests + burst allowance',
-        'Commercial use — unlimited platforms',
-        'White-label branding option',
-        'Custom player pool update schedule',
-        'Dedicated SLA + uptime guarantee',
-        'Priority support + onboarding session',
-        'Custom scoring category additions',
+        'Multi-product licensing',
+        'Higher-touch rollout support',
+        'Best fit for serious platform scale',
       ],
+      cta: 'Request Access',
+      ctaClass: 'plan-cta-outline',
     },
   ];
 
-  /* ── FAQ data ─────────────────────────────────────────────────────────────── */
-  var FAQS = [
+  const useCases = [
     {
-      q: 'What counts as one "season"?',
-      a: 'A Pro license covers one full MLB auction draft season — typically February through late August. Licenses expire at season end and renew at the same rate.',
+      title: '/health',
+      body: 'Confirms the service is ready before your draft tool starts making calls.',
     },
     {
-      q: 'Can I use the API in a commercial draft kit product?',
-      a: 'Yes — Pro includes commercial use rights for a single platform. Enterprise licenses extend that to unlimited platforms with optional white-labeling.',
+      title: '/v1/players',
+      body: 'Returns the player pool plus ranking context that your UI can display before the auction starts.',
     },
     {
-      q: 'Is there a request limit on Pro?',
-      a: 'Pro is effectively unlimited for realistic auction draft usage. Burst protection only activates for sustained automated abuse (> 1 req/sec). Normal draft tools will never hit it.',
-    },
-    {
-      q: 'What happens if I hit the Demo key limit?',
-      a: 'The API returns HTTP 429 with a Retry-After header indicating when your window resets. The demo key is shared across all demo users and resets every 15 minutes.',
-    },
-    {
-      q: 'Do you offer refunds?',
-      a: 'Yes — request a refund within 7 days of purchase and fewer than 50 API calls made for a full refund. No questions asked.',
+      title: '/v1/valuate',
+      body: 'Returns the number buyers care about most: max bid guidance plus tier and market context.',
     },
   ];
 
-  /* ── Render a single tier card ────────────────────────────────────────────── */
-  function _renderTier(tier) {
-    var popularBadge = tier.popular
-      ? '<div class="popular-ribbon">Most Popular</div>'
-      : '';
+  const faqs = [
+    {
+      q: 'What does the key actually unlock?',
+      a: 'It unlocks authenticated access to the player pool and valuation endpoints so your draft product can request live bid guidance.',
+    },
+    {
+      q: 'Why would I upgrade from the demo key?',
+      a: 'The demo key is good for evaluation. A paid key is the cleaner path for real product usage and repeated draft-day traffic.',
+    },
+    {
+      q: 'What does the API return that the draft room can show?',
+      a: 'The core return values are max bid recommendation, true dollar value, player tier, market context, and a readable reasoning string.',
+    },
+  ];
 
-    var featureItems = tier.features.map(function (f) {
-      if (typeof f === 'string') return '<li>' + f + '</li>';
-      return '<li class="' + (f.missing ? 'missing' : '') + '">' + f.text + '</li>';
-    }).join('');
+  container.innerHTML = `
+    <section class="pricing-shell-hero">
+      <div class="container pricing-shell-grid">
+        <div>
+          <p class="label">Licensing</p>
+          <h1 class="heading-lg pricing-shell-title">
+            Buy the key. Call the endpoints. Show the draft room what matters.
+          </h1>
+          <p class="subheading pricing-shell-sub">
+            The pricing page stays simple. Buyers want to know what they get, what key they use,
+            and what the response unlocks inside DraftKit.
+          </p>
+          <div class="pricing-shell-actions">
+            <a href="#docs" class="btn btn-secondary">View API Docs</a>
+            <a href="#signup" class="btn btn-primary">Claim a Key</a>
+          </div>
+        </div>
 
-    return (
-      '<div class="tier-card ' + (tier.popular ? 'popular' : '') + '">' +
-        popularBadge +
-        '<div class="tier-name">' + tier.name + '</div>' +
-        '<div class="tier-price">' +
-          '<span class="tier-price-amount">' + tier.price + '</span>' +
-          (tier.period ? '<span class="tier-price-period">' + tier.period + '</span>' : '') +
-        '</div>' +
-        '<p class="tier-tagline">' + tier.tagline + '</p>' +
-        '<div class="tier-divider"></div>' +
-        '<ul class="tier-features">' + featureItems + '</ul>' +
-        '<button ' +
-          'class="btn ' + tier.ctaCls + ' btn-full" ' +
-          'data-plan="' + tier.id + '" ' +
-          'onclick="DB.pages._pricingCTA(\'' + tier.id + '\')"' +
-        '>' + tier.cta + '</button>' +
-      '</div>'
-    );
-  }
+        <div class="pricing-shell-summary card">
+          <div class="pricing-shell-summary-row">
+            <span class="pricing-shell-summary-label">X-License-Key</span>
+            <code class="pricing-shell-summary-code">${DB.state.licenseKey || DB.DEMO_KEY}</code>
+          </div>
+          <div class="pricing-shell-summary-grid">
+            <div>
+              <span class="pricing-shell-summary-kicker">Buyer outcome</span>
+              <p>Get player values, tiers, and market context into the draft room.</p>
+            </div>
+            <div>
+              <span class="pricing-shell-summary-kicker">What returns</span>
+              <p><code>max_bid_recommendation</code>, <code>true_dollar_value</code>, <code>player_tier</code>, <code>reasoning</code></p>
+            </div>
+            <div>
+              <span class="pricing-shell-summary-kicker">Main endpoints</span>
+              <p><code>/health</code>, <code>/v1/players</code>, <code>/v1/valuate</code></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  /* ── Render FAQ items ─────────────────────────────────────────────────────── */
-  var faqHtml = FAQS.map(function (f) {
-    return (
-      '<div class="faq-item">' +
-        '<div class="faq-q">' + f.q + '</div>' +
-        '<div class="faq-a">' + f.a  + '</div>' +
-      '</div>'
-    );
-  }).join('');
+    <section class="section pricing-shell-section">
+      <div class="container">
+        <div class="pricing-shell-header">
+          <div>
+            <p class="label">Plans</p>
+            <h2 class="heading-md pricing-shell-section-title">Pick the key that fits your rollout</h2>
+          </div>
+          <p class="pricing-shell-caption">Keep the decision short and readable. Demo, Pro, or Enterprise.</p>
+        </div>
 
-  /* ── Inject page HTML ─────────────────────────────────────────────────────── */
-  container.innerHTML = (
-    /* Page header */
-    '<div class="pricing-header container">' +
-      '<p class="label">Licensing</p>' +
-      '<h1 class="heading-xl mt-2">One API. Three ways to license it.</h1>' +
-      '<p>Start free with the shared demo key. Upgrade when you\'re ready for production.</p>' +
-    '</div>' +
+        <div class="pricing-shell-card-grid">
+          ${tiers.map(tier => `
+            <article class="pricing-shell-card ${tier.featured ? 'featured' : ''}">
+              ${tier.featured ? '<span class="pricing-shell-card-badge">Recommended</span>' : ''}
+              <p class="pricing-shell-card-label">${tier.name}</p>
+              <div class="pricing-shell-card-price">${tier.price}</div>
+              <p class="pricing-shell-card-period">${tier.period}</p>
+              <p class="pricing-shell-card-blurb">${tier.blurb}</p>
+              <ul class="pricing-shell-list">
+                ${tier.features.map(item => `<li>${item}</li>`).join('')}
+              </ul>
+              <button class="plan-cta ${tier.ctaClass}" onclick="DB.pages._pricingCTA('${tier.id}')">${tier.cta}</button>
+            </article>
+          `).join('')}
+        </div>
+      </div>
+    </section>
 
-    /* Tier grid */
-    '<div class="container">' +
-      '<div class="pricing-grid">' +
-        TIERS.map(_renderTier).join('') +
-      '</div>' +
-    '</div>' +
+    <section class="section pricing-shell-usecases">
+      <div class="container">
+        <p class="label">What the buyer needs to know</p>
+        <h2 class="heading-md pricing-shell-section-title">What each endpoint gives them</h2>
+        <div class="pricing-shell-usecase-grid">
+          ${useCases.map(item => `
+            <article class="pricing-shell-usecase-card">
+              <h3>${item.title}</h3>
+              <p>${item.body}</p>
+            </article>
+          `).join('')}
+        </div>
+      </div>
+    </section>
 
-    /* FAQ */
-    '<div class="pricing-faq container">' +
-      '<h2 class="heading-md">Common questions</h2>' +
-      faqHtml +
-    '</div>'
-  );
+    <section class="section pricing-shell-faq">
+      <div class="container container-narrow">
+        <p class="label text-center">FAQ</p>
+        <h2 class="heading-md pricing-shell-section-title text-center">Short answers for the buying decision</h2>
+        <div class="pricing-shell-faq-list">
+          ${faqs.map(item => `
+            <article class="pricing-shell-faq-item">
+              <h3>${item.q}</h3>
+              <p>${item.a}</p>
+            </article>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+  `;
 
-  /* ── CTA click handler (attached to window.DB.pages so inline onclick works) ──
-     Called from each tier card's onclick attribute.
-  ─────────────────────────────────────────────────────────────────────────────── */
   DB.pages._pricingCTA = function (planId) {
-    if (planId === 'enterprise') {
-      // Enterprise: surface contact info (replace with a real form in production)
-      window.alert(
-        'Enterprise Sales\n\n' +
-        'Email: api@darkblue.io\n' +
-        'We respond within one business day with a custom pricing proposal.'
-      );
-      return;
-    }
-
     if (planId === 'starter') {
-      // Free tier: send them to the docs to see the demo key immediately
       DB.router.go('docs');
       return;
     }
 
-    // Pro: save the intended plan so the signup page can pre-select it
     DB.state.fromPlan = planId;
 
     if (DB.state.user) {
-      // Already logged in — just go to dashboard where the key is displayed
       DB.router.go('dashboard');
     } else {
       DB.router.go('signup');
     }
   };
-
 };

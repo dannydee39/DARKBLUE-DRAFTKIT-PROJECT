@@ -1,171 +1,251 @@
-/**
- * nav.css — Top navigation bar.
- * Dark theme matching the Draft Kit nav exactly.
- */
-
 header#site-nav {
   position: fixed;
-  top:      0;
-  left:     0;
-  right:    0;
-  z-index:  200;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
 }
 
 .nav {
-  height:          var(--nav-height);
-  background:      rgba(13, 13, 13, 0.92);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border-bottom:   1px solid var(--border);
-  transition:      box-shadow var(--duration) var(--ease);
+  height: var(--nav-height);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom: 1px solid rgba(197, 210, 224, 0.7);
+  transition: box-shadow var(--duration) var(--ease),
+              border-color var(--duration) var(--ease);
 }
 
 .nav.scrolled {
-  box-shadow: 0 1px 0 var(--border), var(--shadow-md);
+  box-shadow: var(--shadow);
+  border-bottom-color: rgba(197, 210, 224, 0.95);
 }
 
 .nav-inner {
-  display:         flex;
-  align-items:     center;
+  height: 100%;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  height:          100%;
+  gap: var(--space-6);
 }
 
-/* ── Logo ──────────────────────────────────────────────────────────────────── */
-
-.nav-logo {
-  display:         flex;
-  align-items:     center;
-  gap:             var(--space-2);
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   text-decoration: none;
-  flex-shrink:     0;
+  color: inherit;
+  flex-shrink: 0;
 }
 
-.nav-logo-mark {
-  width:           34px;
-  height:          34px;
-  background:      #141414;
-  border:          1px solid var(--border-medium);
-  border-radius:   var(--radius);
-  display:         flex;
-  align-items:     center;
+.nav-brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-navy-mid) 100%);
+  display: flex;
+  align-items: center;
   justify-content: center;
-  flex-shrink:     0;
-  position:        relative;
-  overflow:        hidden;
+  box-shadow: 0 10px 22px rgba(15, 36, 68, 0.16);
+  overflow: hidden;
 }
 
-/* Green glow on the logo mark */
-.nav-logo-mark::after {
-  content:   '';
-  position:  absolute;
-  inset:     0;
-  background: radial-gradient(circle at 50% 60%, rgba(34,197,94,0.18) 0%, transparent 70%);
-  pointer-events: none;
+.nav-brand-mark img {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
 }
 
-.nav-logo-mark svg {
-  position: relative;
-  z-index:  1;
-}
-
-.nav-logo-text {
-  display:        flex;
+.nav-brand-copy {
+  display: flex;
   flex-direction: column;
-  line-height:    1.1;
+  line-height: 1.1;
 }
 
-.nav-logo-name {
-  font-size:      var(--text-sm);
-  font-weight:    var(--font-bold);
-  color:          var(--text-primary);
+.nav-brand-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--brand-navy);
   letter-spacing: -0.01em;
 }
 
-.nav-logo-sub {
-  font-size:      9px;
-  font-weight:    var(--font-medium);
-  color:          var(--text-faint);
+.nav-brand-sub {
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-/* ── Navigation links ──────────────────────────────────────────────────────── */
-
 .nav-links {
-  display:     flex;
+  display: flex;
   align-items: center;
-  gap:         2px;
-  list-style:  none;
+  gap: var(--space-1);
+  list-style: none;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
 }
 
 .nav-links li a {
-  display:         block;
-  padding:         0.375rem var(--space-3);
-  font-size:       var(--text-sm);
-  font-weight:     var(--font-medium);
-  color:           var(--text-muted);
-  border-radius:   var(--radius);
-  transition:      color var(--duration-fast), background var(--duration-fast);
+  display: block;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-muted);
   text-decoration: none;
+  transition: background var(--duration-fast) var(--ease),
+              color var(--duration-fast) var(--ease);
 }
 
 .nav-links li a:hover {
-  color:      var(--text-primary);
-  background: #1a1a1a;
+  color: var(--brand-navy);
+  background: rgba(37, 99, 235, 0.06);
 }
 
 .nav-links li a.active {
-  color:        var(--green);
-  font-weight:  var(--font-semibold);
-  background:   rgba(34, 197, 94, 0.08);
-  border-bottom: 2px solid var(--green);
-  border-radius: var(--radius) var(--radius) 0 0;
+  color: var(--brand-blue);
+  background: rgba(37, 99, 235, 0.08);
+  font-weight: var(--font-semibold);
 }
 
-/* ── CTA area ──────────────────────────────────────────────────────────────── */
-
-.nav-cta {
-  display:     flex;
+.nav-tools {
+  display: flex;
   align-items: center;
-  gap:         var(--space-3);
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
-.nav-user {
-  display:       flex;
-  align-items:   center;
-  gap:           var(--space-2);
-  padding:       0.35rem var(--space-3);
-  border-radius: var(--radius-full);
-  border:        1px solid var(--border-medium);
-  background:    var(--bg-soft);
-  cursor:        pointer;
-  transition:    border-color var(--duration-fast), box-shadow var(--duration-fast);
+.nav-license {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(197, 210, 224, 0.92);
+  border-radius: 12px;
+  background: rgba(244, 247, 251, 0.95);
+  box-shadow: var(--shadow-xs);
 }
 
-.nav-user:hover {
-  border-color: var(--green);
-  box-shadow:   var(--shadow-glow);
+.nav-license-label {
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.nav-license-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  color: var(--brand-blue);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(147, 197, 253, 0.55);
+  padding: 0.18rem 0.5rem;
+  border-radius: 8px;
+}
+
+.nav-license-note {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.nav-user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.nav-user-chip:hover {
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-avatar {
-  width:           26px;
-  height:          26px;
-  border-radius:   var(--radius-full);
-  background:      rgba(34, 197, 94, 0.15);
-  border:          1px solid rgba(34, 197, 94, 0.3);
-  display:         flex;
-  align-items:     center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  font-size:       10px;
-  font-weight:     var(--font-bold);
-  color:           var(--green);
-  letter-spacing:  0;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--brand-blue);
+  font-size: 11px;
+  font-weight: var(--font-bold);
 }
 
 .nav-user-name {
-  font-size:   var(--text-sm);
-  font-weight: var(--font-medium);
-  color:       var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--brand-navy);
+}
+
+.nav-cta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.nav-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.9rem;
+  border-radius: 10px;
+  color: var(--brand-navy);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  background: transparent;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+}
+
+.nav-link-btn:hover {
+  background: rgba(37, 99, 235, 0.06);
+  border-color: rgba(37, 99, 235, 0.08);
+}
+
+.nav-link-btn-primary {
+  color: var(--brand-blue);
+}
+
+@media (max-width: 1100px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .nav-license-note,
+  .nav-user-name {
+    display: none;
+  }
+
+  .nav-license {
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .nav-inner {
+    gap: var(--space-3);
+  }
+
+  .nav-brand-sub,
+  .nav-license-label {
+    display: none;
+  }
+
+  .nav-license {
+    padding-inline: 0.55rem;
+  }
 }

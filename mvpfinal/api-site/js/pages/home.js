@@ -1,317 +1,269 @@
-/**
- * home.js
- * ─────────────────────────────────────────────────────────────────────────────
- * Landing / home page renderer.
- *
- * Sections rendered (in order):
- *   1. Hero          — gradient banner, headline, CTAs, live response preview
- *   2. Trust strip   — social-proof stats
- *   3. Features grid — six value-prop cards
- *   4. How it works  — 3-step walkthrough
- *   5. Formula peek  — formula breakdown highlight
- *   6. CTA banner    — bottom conversion section
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 window.DB = window.DB || {};
-DB.pages  = DB.pages || {};
+DB.pages = DB.pages || {};
 
 DB.pages.home = function (container) {
+  const licenseKey = DB.state.licenseKey || DB.DEMO_KEY;
+  const primaryHref = DB.state.user ? '#dashboard' : '#pricing';
+  const primaryLabel = DB.state.user ? 'Open Dashboard' : 'Get Your License Key';
 
-  /* ── Sample API response displayed in the hero code preview ─────────────── */
-  const SAMPLE_RESPONSE = `<span class="tok-cmt">// POST /v1/valuate — response</span>
-{
-  <span class="tok-key">"nominated_player"</span>:      <span class="tok-str">"Shohei Ohtani"</span>,
-  <span class="tok-key">"max_bid_recommendation"</span>: <span class="tok-num">69</span>,
-  <span class="tok-key">"true_dollar_value"</span>:       <span class="tok-num">74.8</span>,
-  <span class="tok-key">"reasoning"</span>:               <span class="tok-str">"Two-way elite. DH scarcity (1.12×). Inflation 1.08×."</span>,
-  <span class="tok-key">"position_scarcity"</span>: {
-    <span class="tok-key">"position"</span>:   <span class="tok-str">"DH"</span>,
-    <span class="tok-key">"multiplier"</span>: <span class="tok-num">1.12</span>
-  },
-  <span class="tok-key">"inflation_factor"</span>:         <span class="tok-num">1.08</span>
+  const endpointCards = [
+    {
+      method: 'GET',
+      methodClass: 'method-get',
+      path: '/health',
+      desc: 'Check availability before your draft tools send a request.',
+      returns: ['status', 'uptime', 'version'],
+    },
+    {
+      method: 'GET',
+      methodClass: 'method-get',
+      path: '/v1/players?league=NL',
+      desc: 'Load the player pool, rank context, and tier visibility for your league.',
+      returns: ['players', 'overall_rank', 'tier_rank', 'player_tier'],
+    },
+    {
+      method: 'POST',
+      methodClass: 'method-post',
+      path: '/v1/valuate',
+      desc: 'Get live bid guidance for the nominated player using current draft state.',
+      returns: ['max_bid_recommendation', 'true_dollar_value', 'market_context', 'reasoning'],
+    },
+  ];
+
+  const planCards = [
+    {
+      name: 'Draft Day',
+      price: '$0',
+      period: 'shared demo key',
+      featured: false,
+      features: [
+        'Try the core endpoints with the demo key',
+        'Best for evaluation and class review',
+        'Great for understanding the response shape',
+      ],
+      cta: 'Try Demo',
+      href: '#docs',
+      ctaClass: 'plan-cta-outline',
+    },
+    {
+      name: 'Pro',
+      price: '$99',
+      period: 'per season',
+      featured: true,
+      features: [
+        'Dedicated license key for your product',
+        'Live player values, tiers, and market context',
+        'Built for real draft-day usage',
+      ],
+      cta: 'Get License Key',
+      href: '#pricing',
+      ctaClass: 'plan-cta-primary',
+    },
+    {
+      name: 'Enterprise',
+      price: 'Custom',
+      period: 'multi-platform',
+      featured: false,
+      features: [
+        'Custom rollout and white-label support',
+        'Multi-team or multi-product licensing',
+        'Best fit for serious platform deployment',
+      ],
+      cta: 'View Plans',
+      href: '#pricing',
+      ctaClass: 'plan-cta-outline',
+    },
+  ];
+
+  const responseJson = `{
+  "nominated_player": "Juan Soto",
+  "max_bid_recommendation": 47,
+  "true_dollar_value": 52.3,
+  "player_tier": "Elite",
+  "market_context": { "label": "inflated", "delta_percent": 8 },
+  "reasoning": "High floor bat with premium OBP and stable playing time."
 }`;
 
-  /* ── Feature card data ───────────────────────────────────────────────────── */
-  const FEATURES = [
-    {
-      icon: '⚡',
-      title: 'Real-time in &lt;200ms',
-      desc:  'Sub-200ms median response. Fast enough for live auction momentum — no waiting, no guessing.',
-    },
-    {
-      icon: '📐',
-      title: 'SGP + Scarcity Algorithm',
-      desc:  'Standings Gain Points scoring combined with live position scarcity and budget inflation calculations.',
-    },
-    {
-      icon: '🔑',
-      title: 'License Key Auth',
-      desc:  'Every request authenticated via X-License-Key header. Rate limiting and CORS protection built in.',
-    },
-    {
-      icon: '🗂',
-      title: 'Any Roster Config',
-      desc:  'Pass your own roster_config object. Works for any NL, AL, or mixed league with any slot structure.',
-    },
-    {
-      icon: '📦',
-      title: '313 Pre-loaded Players',
-      desc:  'Full NL player pool pre-loaded with projected stats. No client-side data required.',
-    },
-    {
-      icon: '🔌',
-      title: 'Drop-in Integration',
-      desc:  'Single POST endpoint. Returns JSON. Works from any frontend, mobile app, or server-side script.',
-    },
-  ];
-
-  /* ── How it works steps ─────────────────────────────────────────────────── */
-  const STEPS = [
-    {
-      num:   '1',
-      title: 'Send your draft state',
-      body:  'POST the nominated player name, each team\'s current roster and remaining budget, and your league\'s scoring categories.',
-    },
-    {
-      num:   '2',
-      title: 'The engine runs the math',
-      body:  'SGP scoring, position scarcity analysis, and inflation factor are computed live against the current undrafted player pool.',
-    },
-    {
-      num:   '3',
-      title: 'Get back a precise max bid',
-      body:  'Receive a recommended max bid, the player\'s true dollar value, and a human-readable reasoning string — in one response.',
-    },
-  ];
-
-  /* ── Render ─────────────────────────────────────────────────────────────── */
   container.innerHTML = `
-
-    <!-- ① Hero -->
-    <section class="hero" aria-label="Hero">
-      <div class="container hero-inner">
-        <div class="hero-eyebrow">
-          <span class="status-dot"></span>
-          API v1 · Live
-        </div>
-
-        <h1 class="hero-headline">
-          The Valuation Engine Behind<br>
-          <span class="accent">Great Auction Drafts</span>
-        </h1>
-
-        <p class="hero-sub">
-          Dark Blue gives any fantasy platform real-time auction intelligence.
-          Send a player, a budget, and a league state — get back a precise,
-          algorithmically-grounded max bid.
-        </p>
-
-        <div class="hero-actions">
-          <a href="#pricing" class="btn btn-primary btn-lg">Get Your License Key</a>
-          <a href="#docs"    class="btn btn-ghost  btn-lg">View API Docs</a>
-        </div>
-
-        <!-- Live response preview card -->
-        <div class="hero-preview">
-          <div class="code-block" style="box-shadow:0 32px 64px rgba(0,0,0,0.35);">
-            <div class="code-block-header">
-              <span class="code-block-lang">JSON Response</span>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:11px;color:#10b981;font-weight:600;">200 OK</span>
-                <span style="font-size:11px;color:#475569;">143ms</span>
-              </div>
+    <section class="api-home-hero">
+      <div class="container api-home-hero-grid">
+        <div class="api-home-hero-copy">
+          <p class="api-home-eyebrow">Licensed Valuation API</p>
+          <h1 class="api-home-headline">
+            Draft smarter with real valuations, not just rankings.
+          </h1>
+          <p class="api-home-sub">
+            Dark Blue gives DraftKit and fantasy baseball platforms a licensed API for player pools,
+            live bid guidance, tiers, and market context during auction drafts.
+          </p>
+          <div class="api-home-actions">
+            <a href="${primaryHref}" class="btn btn-primary btn-lg">${primaryLabel}</a>
+            <a href="#docs" class="btn btn-secondary btn-lg">View API Docs</a>
+          </div>
+          <div class="api-home-metrics">
+            <div class="api-home-metric">
+              <span class="api-home-metric-value">3</span>
+              <span class="api-home-metric-label">core endpoints</span>
             </div>
-            <pre class="code-pre">${SAMPLE_RESPONSE}</pre>
+            <div class="api-home-metric">
+              <span class="api-home-metric-value">1</span>
+              <span class="api-home-metric-label">license key</span>
+            </div>
+            <div class="api-home-metric">
+              <span class="api-home-metric-value">Live</span>
+              <span class="api-home-metric-label">draft support</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-home-hero-panel card">
+          <div class="api-home-panel-header">
+            <div>
+              <p class="api-home-panel-kicker">What your key unlocks</p>
+              <h2>One API for player pool, tiers, and bid guidance</h2>
+            </div>
+            <span class="badge badge-blue">Draft Ready</span>
+          </div>
+          <div class="api-home-key-strip">
+            <span class="api-home-key-label">X-License-Key</span>
+            <code class="api-home-key-value">${licenseKey}</code>
+          </div>
+          <div class="api-home-value-grid">
+            <article class="api-home-value-card">
+              <h3>Player pool</h3>
+              <p>Pull the eligible player list before the room opens.</p>
+            </article>
+            <article class="api-home-value-card">
+              <h3>Live values</h3>
+              <p>See what the nominated player is worth right now.</p>
+            </article>
+            <article class="api-home-value-card">
+              <h3>Tier context</h3>
+              <p>Give the draft room a simpler explanation for why players rank where they do.</p>
+            </article>
+            <article class="api-home-value-card">
+              <h3>Market context</h3>
+              <p>Show when the room is spending above or below baseline value.</p>
+            </article>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ② Trust strip -->
-    <div class="trust-strip">
-      <div class="container trust-strip-inner">
-        <span class="trust-label">Built for draft day</span>
-        <div class="trust-sep"></div>
-        <div class="trust-stat">
-          <span class="trust-stat-value">313</span>
-          <span class="trust-stat-label">players pre-loaded</span>
-        </div>
-        <div class="trust-sep"></div>
-        <div class="trust-stat">
-          <span class="trust-stat-value">&lt;200ms</span>
-          <span class="trust-stat-label">median response</span>
-        </div>
-        <div class="trust-sep"></div>
-        <div class="trust-stat">
-          <span class="trust-stat-value">4-layer</span>
-          <span class="trust-stat-label">security model</span>
-        </div>
-        <div class="trust-sep"></div>
-        <div class="trust-stat">
-          <span class="trust-stat-value">1 endpoint</span>
-          <span class="trust-stat-label">to integrate</span>
-        </div>
+    <section class="api-home-strip">
+      <div class="container api-home-strip-inner">
+        <span>Built for DraftKit integration</span>
+        <span class="api-home-strip-divider"></span>
+        <span>Demo key and dedicated key flows</span>
+        <span class="api-home-strip-divider"></span>
+        <span>Buyer-friendly API onboarding</span>
       </div>
-    </div>
+    </section>
 
-    <!-- ③ Features grid -->
-    <section class="section section-alt" aria-label="Features">
+    <section class="section api-home-section api-home-section-light">
       <div class="container">
-        <div class="text-center">
-          <p class="label">What you get</p>
-          <h2 class="heading-lg mt-2">Everything a live draft demands</h2>
-          <p class="subheading mt-4" style="max-width:560px;margin-inline:auto;">
-            One license key unlocks a production-grade valuation API purpose-built
-            for the speed and complexity of auction fantasy drafts.
-          </p>
-        </div>
+        <p class="label">What you call</p>
+        <h2 class="heading-lg api-home-section-title">The three endpoints a draft product actually needs</h2>
+        <p class="subheading api-home-section-sub">
+          The landing page stays simple. Your buyer only needs to know what each endpoint gives them,
+          what key they use, and how the response helps the draft room.
+        </p>
 
-        <div class="features-grid">
-          ${FEATURES.map(f => `
-            <div class="feature-card">
-              <div class="feature-icon">${f.icon}</div>
-              <h3 class="feature-title">${f.title}</h3>
-              <p class="feature-desc">${f.desc}</p>
-            </div>
+        <div class="api-home-endpoints-grid">
+          ${endpointCards.map(card => `
+            <article class="api-home-endpoint-card">
+              <div class="api-home-endpoint-header">
+                <span class="api-home-method ${card.methodClass}">${card.method}</span>
+                <code class="api-home-endpoint-path">${card.path}</code>
+              </div>
+              <div class="api-home-endpoint-body">
+                <p>${card.desc}</p>
+                <div class="api-home-return-block">
+                  <span class="api-home-return-label">Returns</span>
+                  <div class="api-home-return-tags">
+                    ${card.returns.map(tag => `<span class="api-home-return-tag">${tag}</span>`).join('')}
+                  </div>
+                </div>
+              </div>
+            </article>
           `).join('')}
         </div>
       </div>
     </section>
 
-    <!-- ④ How it works -->
-    <section class="section" aria-label="How it works">
-      <div class="container">
-        <div class="text-center">
-          <p class="label">Integration</p>
-          <h2 class="heading-lg mt-2">From click to max bid in three steps</h2>
+    <section class="section api-home-section api-home-section-dark">
+      <div class="container api-home-proof-grid">
+        <div>
+          <p class="label">What the response gives you</p>
+          <h2 class="heading-lg api-home-section-title api-home-section-title-inverse">
+            Give the buyer the number, the tier, and the reason.
+          </h2>
+          <p class="subheading api-home-section-sub api-home-section-sub-inverse">
+            A draft room does not just want a score. It wants a bid ceiling, a tier label, and enough
+            market context to explain the recommendation on the spot.
+          </p>
+          <ul class="api-home-proof-list">
+            <li>Max bid recommendation for the nominated player</li>
+            <li>True dollar value to compare against market behavior</li>
+            <li>Tier and market context for quick explanation</li>
+            <li>Readable reasoning string for the UI</li>
+          </ul>
         </div>
+        <div class="code-block">
+          <div class="code-block-header">
+            <span class="code-block-lang">Sample Response</span>
+            <span class="badge badge-dark">POST /v1/valuate</span>
+          </div>
+          <pre class="code-pre">
+<span class="tok-key">"nominated_player"</span>: <span class="tok-str">"Juan Soto"</span>
+<span class="tok-key">"max_bid_recommendation"</span>: <span class="tok-num">47</span>
+<span class="tok-key">"true_dollar_value"</span>: <span class="tok-num">52.3</span>
+<span class="tok-key">"player_tier"</span>: <span class="tok-str">"Elite"</span>
+<span class="tok-key">"market_context"</span>: <span class="tok-str">"inflated"</span>
+<span class="tok-key">"reasoning"</span>: <span class="tok-str">"High floor bat with stable role."</span></pre>
+        </div>
+      </div>
+    </section>
 
-        <div class="steps-list">
-          ${STEPS.map(s => `
-            <div class="step">
-              <div class="step-num">${s.num}</div>
-              <div class="step-body">
-                <h3>${s.title}</h3>
-                <p>${s.body}</p>
+    <section class="section api-home-section api-home-section-light">
+      <div class="container">
+        <p class="label">Licensing</p>
+        <h2 class="heading-lg api-home-section-title">Choose the key that fits your draft product</h2>
+        <p class="subheading api-home-section-sub">
+          Start with the demo key, then move to a dedicated license once you are ready to plug the API into DraftKit
+          or your own interface.
+        </p>
+
+        <div class="api-home-plan-grid">
+          ${planCards.map(plan => `
+            <article class="api-home-plan-card ${plan.featured ? 'featured' : ''}">
+              ${plan.featured ? '<span class="api-home-plan-badge">Recommended</span>' : ''}
+              <p class="api-home-plan-name">${plan.name}</p>
+              <div class="api-home-plan-price-row">
+                <span class="api-home-plan-price">${plan.price}</span>
+                <span class="api-home-plan-period">${plan.period}</span>
               </div>
-            </div>
+              <ul class="api-home-plan-list">
+                ${plan.features.map(feature => `<li>${feature}</li>`).join('')}
+              </ul>
+              <a href="${plan.href}" class="plan-cta ${plan.ctaClass}">${plan.cta}</a>
+            </article>
           `).join('')}
         </div>
       </div>
     </section>
 
-    <!-- ⑤ Formula highlight -->
-    <section class="section section-alt" aria-label="The algorithm">
-      <div class="container">
-        <div class="text-center" style="max-width:600px;margin-inline:auto;margin-bottom:var(--space-10);">
-          <p class="label">The algorithm</p>
-          <h2 class="heading-lg mt-2">Not a lookup table. A live calculation.</h2>
-          <p class="subheading mt-4">
-            Every valuation is computed fresh from the current undrafted player pool.
-            As players are taken, values shift — automatically.
-          </p>
+    <section class="api-home-cta">
+      <div class="container api-home-cta-inner">
+        <div>
+          <p class="label">Ready to connect it?</p>
+          <h2 class="heading-md api-home-cta-title">License the API, test the endpoints, and plug it into your draft flow.</h2>
         </div>
-
-        <div style="max-width:680px;margin-inline:auto;">
-          <div class="code-block">
-            <div class="code-block-header">
-              <span class="code-block-lang">The Valuation Formula</span>
-            </div>
-            <pre class="code-pre"><span class="tok-cmt">// Step 1 — SGP base value (player's share of remaining pool value)</span>
-sgp_base = (player_sgp_score / total_pool_sgp) × remaining_budget
-
-<span class="tok-cmt">// Step 2 — Scarcity multiplier (supply vs. open roster slots)</span>
-scarcity = slots_remaining / eligible_remaining   <span class="tok-cmt">// clamped 1.00–1.45</span>
-
-<span class="tok-cmt">// Step 3 — Inflation (late-draft budget concentration)</span>
-inflation = actual_remaining_budget / expected_budget   <span class="tok-cmt">// clamped 0.85–1.45</span>
-
-<span class="tok-cmt">// Step 4 — Combine + apply 8% safety margin</span>
-true_value = sgp_base × scarcity × inflation
-max_bid    = round(true_value × <span class="tok-num">0.92</span>)</pre>
-          </div>
+        <div class="api-home-actions">
+          <a href="#pricing" class="btn btn-primary">See Plans</a>
+          <a href="#docs" class="btn btn-secondary">Read Docs</a>
         </div>
       </div>
     </section>
-
-    <!-- ⑥ CTA Banner -->
-    <section class="cta-banner" aria-label="Get started">
-      <div class="container">
-        <h2>Ready to draft smarter?</h2>
-        <p>
-          Plug the Dark Blue API into your draft kit and give every owner
-          edge-of-seat, statistically-grounded bid recommendations in real time.
-        </p>
-        <div class="hero-actions">
-          <a href="#pricing"  class="btn btn-primary btn-lg">See Licensing Plans</a>
-          <a href="#docs"     class="btn btn-ghost   btn-lg">Try Sample Commands</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ⑦ Footer -->
-    <footer class="site-footer" role="contentinfo">
-      <div class="container">
-        <div class="footer-inner">
-          <!-- Brand column -->
-          <div class="footer-brand">
-            <div class="footer-logo">
-              <div class="footer-logo-mark">
-                <img src="logo.png" width="32" height="32" alt="" style="display:block;border-radius:6px;">
-              </div>
-              <span style="font-size:var(--text-sm);font-weight:var(--font-bold);color:var(--text-primary);">Dark Blue</span>
-            </div>
-            <p class="footer-tagline">
-              Real-time auction valuation API for fantasy baseball draft kits.
-              Built for speed, accuracy, and live draft conditions.
-            </p>
-          </div>
-
-          <!-- Product links -->
-          <div class="footer-links-group">
-            <span class="footer-links-title">Product</span>
-            <a href="#home"    class="footer-link">Home</a>
-            <a href="#pricing" class="footer-link">Pricing</a>
-            <a href="#docs"    class="footer-link">API Docs</a>
-          </div>
-
-          <!-- Account links -->
-          <div class="footer-links-group">
-            <span class="footer-links-title">Account</span>
-            <a href="#login"     class="footer-link">Sign In</a>
-            <a href="#pricing"   class="footer-link">Get a Key</a>
-            <a href="#dashboard" class="footer-link">Dashboard</a>
-          </div>
-        </div>
-
-        <!-- Bottom bar -->
-        <div class="footer-bottom">
-          <span class="footer-copy">&copy; ${new Date().getFullYear()} Dark Blue. All rights reserved.</span>
-          <div class="footer-status">
-            <span class="status-dot"></span>
-            All systems operational
-          </div>
-        </div>
-      </div>
-    </footer>
   `;
-
-  /* ── Typing animation on the hero code preview ───────────────────────────── */
-  _initTypingAnimation(container);
 };
-
-/**
- * Animates a blinking cursor appended to the last line of the hero code block.
- * Runs once per page load — restarts whenever the home page is re-rendered.
- */
-function _initTypingAnimation(container) {
-  const pre = container.querySelector('.hero-preview .code-pre');
-  if (!pre) return;
-
-  // Append a blinking cursor element after the code
-  const cursor = document.createElement('span');
-  cursor.className = 'type-cursor';
-  cursor.setAttribute('aria-hidden', 'true');
-  pre.appendChild(cursor);
-}

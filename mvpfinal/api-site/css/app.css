@@ -1,8 +1,9 @@
 /**
  * app.css — Page-specific styles for both tabs (License + Endpoints).
  *
- * Uses design tokens from variables.css. Component primitives (buttons,
- * cards, code blocks) come from components.css.
+ * Dark operator-console surfaces. No accent stripes.
+ * Uses design tokens from variables.css. Component primitives
+ * (buttons, cards, code blocks) come from components.css.
  */
 
 
@@ -16,8 +17,8 @@
   font-weight:    var(--font-bold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color:          var(--brand-blue);
-  margin-bottom:  var(--space-3);
+  color:          var(--accent-soft);
+  margin-bottom:  var(--space-2);
 }
 
 
@@ -26,7 +27,7 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .page-license {
-  padding: var(--space-10) var(--space-6) var(--space-16);
+  padding: var(--space-8) var(--space-6) var(--space-12);
 }
 
 .license-container {
@@ -37,7 +38,7 @@
 /* ── Header ──────────────────────────────────────────────────────────────── */
 
 .license-header {
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 .license-header h1 {
@@ -46,7 +47,7 @@
   line-height:    var(--leading-tight);
   color:          var(--text-primary);
   letter-spacing: -0.025em;
-  margin-bottom:  var(--space-4);
+  margin-bottom:  var(--space-3);
 }
 
 .license-lead {
@@ -59,8 +60,8 @@
 /* ── Sections ────────────────────────────────────────────────────────────── */
 
 .license-section {
-  margin-bottom: var(--space-12);
-  padding-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-8);
   border-bottom: 1px solid var(--border);
 }
 
@@ -73,12 +74,12 @@
   font-weight:    var(--font-bold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color:          var(--brand-blue);
+  color:          var(--accent-soft);
   margin-bottom:  var(--space-2);
 }
 
 .license-section h2 {
-  font-size:      var(--text-xl);
+  font-size:      var(--text-lg);
   font-weight:    var(--font-bold);
   color:          var(--text-primary);
   letter-spacing: -0.015em;
@@ -86,25 +87,34 @@
 }
 
 .license-section > p {
-  color:        var(--text-body);
-  margin-bottom: var(--space-5);
+  color:         var(--text-body);
+  margin-bottom: var(--space-4);
+}
+
+/* Inline code inside section paragraphs */
+.license-section p code,
+.license-step-copy p code {
+  padding:        0.1rem 0.3rem;
+  background:     var(--surface-2);
+  border-radius:  var(--radius-sm);
+  color:          var(--text-primary);
 }
 
 /* ── Key Block ───────────────────────────────────────────────────────────── */
 
 .license-key-block {
-  background:    var(--bg-card);
+  background:    var(--surface-2);
   border:        1px solid var(--border);
   border-radius: var(--radius-md);
   overflow:      hidden;
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .license-key-row {
   display:     flex;
   align-items: center;
   gap:         var(--space-3);
-  padding:     var(--space-4) var(--space-5);
+  padding:     var(--space-3) var(--space-4);
 }
 
 .license-key-row + .license-key-row {
@@ -117,17 +127,17 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color:          var(--text-faint);
-  min-width:      72px;
+  min-width:      60px;
 }
 
 .license-key-mono {
   font-family: var(--font-mono);
   font-size:   var(--text-sm);
   font-weight: var(--font-semibold);
-  color:       var(--brand-navy);
-  background:  rgba(37, 99, 235, 0.06);
-  border:      1px solid rgba(37, 99, 235, 0.12);
-  padding:     0.2rem 0.5rem;
+  color:       var(--accent-soft);
+  background:  var(--accent-dim);
+  border:      1px solid rgba(96, 165, 250, 0.18);
+  padding:     0.15rem 0.4rem;
   border-radius: var(--radius-sm);
 }
 
@@ -139,9 +149,9 @@
   font-size:      var(--text-xs);
   font-weight:    var(--font-semibold);
   font-family:    var(--font-sans);
-  color:          var(--brand-blue);
-  padding:        0.3rem 0.7rem;
-  border:         1px solid rgba(37, 99, 235, 0.2);
+  color:          var(--accent-soft);
+  padding:        0.25rem 0.6rem;
+  border:         1px solid rgba(96, 165, 250, 0.20);
   border-radius:  var(--radius-sm);
   background:     transparent;
   cursor:         pointer;
@@ -149,13 +159,13 @@
 }
 
 .license-copy-btn:hover {
-  background:   rgba(37, 99, 235, 0.06);
-  border-color: rgba(37, 99, 235, 0.35);
+  background:   rgba(37, 99, 235, 0.08);
+  border-color: rgba(96, 165, 250, 0.35);
 }
 
 .license-copy-btn.copied {
   color:        var(--success);
-  border-color: rgba(5, 150, 105, 0.3);
+  border-color: rgba(16, 185, 129, 0.30);
 }
 
 /* ── Key Notes ───────────────────────────────────────────────────────────── */
@@ -163,17 +173,17 @@
 .license-key-notes {
   display:        flex;
   flex-direction: column;
-  gap:            var(--space-3);
+  gap:            var(--space-2);
 }
 
 .license-note {
   font-size:      var(--text-sm);
   line-height:    var(--leading-normal);
   color:          var(--text-body);
-  padding:        var(--space-4);
-  background:     var(--bg-soft);
+  padding:        var(--space-3) var(--space-4);
+  background:     var(--surface-1);
+  border:         1px solid var(--border);
   border-radius:  var(--radius);
-  border-left:    3px solid var(--border-medium);
 }
 
 .license-note strong {
@@ -186,31 +196,33 @@
 .license-fields {
   display:        flex;
   flex-direction: column;
-  gap:            1px;
-  background:     var(--border);
+  background:     var(--surface-1);
   border:         1px solid var(--border);
   border-radius:  var(--radius-md);
   overflow:       hidden;
-  margin-bottom:  var(--space-5);
+  margin-bottom:  var(--space-4);
 }
 
 .license-field {
-  padding:    var(--space-4) var(--space-5);
-  background: var(--bg-card);
+  padding: var(--space-3) var(--space-4);
+}
+
+.license-field + .license-field {
+  border-top: 1px solid var(--border);
 }
 
 .license-field-head {
   display:     flex;
   align-items: center;
-  gap:         var(--space-3);
-  margin-bottom: var(--space-1);
+  gap:         var(--space-2);
+  margin-bottom: 2px;
 }
 
 .license-field code {
   font-family: var(--font-mono);
   font-size:   var(--text-sm);
   font-weight: var(--font-semibold);
-  color:       var(--brand-navy);
+  color:       var(--accent-soft);
 }
 
 .license-field-type {
@@ -226,12 +238,12 @@
 }
 
 .license-aside {
-  font-size:   var(--text-sm);
-  color:       var(--text-muted);
-  padding:     var(--space-4);
-  background:  var(--bg-soft);
+  font-size:     var(--text-sm);
+  color:         var(--text-body);
+  padding:       var(--space-3) var(--space-4);
+  background:    var(--surface-1);
+  border:        1px solid var(--border);
   border-radius: var(--radius);
-  border-left: 3px solid var(--brand-blue);
 }
 
 /* ── Integration Steps ───────────────────────────────────────────────────── */
@@ -240,24 +252,24 @@
   list-style: none;
   display:    flex;
   flex-direction: column;
-  gap:        var(--space-5);
+  gap:        var(--space-4);
   counter-reset: step;
 }
 
 .license-steps li {
   display: flex;
-  gap:     var(--space-4);
+  gap:     var(--space-3);
   align-items: flex-start;
 }
 
 .license-step-num {
   flex-shrink: 0;
-  width:       32px;
-  height:      32px;
+  width:       28px;
+  height:      28px;
   border-radius: var(--radius-full);
-  background:  var(--brand-blue);
-  color:       var(--text-inverse);
-  font-size:   var(--text-sm);
+  background:  var(--accent);
+  color:       #f0f4f8;
+  font-size:   var(--text-xs);
   font-weight: var(--font-bold);
   display:     flex;
   align-items: center;
@@ -266,10 +278,10 @@
 }
 
 .license-step-copy strong {
-  display:     block;
-  font-size:   var(--text-base);
-  color:       var(--text-primary);
-  margin-bottom: var(--space-1);
+  display:      block;
+  font-size:    var(--text-base);
+  color:        var(--text-primary);
+  margin-bottom: 2px;
 }
 
 .license-step-copy p {
@@ -291,24 +303,23 @@
 }
 
 .license-plan {
-  padding:       var(--space-6);
+  padding:       var(--space-5);
   border:        1px solid var(--border);
   border-radius: var(--radius-md);
-  background:    var(--bg-card);
+  background:    var(--surface-1);
 }
 
 .license-plan-featured {
-  border-color: rgba(37, 99, 235, 0.3);
-  box-shadow:   0 0 0 1px rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.25);
 }
 
 .license-plan-header {
-  display:       flex;
-  align-items:   baseline;
+  display:        flex;
+  align-items:    baseline;
   justify-content: space-between;
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border);
+  margin-bottom:  var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom:  1px solid var(--border);
 }
 
 .license-plan-name {
@@ -344,19 +355,27 @@
 }
 
 .license-plan li::before {
-  content:  '\2713';
-  position: absolute;
-  left:     0;
-  color:    var(--success);
+  content:    '\2713';
+  position:   absolute;
+  left:       0;
+  color:      var(--success);
   font-weight: var(--font-bold);
-  font-size: var(--text-xs);
+  font-size:  var(--text-xs);
+}
+
+/* Inline code in plan list items */
+.license-plan li code {
+  padding:        0.1rem 0.3rem;
+  background:     var(--surface-2);
+  border-radius:  var(--radius-sm);
+  color:          var(--accent-soft);
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 
 .license-footer {
-  margin-top:  var(--space-8);
-  padding-top: var(--space-6);
+  margin-top:  var(--space-6);
+  padding-top: var(--space-4);
   border-top:  1px solid var(--border);
   font-size:   var(--text-sm);
   color:       var(--text-faint);
@@ -366,10 +385,11 @@
 }
 
 .license-footer code {
-  font-size:   var(--text-xs);
-  background:  var(--bg-soft);
-  padding:     0.15rem 0.4rem;
+  font-size:     var(--text-xs);
+  background:    var(--surface-2);
+  padding:       0.1rem 0.35rem;
   border-radius: var(--radius-sm);
+  color:         var(--text-muted);
 }
 
 /* ── License responsive ──────────────────────────────────────────────────── */
@@ -395,7 +415,7 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .page-endpoints {
-  padding: var(--space-10) var(--space-6) var(--space-16);
+  padding: var(--space-8) var(--space-6) var(--space-12);
 }
 
 .endpoints-container {
@@ -406,7 +426,7 @@
 /* ── Header ──────────────────────────────────────────────────────────────── */
 
 .endpoints-header {
-  margin-bottom: var(--space-10);
+  margin-bottom: var(--space-8);
 }
 
 .endpoints-header h1 {
@@ -415,7 +435,7 @@
   line-height:    var(--leading-tight);
   color:          var(--text-primary);
   letter-spacing: -0.025em;
-  margin-bottom:  var(--space-3);
+  margin-bottom:  var(--space-2);
 }
 
 .endpoints-lead {
@@ -425,8 +445,8 @@
 
 .endpoints-lead code {
   font-size:      var(--text-sm);
-  background:     var(--bg-soft);
-  padding:        0.15rem 0.5rem;
+  background:     var(--surface-2);
+  padding:        0.1rem 0.4rem;
   border-radius:  var(--radius-sm);
   border:         1px solid var(--border);
   color:          var(--text-primary);
@@ -435,42 +455,41 @@
 /* ── Endpoint Cards ──────────────────────────────────────────────────────── */
 
 .ep-card {
-  background:    var(--bg-card);
+  background:    var(--surface-1);
   border:        1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow:      hidden;
-  margin-bottom: var(--space-6);
-  box-shadow:    var(--shadow-xs);
+  margin-bottom: var(--space-5);
 }
 
 .ep-card-head {
-  display:     flex;
-  align-items: center;
-  gap:         var(--space-3);
-  padding:     var(--space-4) var(--space-6);
-  background:  var(--bg-soft);
+  display:      flex;
+  align-items:  center;
+  gap:          var(--space-3);
+  padding:      var(--space-3) var(--space-5);
+  background:   var(--surface-2);
   border-bottom: 1px solid var(--border);
 }
 
 .ep-method {
-  display:       inline-flex;
-  align-items:   center;
-  padding:       0.25rem 0.6rem;
-  border-radius: var(--radius-sm);
-  font-family:   var(--font-mono);
-  font-size:     var(--text-xs);
-  font-weight:   var(--font-bold);
+  display:        inline-flex;
+  align-items:    center;
+  padding:        0.2rem 0.5rem;
+  border-radius:  var(--radius-sm);
+  font-family:    var(--font-mono);
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
   letter-spacing: 0.04em;
 }
 
 .ep-get {
-  background: rgba(5, 150, 105, 0.1);
-  color:      #047857;
+  background: rgba(16, 185, 129, 0.12);
+  color:      #34d399;
 }
 
 .ep-post {
-  background: rgba(37, 99, 235, 0.1);
-  color:      var(--brand-blue);
+  background: rgba(37, 99, 235, 0.12);
+  color:      var(--accent-soft);
 }
 
 .ep-path {
@@ -481,45 +500,53 @@
 }
 
 .ep-auth {
-  margin-left: auto;
-  font-size:   var(--text-xs);
-  font-weight: var(--font-semibold);
-  padding:     0.2rem 0.55rem;
-  border-radius: var(--radius-full);
+  margin-left:   auto;
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-semibold);
+  padding:       0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
 }
 
 .ep-auth-none {
-  background: var(--bg-soft);
+  background: rgba(255, 255, 255, 0.04);
   color:      var(--text-faint);
   border:     1px solid var(--border);
 }
 
 .ep-auth-required {
-  background: rgba(37, 99, 235, 0.06);
-  color:      var(--brand-blue);
-  border:     1px solid rgba(37, 99, 235, 0.15);
+  background: var(--accent-dim);
+  color:      var(--accent-soft);
+  border:     1px solid rgba(96, 165, 250, 0.18);
 }
 
 .ep-card-body {
-  padding: var(--space-6);
+  padding: var(--space-5);
 }
 
 .ep-desc {
   font-size:     var(--text-base);
   color:         var(--text-body);
   line-height:   var(--leading-normal);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+/* Inline code inside endpoint descriptions */
+.ep-desc code {
+  padding:        0.1rem 0.3rem;
+  background:     var(--surface-2);
+  border-radius:  var(--radius-sm);
+  color:          var(--text-primary);
 }
 
 .ep-why {
   font-size:      var(--text-sm);
   color:          var(--text-body);
   line-height:    var(--leading-normal);
-  padding:        var(--space-4);
-  background:     var(--bg-soft);
+  padding:        var(--space-3) var(--space-4);
+  background:     var(--surface-2);
+  border:         1px solid var(--border);
   border-radius:  var(--radius);
-  margin-bottom:  var(--space-5);
-  border-left:    3px solid var(--brand-blue);
+  margin-bottom:  var(--space-4);
 }
 
 .ep-why strong {
@@ -530,25 +557,25 @@
   font-size:      var(--text-sm);
   color:          var(--text-body);
   line-height:    var(--leading-normal);
-  padding:        var(--space-4);
+  padding:        var(--space-3) var(--space-4);
   background:     var(--warning-bg);
+  border:         1px solid rgba(245, 158, 11, 0.15);
   border-radius:  var(--radius);
-  border-left:    3px solid var(--warning);
-  margin-bottom:  var(--space-4);
+  margin-bottom:  var(--space-3);
 }
 
 /* ── Params Tables ───────────────────────────────────────────────────────── */
 
 .ep-params {
-  margin-top:    var(--space-5);
-  margin-bottom: var(--space-5);
+  margin-top:    var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .ep-params h4 {
   font-size:      var(--text-sm);
   font-weight:    var(--font-bold);
   color:          var(--text-primary);
-  margin-bottom:  var(--space-3);
+  margin-bottom:  var(--space-2);
 }
 
 .ep-table {
@@ -558,33 +585,33 @@
 }
 
 .ep-table thead {
-  background:   var(--bg-soft);
+  background: var(--surface-2);
 }
 
 .ep-table th {
-  padding:       var(--space-2) var(--space-3);
-  text-align:    left;
-  font-weight:   var(--font-semibold);
-  color:         var(--text-muted);
-  font-size:     var(--text-xs);
+  padding:        var(--space-2) var(--space-3);
+  text-align:     left;
+  font-weight:    var(--font-semibold);
+  color:          var(--text-muted);
+  font-size:      var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--border);
+  border-bottom:  1px solid var(--border-medium);
 }
 
 .ep-table td {
-  padding:       var(--space-2) var(--space-3);
-  color:         var(--text-body);
-  border-bottom: 1px solid var(--border);
+  padding:        var(--space-2) var(--space-3);
+  color:          var(--text-body);
+  border-bottom:  1px solid var(--border);
   vertical-align: top;
 }
 
 .ep-table code {
   font-size:      var(--text-xs);
-  background:     rgba(37, 99, 235, 0.06);
-  padding:        0.1rem 0.35rem;
+  background:     var(--accent-dim);
+  padding:        0.1rem 0.3rem;
   border-radius:  3px;
-  color:          var(--brand-navy);
+  color:          var(--accent-soft);
   font-weight:    var(--font-medium);
 }
 
@@ -595,14 +622,14 @@
   text-transform: uppercase;
   color:          var(--error);
   background:     var(--error-bg);
-  padding:        0.15rem 0.4rem;
+  padding:        0.1rem 0.35rem;
   border-radius:  3px;
 }
 
 /* ── Code blocks inside endpoint cards ───────────────────────────────────── */
 
 .ep-card-body .code-block {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .ep-card-body .code-block:last-child {
@@ -614,7 +641,7 @@
   font-weight:    var(--font-medium);
   font-family:    var(--font-sans);
   color:          var(--text-faint);
-  padding:        4px 10px;
+  padding:        3px 8px;
   border:         1px solid var(--border-medium);
   border-radius:  var(--radius-sm);
   background:     transparent;
@@ -624,35 +651,34 @@
 }
 
 .ep-copy-btn:hover {
-  color:        var(--text-inverse);
-  border-color: rgba(255, 255, 255, 0.2);
-  background:   rgba(255, 255, 255, 0.08);
+  color:        var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.18);
+  background:   rgba(255, 255, 255, 0.05);
 }
 
 .ep-copy-btn.copied {
-  color:        var(--brand-blue-light);
-  border-color: rgba(96, 165, 250, 0.35);
+  color:        var(--accent-soft);
+  border-color: rgba(96, 165, 250, 0.30);
 }
 
 /* ── Try It ──────────────────────────────────────────────────────────────── */
 
 .ep-tryit {
-  background:    var(--bg-card);
+  background:    var(--surface-1);
   border:        1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding:       var(--space-6);
-  box-shadow:    var(--shadow-xs);
+  padding:       var(--space-5);
 }
 
 .ep-tryit-head {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .ep-tryit-head h2 {
-  font-size:      var(--text-xl);
+  font-size:      var(--text-lg);
   font-weight:    var(--font-bold);
   color:          var(--text-primary);
-  margin-bottom:  var(--space-1);
+  margin-bottom:  2px;
 }
 
 .ep-tryit-head p {
@@ -663,31 +689,31 @@
 .ep-tryit-note {
   font-size:      var(--text-xs);
   color:          var(--text-muted);
-  padding:        var(--space-3) var(--space-4);
-  background:     var(--bg-soft);
+  padding:        var(--space-2) var(--space-3);
+  background:     var(--surface-2);
+  border:         1px solid var(--border);
   border-radius:  var(--radius);
-  margin-bottom:  var(--space-4);
-  border-left:    3px solid var(--border-medium);
+  margin-bottom:  var(--space-3);
 }
 
 .ep-tryit-label {
-  display:     block;
-  font-size:   var(--text-sm);
-  font-weight: var(--font-semibold);
-  color:       var(--text-primary);
+  display:      block;
+  font-size:    var(--text-sm);
+  font-weight:  var(--font-semibold);
+  color:        var(--text-primary);
   margin-bottom: var(--space-2);
 }
 
 .ep-tryit-textarea {
   width:         100%;
-  min-height:    280px;
-  padding:       var(--space-4);
+  min-height:    260px;
+  padding:       var(--space-3);
   font-family:   var(--font-mono);
   font-size:     0.8125rem;
   line-height:   1.7;
-  color:         #e2e8f0;
+  color:         #cbd5e1;
   background:    var(--brand-navy-deep);
-  border:        1px solid rgba(96, 165, 250, 0.14);
+  border:        1px solid var(--border);
   border-radius: var(--radius-md);
   resize:        vertical;
   outline:       none;
@@ -696,23 +722,23 @@
 }
 
 .ep-tryit-textarea:focus {
-  border-color: rgba(96, 165, 250, 0.35);
-  box-shadow:   0 0 0 3px rgba(37, 99, 235, 0.08);
+  border-color: rgba(96, 165, 250, 0.30);
+  box-shadow:   0 0 0 2px rgba(37, 99, 235, 0.10);
 }
 
 .ep-tryit-actions {
-  display:     flex;
-  gap:         var(--space-3);
-  margin-top:  var(--space-4);
-  margin-bottom: var(--space-4);
+  display:      flex;
+  gap:          var(--space-3);
+  margin-top:   var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .ep-tryit-status {
-  font-family:   var(--font-mono);
-  font-size:     var(--text-sm);
-  font-weight:   var(--font-medium);
-  padding:       var(--space-2) 0;
-  min-height:    1.5em;
+  font-family: var(--font-mono);
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  padding:     var(--space-2) 0;
+  min-height:  1.5em;
 }
 
 .ep-tryit-ok {
@@ -733,7 +759,7 @@
   .ep-card-head {
     flex-wrap: wrap;
     gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-2) var(--space-3);
   }
 
   .ep-auth {
@@ -741,15 +767,15 @@
   }
 
   .ep-card-body {
-    padding: var(--space-4);
+    padding: var(--space-3);
   }
 
   .ep-tryit {
-    padding: var(--space-4);
+    padding: var(--space-3);
   }
 
   .ep-tryit-textarea {
-    min-height: 200px;
+    min-height: 180px;
   }
 
   .ep-table {

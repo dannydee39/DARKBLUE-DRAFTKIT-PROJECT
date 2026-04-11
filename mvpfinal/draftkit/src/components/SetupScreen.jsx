@@ -6,8 +6,8 @@
 // then clicks "Initialize Draft" which calls onInit with the form values.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useMemo, useState } from "react";
-import { DEFAULT_ROSTER, DEFAULT_SCORING } from "../constants.js";
+import { useEffect, useMemo, useState } from "react";
+import { API_BASE, DEMO_KEY, DEFAULT_ROSTER, DEFAULT_SCORING } from "../constants.js";
 import {
   countDraftEntries,
   countTaxiEntries,
@@ -44,18 +44,76 @@ export default function SetupScreen({
     season: "2025",
     owners: 12,
     budget: 260,
-    pool: "NL",            // default to NL-only since our sample data is NL
+    pool: "MLB",
     roster: { ...DEFAULT_ROSTER },
     scoring: { ...DEFAULT_SCORING },
     keeperLeague: true,
   });
   const [creating, setCreating] = useState(false);
+  const [poolCounts, setPoolCounts] = useState({
+    status: "loading",
+    MLB: null,
+    AL: null,
+    NL: null,
+  });
 
   const validation = useMemo(() => validateLeagueConfig(form), [form]);
   const totalRosterSlots = Object.entries(form.roster)
     .filter(([slot]) => slot !== "TAXI")
     .reduce((sum, [, count]) => sum + count, 0);
   const scoringCount = Object.values(form.scoring).filter(Boolean).length;
+  const selectedPoolCount = poolCounts[form.pool];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPoolCounts() {
+      try {
+        const pools = [
+          ["MLB", "ALL"],
+          ["AL", "AL"],
+          ["NL", "NL"],
+        ];
+
+        const results = await Promise.all(
+          pools.map(async ([key, league]) => {
+            const response = await fetch(`${API_BASE}/v1/players?league=${league}`, {
+              headers: { "X-License-Key": DEMO_KEY },
+            });
+            if (!response.ok) {
+              throw new Error(`Failed to load ${key} pool`);
+            }
+            const data = await response.json();
+            const players = Array.isArray(data) ? data : data.players || [];
+            return [key, players.length];
+          })
+        );
+
+        if (cancelled) return;
+
+        setPoolCounts({
+          status: "ready",
+          MLB: results.find(([key]) => key === "MLB")?.[1] ?? null,
+          AL: results.find(([key]) => key === "AL")?.[1] ?? null,
+          NL: results.find(([key]) => key === "NL")?.[1] ?? null,
+        });
+      } catch {
+        if (!cancelled) {
+          setPoolCounts({
+            status: "error",
+            MLB: null,
+            AL: null,
+            NL: null,
+          });
+        }
+      }
+    }
+
+    loadPoolCounts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Shorthand setter — merges a single key-value pair into form state.
@@ -143,7 +201,7 @@ export default function SetupScreen({
           <div className="form-group">
             <label>PLAYER POOL</label>
             <div className="toggle-group">
-              {[
+              {[ 
                 ["MLB", "MLB (All)"],
                 ["AL", "AL Only"],
                 ["NL", "NL Only"],
@@ -153,7 +211,12 @@ export default function SetupScreen({
                   className={`toggle-btn ${form.pool === val ? "active" : ""}`}
                   onClick={() => set("pool", val)}
                 >
-                  {label}
+                  <span>{label}</span>
+                  <small>
+                    {poolCounts.status === "ready" && poolCounts[val] != null
+                      ? `${poolCounts[val]} players`
+                      : "Loading..."}
+                  </small>
                 </button>
               ))}
             </div>
@@ -172,6 +235,12 @@ export default function SetupScreen({
               <span>Pool Mode</span>
               <strong>{formatPoolLabel(form.pool)}</strong>
             </div>
+            <div className="setup-summary-row">
+              <span>Players Available</span>
+              <strong>
+                {selectedPoolCount != null ? selectedPoolCount : poolCounts.status === "error" ? "Unavailable" : "Loading…"}
+              </strong>
+            </div>
           </div>
 
           {(validation.errors.length > 0 || validation.warnings.length > 0) && (
@@ -188,6 +257,14 @@ export default function SetupScreen({
               ))}
             </div>
           )}
+
+          <div className={`setup-pool-note ${poolCounts.status === "error" ? "warning" : "info"}`}>
+            {poolCounts.status === "ready"
+              ? `Live API player pool connected. MLB: ${poolCounts.MLB} · AL: ${poolCounts.AL} · NL: ${poolCounts.NL}.`
+              : poolCounts.status === "error"
+                ? "Live player-pool counts could not be loaded right now. Draft initialization will still try the API when you start."
+                : "Checking live player-pool counts from the API..."}
+          </div>
 
           <button
             className="init-btn"

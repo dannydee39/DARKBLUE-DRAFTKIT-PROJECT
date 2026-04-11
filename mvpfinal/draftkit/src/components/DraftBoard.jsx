@@ -92,6 +92,15 @@ function sortPlayersForScout(players, {
     });
 }
 
+function getDisplayValuation(player, valuation) {
+  if (!player) return "";
+  if (valuation === "loading") return "…";
+  if (valuation && valuation !== "loading" && !valuation.error && valuation.max_bid_recommendation != null) {
+    return valuation.max_bid_recommendation;
+  }
+  return player.baseValue ?? "";
+}
+
 export default function DraftBoard({
   league,
   players,
@@ -605,7 +614,15 @@ export default function DraftBoard({
   );
 
   useEffect(() => {
-    const targets = scoutResults.slice(0, searchQ || activeCellSearch ? 4 : 2);
+    const visibleCount = activeCellSearch
+      ? 4
+      : activeRailTab === "best"
+        ? 4
+        : 10;
+    const targets =
+      activeRailTab === "best" && !activeCellSearch
+        ? recommendationRows.slice(0, visibleCount)
+        : scoutResults.slice(0, visibleCount);
     if (targets.length === 0) return undefined;
 
     const timeoutId = window.setTimeout(() => {
@@ -614,7 +631,7 @@ export default function DraftBoard({
 
     return () => window.clearTimeout(timeoutId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCellSearch?.slotIdx, draftStateKey, favoritesOnly, notesOnly, posFilter, searchQ, scoutResults]);
+  }, [activeCellSearch?.slotIdx, activeRailTab, draftStateKey, favoritesOnly, notesOnly, posFilter, recommendationRows, searchQ, scoutResults]);
 
   const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
@@ -959,7 +976,7 @@ export default function DraftBoard({
                                       <div className="ct-row">
                                         <span className="ct-label">VALUE</span>
                                         <span className="ct-val" style={{ color: "var(--green)" }}>
-                                          ${valuationCache[bestAvail.id]?.max_bid_recommendation ?? bestAvail.baseValue}
+                                          ${getDisplayValuation(bestAvail, valuationCache[bestAvail.id])}
                                         </span>
                                       </div>
                                     </>
@@ -1209,7 +1226,7 @@ export default function DraftBoard({
                   player={p}
                   noteText={notes?.[p.id] || p.note}
                   isFavorite={Boolean(favorites?.[p.id])}
-                  recValue={valuationCache[p.id]?.max_bid_recommendation}
+                  recValue={getDisplayValuation(p, valuationCache[p.id])}
                   contextTag={activeCellSearch ? `Fits ${activeCellSearch.pos}` : null}
                   actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
                   onSelect={() => handleSelectPlayer(p)}
@@ -1292,7 +1309,7 @@ export default function DraftBoard({
                   )}
                 </div>
                 <div className="rec-right">
-                  <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
+                  <div className="rec-value green">${getDisplayValuation(p, valuationCache[p.id])}</div>
                   <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
                     {p.tier?.toUpperCase()}
                   </div>

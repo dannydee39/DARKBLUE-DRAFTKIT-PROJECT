@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { requireApiKey } = require("../middleware/auth");
-const { getPlayers } = require("../services/valuation");
+const { getPlayers, groupPlayersByTier } = require("../services/valuation");
 
 /**
  * GET /v1/players
@@ -15,7 +15,7 @@ const { getPlayers } = require("../services/valuation");
  *   drafted=comma,separated,player,names (to mark as unavailable)
  */
 router.get("/", requireApiKey, (req, res) => {
-  const { league, pos, tier, drafted } = req.query;
+  const { league, pos, tier, drafted, group_by } = req.query;
 
   const drafted_names = drafted
     ? drafted.split(",").map((n) => n.trim())
@@ -29,8 +29,13 @@ router.get("/", requireApiKey, (req, res) => {
     drafted_names,
   });
 
+  const grouped = group_by === "tier" ? groupPlayersByTier(result) : null;
+
   res.json({
     count: result.length,
+    sort: "tier,baseValue desc,fpts desc",
+    grouped_by: grouped ? "tier" : null,
+    groups: grouped,
     players: result,
   });
 });

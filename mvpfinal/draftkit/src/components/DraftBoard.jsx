@@ -618,8 +618,7 @@ export default function DraftBoard({
 
   const myTeam  = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
-  const displayedPinnedPlayer = hoverPreviewPlayer ?? selectedPlayer;
-  const previewingPinnedPlayer = Boolean(hoverPreviewPlayer);
+  const pinnedPlayer = selectedPlayer;
   const activeContextTeam = activeCellSearch
     ? league.teams.find((team) => team.id === activeCellSearch.teamId) || null
     : null;
@@ -1034,46 +1033,39 @@ export default function DraftBoard({
       {/* ════════════════════════════════════════════════════════════════════
           RIGHT PANEL
       ════════════════════════════════════════════════════════════════════ */}
-      <div className={`right-panel ${displayedPinnedPlayer ? "has-selected" : ""}`}>
+      <div className={`right-panel ${pinnedPlayer ? "has-selected" : ""}`}>
         {/* Current player section */}
         <div className="current-player-section">
-          <div className="cp-header">{previewingPinnedPlayer ? "PLAYER PREVIEW" : "PINNED PLAYER"}</div>
+          <div className="cp-header">PINNED PLAYER</div>
 
-          {displayedPinnedPlayer ? (
+          {pinnedPlayer ? (
             <>
               <div className="pinned-player-shell">
                 <button
                   type="button"
-                  className={`pinned-player-strip ${previewingPinnedPlayer ? "previewing" : ""}`}
+                  className="pinned-player-strip"
                   ref={pinnedStripRef}
-                  onClick={() => {
-                    if (previewingPinnedPlayer) {
-                      handleSelectPlayer(displayedPinnedPlayer);
-                      setIsPinnedExpanded(true);
-                      return;
-                    }
-                    setIsPinnedExpanded((prev) => !prev);
-                  }}
+                  onClick={() => setIsPinnedExpanded((prev) => !prev)}
                 >
                   <div className="pinned-player-main">
                     <PlayerAvatar
-                      name={displayedPinnedPlayer.name}
+                      name={pinnedPlayer.name}
                       size={36}
-                      photoUrl={displayedPinnedPlayer.photoUrl}
+                      photoUrl={pinnedPlayer.photoUrl}
                     />
                     <div className="pinned-player-copy">
-                      <div className="pinned-player-name">{displayedPinnedPlayer.name}</div>
+                      <div className="pinned-player-name">{pinnedPlayer.name}</div>
                       <div className="pinned-player-meta">
-                        <span>{displayedPinnedPlayer.team}</span>
+                        <span>{pinnedPlayer.team}</span>
                         <span>·</span>
-                        <span>{(displayedPinnedPlayer.pos || []).join("/")}</span>
+                        <span>{(pinnedPlayer.pos || []).join("/")}</span>
                         <span>·</span>
-                        <span className="green">${getRecommendedBid(displayedPinnedPlayer)}</span>
+                        <span className="green">${getRecommendedBid(pinnedPlayer)}</span>
                       </div>
                     </div>
                   </div>
                   <span className="pinned-player-toggle">
-                    {previewingPinnedPlayer ? "Pin + Open" : isPinnedExpanded ? "Close Card" : "Open Card"}
+                    {isPinnedExpanded ? "Close Card" : "Open Card"}
                   </span>
                 </button>
               </div>

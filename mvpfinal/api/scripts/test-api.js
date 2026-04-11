@@ -1,5 +1,6 @@
 const assert = require("assert/strict");
 const { createApp } = require("../server");
+const playerPool = require("../data/players.json");
 
 const API_KEY = "DB-2026-DEMO-0001";
 
@@ -48,6 +49,11 @@ async function jsonFetch(url, options = {}) {
 async function runGeneralRegressionSuite() {
   const app = createApp({ nodeEnv: "test", rateLimitMax: 500 });
   await withServer(app, async (baseUrl) => {
+    const hitter = playerPool.find((player) => !["SP", "RP"].includes(player.pos[0]));
+    const pitcher = playerPool.find((player) => ["SP", "RP"].includes(player.pos[0]));
+    assert.ok(hitter, "dataset should contain at least one hitter");
+    assert.ok(pitcher, "dataset should contain at least one pitcher");
+
     const health = await jsonFetch(`${baseUrl}/health`);
     assert.equal(health.response.status, 200, "GET /health should return 200");
     assert.equal(health.body.status, "online");
@@ -66,6 +72,17 @@ async function runGeneralRegressionSuite() {
     assert.ok(players.body.players.length > 0, "players payload should not be empty");
     assert.ok(!players.body.players.some((player) => player.name === "Juan Soto"), "drafted players should be excluded");
     assert.ok(players.body.players[0].overall_rank >= 1, "players should include rank metadata");
+    assert.ok(players.body.players.some((player) => player.photoUrl), "players should include headshots");
+
+    const nlPitchers = await jsonFetch(
+      `${baseUrl}/v1/players?league=NL&pos=SP`,
+      { headers: { "X-License-Key": API_KEY } }
+    );
+    assert.equal(nlPitchers.response.status, 200, "GET /v1/players NL SP should return 200");
+    assert.ok(
+      nlPitchers.body.players.every((player) => player.league === "NL" && player.pos.includes("SP")),
+      "league and position filters should hold for NL SP query"
+    );
 
     const missingState = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
@@ -105,6 +122,31 @@ async function runGeneralRegressionSuite() {
     assert.ok(typeof valuate.body.max_bid_recommendation === "number", "valuation should include max_bid_recommendation");
     assert.ok(valuate.body.market_context?.label, "valuation should include market_context label");
     assert.ok(valuate.body.player_tier, "valuation should include player_tier");
+
+    const hitterValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({ draft_state: buildDraftState({ nominated_player: hitter.name }) }),
+    });
+    assert.equal(hitterValuation.response.status, 200, "hitter valuation should return 200");
+    assert.ok(hitterValuation.body.stats?.positions?.length > 0, "hitter valuation should expose positions");
+
+    const pitcherValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({
+        draft_state: buildDraftState({
+          nominated_player: pitcher.name,
+          teams: [
+            { id: 1, budget_remaining: 190, roster: [pitcher.name] },
+            { id: 2, budget_remaining: 170, roster: ["Juan Soto", "Shohei Ohtani"] },
+            { id: 3, budget_remaining: 140, roster: ["Tarik Skubal", "Paul Skenes"] },
+          ],
+        }),
+      }),
+    });
+    assert.equal(pitcherValuation.response.status, 200, "pitcher valuation should return 200");
+    assert.ok(typeof pitcherValuation.body.true_dollar_value === "number", "pitcher valuation should include numeric tdv");
   });
 }
 

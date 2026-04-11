@@ -153,11 +153,16 @@ function calculateValuation(draftState) {
 function findPlayer(name) {
   if (!name) return null;
   const q = name.toLowerCase().trim();
-  return (
-    players.find((p) => p.name.toLowerCase() === q) ||
-    players.find((p) => p.name.toLowerCase().includes(q)) ||
-    null
+  const exact = players.find((p) => p.name.toLowerCase() === q);
+  if (exact) return exact;
+
+  const aliasMatches = players.filter((p) =>
+    (p.aliases || []).some((alias) => String(alias).toLowerCase() === q)
   );
+  if (aliasMatches.length === 1) return aliasMatches[0];
+  if (aliasMatches.length > 1) return null;
+
+  return players.find((p) => p.name.toLowerCase().includes(q)) || null;
 }
 
 /** Compute min/max for each stat in the undrafted pool */

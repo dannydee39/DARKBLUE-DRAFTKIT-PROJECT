@@ -169,7 +169,7 @@ DB.pages.home = function (container) {
           <section class="api-shell-overview card" id="home-overview">
             <div class="api-shell-overview-copy">
               <p class="api-shell-kicker">Dark Blue Valuation API</p>
-              <h1>API workspace overview</h1>
+              <h1>Dark Blue API Console</h1>
               <p class="api-shell-lead">
                 Check the key, inspect the live endpoints, and see exactly what your buyer receives before you wire the API into DraftKit.
               </p>
@@ -197,7 +197,7 @@ DB.pages.home = function (container) {
                 </article>
                 <article class="api-shell-stat-card">
                   <span class="api-shell-stat-value">Live</span>
-                  <span class="api-shell-stat-label">draft support</span>
+                  <span class="api-shell-stat-label">market support</span>
                 </article>
                 <article class="api-shell-stat-card">
                   <span class="api-shell-stat-value">1</span>
@@ -322,6 +322,9 @@ DB.pages.home = function (container) {
       });
       if (this.classList.contains('api-shell-rail-link')) {
         this.classList.add('active');
+      } else {
+        const sectionLink = container.querySelector('.api-shell-rail-link[data-scroll-target="home-endpoints"]');
+        if (sectionLink) sectionLink.classList.add('active');
       }
 
       const navHeight = parseInt(

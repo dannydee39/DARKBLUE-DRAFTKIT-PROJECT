@@ -1,8 +1,9 @@
 .api-shell-page {
   min-height: calc(100vh - var(--nav-height));
   background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 26%),
-    linear-gradient(180deg, #eff5fb 0%, #f7fafe 42%, var(--bg) 100%);
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.18), transparent 24%),
+    radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.14), transparent 18%),
+    linear-gradient(180deg, #081325 0%, #09172d 40%, #0b1a33 100%);
 }
 
 .api-shell-layout {
@@ -21,10 +22,10 @@
 }
 
 .api-shell-rail-panel {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(197, 210, 224, 0.92);
+  background: rgba(11, 23, 48, 0.86);
+  border: 1px solid rgba(96, 165, 250, 0.14);
   border-radius: 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
   padding: var(--space-6);
   display: grid;
   gap: var(--space-4);
@@ -35,14 +36,14 @@
   font-weight: var(--font-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--brand-blue);
+  color: #93c5fd;
 }
 
 .api-shell-rail-heading h2 {
   font-size: 1.4rem;
   line-height: 1.15;
   letter-spacing: -0.03em;
-  color: var(--brand-navy);
+  color: var(--text-inverse);
   margin-top: var(--space-2);
 }
 
@@ -56,7 +57,7 @@
   font-weight: var(--font-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .api-shell-rail-link,
@@ -69,7 +70,7 @@
   border-radius: 14px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-body);
+  color: rgba(255, 255, 255, 0.8);
   text-align: left;
   transition: background var(--duration-fast) var(--ease),
               border-color var(--duration-fast) var(--ease),
@@ -79,16 +80,16 @@
 
 .api-shell-rail-link:hover,
 .api-shell-endpoint-link:hover {
-  background: rgba(37, 99, 235, 0.05);
-  border-color: rgba(37, 99, 235, 0.12);
-  color: var(--brand-navy);
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(96, 165, 250, 0.18);
+  color: var(--text-inverse);
 }
 
 .api-shell-rail-link.active {
-  background: rgba(37, 99, 235, 0.08);
-  border-color: rgba(37, 99, 235, 0.2);
-  color: var(--brand-blue);
-  box-shadow: inset 3px 0 0 var(--brand-blue);
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.24);
+  color: #dbeafe;
+  box-shadow: inset 3px 0 0 #60a5fa;
 }
 
 .api-shell-rail-icon {
@@ -98,8 +99,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(15, 36, 68, 0.06);
-  color: var(--brand-navy);
+  background: rgba(255, 255, 255, 0.08);
+  color: #dbeafe;
   font-size: 11px;
   font-weight: var(--font-bold);
   letter-spacing: 0.08em;
@@ -108,7 +109,7 @@
 
 .api-shell-rail-divider {
   height: 1px;
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .api-shell-endpoint-copy {
@@ -121,12 +122,12 @@
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: var(--font-semibold);
-  color: var(--brand-navy);
+  color: #dbeafe;
 }
 
 .api-shell-endpoint-note {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .api-shell-endpoint-method {
@@ -144,20 +145,20 @@
 }
 
 .api-shell-method-get {
-  background: var(--success-bg);
-  color: var(--success);
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
 }
 
 .api-shell-method-post {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--brand-blue);
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
 }
 
 .api-shell-key-card {
   padding: 1rem;
   border-radius: 18px;
-  background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
-  border: 1px solid rgba(147, 197, 253, 0.55);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(147,197,253,0.08) 100%);
+  border: 1px solid rgba(96, 165, 250, 0.18);
   display: grid;
   gap: var(--space-2);
 }
@@ -167,7 +168,7 @@
   font-weight: var(--font-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .api-shell-key-value {
@@ -175,9 +176,9 @@
   width: fit-content;
   padding: 0.35rem 0.65rem;
   border-radius: 10px;
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  color: var(--brand-blue);
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(147, 197, 253, 0.22);
+  color: #bfdbfe;
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: var(--font-semibold);
@@ -185,7 +186,7 @@
 
 .api-shell-key-note {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .api-shell-main {
@@ -196,12 +197,13 @@
 
 .api-shell-overview {
   background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #f8fbff 100%);
-  color: var(--text-primary);
-  border: 1px solid rgba(197, 210, 224, 0.92);
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.2), transparent 22%),
+    radial-gradient(circle at 12% 18%, rgba(59, 130, 246, 0.12), transparent 18%),
+    linear-gradient(135deg, #0c1c36 0%, #102448 48%, #14315d 100%);
+  color: var(--text-inverse);
+  border: 1px solid rgba(96, 165, 250, 0.14);
   border-radius: 28px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
   padding: clamp(1.6rem, 2vw, 2.4rem);
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
@@ -213,13 +215,13 @@
   line-height: 1.06;
   letter-spacing: -0.045em;
   margin-top: var(--space-3);
-  color: var(--brand-navy);
+  color: var(--text-inverse);
   max-width: 14ch;
 }
 
 .api-shell-lead {
   font-size: 1rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.82);
   margin-top: var(--space-4);
   max-width: 56ch;
 }
@@ -236,9 +238,9 @@
   align-items: center;
   padding: 0.34rem 0.7rem;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px solid rgba(37, 99, 235, 0.14);
-  color: var(--brand-blue);
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #eff6ff;
   font-size: 11px;
   font-weight: var(--font-semibold);
   letter-spacing: 0.04em;
@@ -249,7 +251,7 @@
   display: grid;
   gap: 0.55rem;
   padding-left: 1.1rem;
-  color: var(--text-body);
+  color: rgba(255, 255, 255, 0.86);
   font-size: var(--text-sm);
   line-height: 1.58;
 }
@@ -262,22 +264,22 @@
 }
 
 .api-shell-overview .btn-secondary {
-  background: rgba(37, 99, 235, 0.06);
-  color: var(--brand-blue);
-  border-color: rgba(37, 99, 235, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-inverse);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .api-shell-overview .btn-secondary:hover {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--green-d);
-  border-color: rgba(37, 99, 235, 0.2);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-inverse);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .api-shell-overview-side {
-  background: linear-gradient(180deg, var(--brand-navy) 0%, #17365f 100%);
+  background: linear-gradient(180deg, rgba(7, 16, 34, 0.92) 0%, rgba(10, 21, 43, 0.96) 100%);
   border-radius: 22px;
   padding: 1rem;
-  border: 1px solid rgba(147, 197, 253, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.16);
 }
 
 .api-shell-stat-grid {
@@ -287,8 +289,8 @@
 }
 
 .api-shell-stat-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 18px;
   padding: 1rem;
   display: grid;
@@ -305,7 +307,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .api-shell-primary-grid {
@@ -319,6 +321,20 @@
 .api-shell-endpoints {
   padding: 1.5rem;
   border-radius: 24px;
+  border: 1px solid rgba(96, 165, 250, 0.14);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+}
+
+.api-shell-unlocks {
+  background: rgba(14, 29, 58, 0.9);
+}
+
+.api-shell-response {
+  background: rgba(18, 34, 66, 0.9);
+}
+
+.api-shell-endpoints {
+  background: rgba(10, 22, 46, 0.92);
 }
 
 .api-shell-section-header {
@@ -333,9 +349,15 @@
   font-size: clamp(1.3rem, 2vw, 1.8rem);
   line-height: 1.12;
   letter-spacing: -0.03em;
-  color: var(--brand-navy);
+  color: var(--text-inverse);
   max-width: 18ch;
   margin-top: var(--space-2);
+}
+
+.api-shell-section-header .badge-dark {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .api-shell-value-grid {
@@ -347,13 +369,13 @@
 .api-shell-value-card {
   padding: 1rem 1rem 1.05rem;
   border-radius: 18px;
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.12);
 }
 
 .api-shell-value-card h3 {
   font-size: 1rem;
-  color: var(--brand-navy);
+  color: #e5eefc;
   margin-bottom: 0.45rem;
 }
 
@@ -362,7 +384,7 @@
 .api-shell-endpoint-desc,
 .api-shell-field-card p,
 .api-shell-plan-body {
-  color: var(--text-muted);
+  color: rgba(226, 232, 240, 0.84);
   font-size: var(--text-sm);
   line-height: 1.58;
 }
@@ -375,8 +397,8 @@
 .api-shell-response-row {
   padding: 0.85rem 0.95rem;
   border-radius: 16px;
-  background: #f8fbff;
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.12);
   display: grid;
   gap: 0.35rem;
 }
@@ -385,7 +407,7 @@
 .api-shell-endpoint-card code,
 .api-shell-field-card code {
   font-family: var(--font-mono);
-  color: var(--brand-blue);
+  color: #93c5fd;
   font-size: 12px;
   font-weight: var(--font-semibold);
 }
@@ -398,8 +420,8 @@
 .api-shell-endpoint-card {
   padding: 1.25rem;
   border-radius: 20px;
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, #fbfdff 0%, #f7fbff 100%);
+  border: 1px solid rgba(96, 165, 250, 0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
 }
 
 .api-shell-endpoint-card-head {
@@ -413,7 +435,7 @@
 .api-shell-endpoint-title {
   font-size: 12px;
   font-weight: var(--font-semibold);
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .api-shell-field-grid {
@@ -426,15 +448,15 @@
 .api-shell-field-card {
   padding: 0.9rem;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(96, 165, 250, 0.12);
 }
 
 .api-shell-pricing {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(197, 210, 224, 0.92);
+  background: rgba(9, 22, 45, 0.92);
+  border: 1px solid rgba(96, 165, 250, 0.14);
   border-radius: 28px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
   padding: 1.4rem;
   display: grid;
   gap: var(--space-5);
@@ -451,14 +473,14 @@
   font-size: clamp(1.25rem, 2vw, 1.7rem);
   line-height: 1.12;
   letter-spacing: -0.03em;
-  color: var(--brand-navy);
+  color: var(--text-inverse);
   margin-top: var(--space-2);
 }
 
 .api-shell-pricing-sub {
   max-width: 34ch;
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: rgba(226, 232, 240, 0.82);
   line-height: 1.58;
 }
 
@@ -469,8 +491,8 @@
 }
 
 .api-shell-plan {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(96, 165, 250, 0.12);
   border-radius: 20px;
   padding: 1rem 1.1rem;
   box-shadow: var(--shadow-xs);
@@ -481,8 +503,9 @@
 }
 
 .api-shell-plan.featured {
-  border-color: rgba(37, 99, 235, 0.28);
-  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(37, 99, 235, 0.08);
+  border-color: rgba(245, 158, 11, 0.26);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(245, 158, 11, 0.1);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%);
 }
 
 .api-shell-plan-top {
@@ -495,7 +518,7 @@
   font-weight: var(--font-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .api-shell-plan-price-row {
@@ -509,13 +532,13 @@
   font-size: clamp(1.25rem, 1.8vw, 1.7rem);
   line-height: 1;
   letter-spacing: -0.05em;
-  color: var(--brand-navy);
+  color: var(--text-inverse);
   font-weight: var(--font-extrabold);
 }
 
 .api-shell-plan-note {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -524,7 +547,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--brand-blue);
+  color: #93c5fd;
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   justify-self: end;

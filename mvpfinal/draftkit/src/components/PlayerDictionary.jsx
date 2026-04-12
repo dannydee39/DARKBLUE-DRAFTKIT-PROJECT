@@ -35,14 +35,14 @@ export default function PlayerDictionary({
   favorites,
   saveNote,
   toggleFavorite,
-  valuationCache,    // shared valuation cache from App
-  requestValuation,  // (player) => void
-  draftStateKey,     // changes on every pick/undo to trigger re-fetches
+  valuationCache, // shared valuation cache from App
+  requestValuation, // (player) => void
+  draftStateKey, // changes on every pick/undo to trigger re-fetches
 }) {
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [searchQ, setSearchQ]       = useState("");     // text search
-  const [posFilter, setPosFilter]   = useState("ALL");  // position filter
-  const [tierFilter, setTierFilter] = useState("ALL");  // tier filter
+  const [searchQ, setSearchQ] = useState(""); // text search
+  const [posFilter, setPosFilter] = useState("ALL"); // position filter
+  const [tierFilter, setTierFilter] = useState("ALL"); // tier filter
   const [showDrafted, setShowDrafted] = useState(false); // show drafted players
   const [hasNotesOnly, setHasNotesOnly] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -58,7 +58,7 @@ export default function PlayerDictionary({
   // state shifts (new pick/undo invalidates all cached values).
   useEffect(() => {
     if (selectedPlayer) requestValuation(selectedPlayer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer?.id, draftStateKey]);
 
   useEffect(() => {
@@ -80,7 +80,8 @@ export default function PlayerDictionary({
         if (
           !p.name.toLowerCase().includes(q) &&
           !(p.team || "").toLowerCase().includes(q)
-        ) return false;
+        )
+          return false;
       }
 
       // Position filter — player must have this position in their eligibility list
@@ -98,8 +99,8 @@ export default function PlayerDictionary({
       const bFavorite = favorites?.[b.id] ? 1 : 0;
       if (aFavorite !== bFavorite) return bFavorite - aFavorite;
 
-      const aHasNote = (notes?.[a.id] || a.note) ? 1 : 0;
-      const bHasNote = (notes?.[b.id] || b.note) ? 1 : 0;
+      const aHasNote = notes?.[a.id] || a.note ? 1 : 0;
+      const bHasNote = notes?.[b.id] || b.note ? 1 : 0;
       if (aHasNote !== bHasNote) return bHasNote - aHasNote;
 
       const aValue = a.baseValue ?? 0;
@@ -120,12 +121,12 @@ export default function PlayerDictionary({
 
   return (
     <div className="dict-layout">
-
       {/* ── Main List ─────────────────────────────────────────────────────── */}
       <div className="dict-main">
         <h2 className="dict-title">PLAYER DICTIONARY</h2>
         <p className="dict-sub">
-          Browse full pool · click for card · add scouting notes anytime
+          Browse the full pool of available players · Click a player to show
+          their card · Add notes to player cards at any time
         </p>
 
         {/* ── Filters ─────────────────────────────────────────────────────── */}
@@ -150,7 +151,7 @@ export default function PlayerDictionary({
                 >
                   {p}
                 </button>
-              )
+              ),
             )}
 
             <span className="divider">|</span>
@@ -172,8 +173,8 @@ export default function PlayerDictionary({
                 type="checkbox"
                 checked={showDrafted}
                 onChange={(e) => setShowDrafted(e.target.checked)}
-              />
-              {" "}Show Drafted
+              />{" "}
+              Show Drafted
             </label>
 
             <button
@@ -196,9 +197,14 @@ export default function PlayerDictionary({
         </div>
 
         {filtered.length === 0 && (
-          <div className="cp-empty dict-empty-state" style={{ marginBottom: 16 }}>
+          <div
+            className="cp-empty dict-empty-state"
+            style={{ marginBottom: 16 }}
+          >
             <div className="dict-empty-title">
-              {favoritesOnly ? "No favorite players match this view" : "No players match the current filters"}
+              {favoritesOnly
+                ? "No favorite players match this view"
+                : "No players match the current filters"}
             </div>
             <div className="dict-empty-copy">
               {favoritesOnly
@@ -257,9 +263,12 @@ export default function PlayerDictionary({
           <div className="cp-empty dict-empty-state">
             <div className="dict-empty-title">Select a player to view card</div>
             <div className="dict-empty-copy">
-              Use search, filters, or the notes-only toggle to jump to players you already marked up.
+              Use search, filters, or the notes-only toggle to jump to players
+              you already marked up.
             </div>
-            <div className="dict-empty-meta">{filtered.length} players currently visible</div>
+            <div className="dict-empty-meta">
+              {filtered.length} players currently visible
+            </div>
           </div>
         )}
 
@@ -298,7 +307,11 @@ export default function PlayerDictionary({
                   </div>
                 </div>
                 <div className="rec-right">
-                  <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
+                  <div className="rec-value green">
+                    $
+                    {valuationCache[p.id]?.max_bid_recommendation ??
+                      p.baseValue}
+                  </div>
                   <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
                     {p.tier?.toUpperCase()}
                   </div>
@@ -307,7 +320,6 @@ export default function PlayerDictionary({
             ))}
         </div>
       </div>
-
     </div>
   );
 }
@@ -341,15 +353,25 @@ function DictCard({
     <div
       className={`dict-card ${isSelected ? "selected" : ""} ${player.drafted ? "drafted" : ""}`}
       onClick={onClick}
-      title={player.drafted ? `Drafted by Team ${player.draftedBy}` : "Click to view card"}
+      title={
+        player.drafted
+          ? `Drafted by Team ${player.draftedBy}`
+          : "Click to view card"
+      }
     >
       {/* Top row: name/team/pos + value */}
       <div className="dc-top">
         <div className="dc-main">
-          <PlayerAvatar name={player.name} size={34} photoUrl={player.photoUrl} />
+          <PlayerAvatar
+            name={player.name}
+            size={34}
+            photoUrl={player.photoUrl}
+          />
           <div className="dc-copy">
             <div className="dc-name">{player.name}</div>
-            <div className="dc-team">{player.team} · {player.league}</div>
+            <div className="dc-team">
+              {player.team} · {player.league}
+            </div>
             <div className="dc-badges">
               {player.pos.map((pos) => (
                 <span
@@ -387,9 +409,7 @@ function DictCard({
       )}
 
       {/* Injury flag */}
-      {player.injury && (
-        <div className="dc-injury">⚠ {player.injury}</div>
-      )}
+      {player.injury && <div className="dc-injury">⚠ {player.injury}</div>}
 
       {/* Note preview (truncated) */}
       {note && (

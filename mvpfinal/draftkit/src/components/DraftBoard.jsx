@@ -34,7 +34,9 @@ const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
 const SCOUT_RAIL_TAB_STORAGE_KEY = "draftkit-scout-rail-tab";
 
 function normalizePosLabel(value) {
-  return String(value || "").trim().toUpperCase();
+  return String(value || "")
+    .trim()
+    .toUpperCase();
 }
 
 function slotAcceptsPlayer(player, slotPos) {
@@ -48,15 +50,10 @@ function slotAcceptsPlayer(player, slotPos) {
   return playerPositions.includes(normalizedSlot);
 }
 
-function sortPlayersForScout(players, {
-  searchQ,
-  posFilter,
-  notesOnly,
-  favoritesOnly,
-  favorites,
-  notes,
-  slotPos,
-}) {
+function sortPlayersForScout(
+  players,
+  { searchQ, posFilter, notesOnly, favoritesOnly, favorites, notes, slotPos },
+) {
   const q = searchQ.trim().toLowerCase();
 
   return players
@@ -70,7 +67,11 @@ function sortPlayersForScout(players, {
         const haystack = `${player.name} ${player.team || ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
-      if (normalizedFilter !== "ALL" && !playerPositions.includes(normalizedFilter)) return false;
+      if (
+        normalizedFilter !== "ALL" &&
+        !playerPositions.includes(normalizedFilter)
+      )
+        return false;
       if (notesOnly && !noteText) return false;
       if (favoritesOnly && !favorites?.[player.id]) return false;
       return true;
@@ -80,8 +81,8 @@ function sortPlayersForScout(players, {
       const bFavorite = favorites?.[b.id] ? 1 : 0;
       if (aFavorite !== bFavorite) return bFavorite - aFavorite;
 
-      const aHasNote = (notes?.[a.id] || a.note) ? 1 : 0;
-      const bHasNote = (notes?.[b.id] || b.note) ? 1 : 0;
+      const aHasNote = notes?.[a.id] || a.note ? 1 : 0;
+      const bHasNote = notes?.[b.id] || b.note ? 1 : 0;
       if (aHasNote !== bHasNote) return bHasNote - aHasNote;
 
       const aValue = a.baseValue ?? 0;
@@ -97,7 +98,7 @@ export default function DraftBoard({
   players,
   selectedPlayer,
   setSelectedPlayer,
-  onSale,          // (player, price, teamId, slotIndex, draftedPos) => void
+  onSale, // (player, price, teamId, slotIndex, draftedPos) => void
   onUndo,
   onRedo,
   onUndoCell,
@@ -111,21 +112,23 @@ export default function DraftBoard({
   rosterPositions, // flat ordered array e.g. ["C","1B","2B","3B","SS","OF","OF","OF","SP"...]
   totalSlots,
   maxBid,
-  valuationCache,      // shared valuation cache from App { [playerId]: "loading" | apiResponse }
-  requestValuation,    // (player) => void  — requests a valuation and stores it in the cache
-  draftStateKey,       // compact string that changes on every pick/undo (cache version key)
+  valuationCache, // shared valuation cache from App { [playerId]: "loading" | apiResponse }
+  requestValuation, // (player) => void  — requests a valuation and stores it in the cache
+  draftStateKey, // compact string that changes on every pick/undo (cache version key)
   canUndo = false,
   canRedo = false,
   boardNotice = null,
 }) {
   // ── Search / filter state (right scouting rail) ───────────────────────────
-  const [searchQ,   setSearchQ]   = useState("");
+  const [searchQ, setSearchQ] = useState("");
   const [posFilter, setPosFilter] = useState("ALL");
   const [notesOnly, setNotesOnly] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [activeRailTab, setActiveRailTab] = useState(() => {
     try {
-      return window.localStorage.getItem(SCOUT_RAIL_TAB_STORAGE_KEY) || "search";
+      return (
+        window.localStorage.getItem(SCOUT_RAIL_TAB_STORAGE_KEY) || "search"
+      );
     } catch {
       return "search";
     }
@@ -134,10 +137,10 @@ export default function DraftBoard({
   const [hoverPreviewPlayer, setHoverPreviewPlayer] = useState(null);
 
   // ── Sale modal state ──────────────────────────────────────────────────────
-  const [saleModal,     setSaleModal]     = useState(null);  // player obj or null
-  const [saleTeam,      setSaleTeam]      = useState(1);     // winning team ID
-  const [salePrice,     setSalePrice]     = useState("");    // bid amount
-  const [saleSlot,      setSaleSlot]      = useState(null);  // slotIndex to fill
+  const [saleModal, setSaleModal] = useState(null); // player obj or null
+  const [saleTeam, setSaleTeam] = useState(1); // winning team ID
+  const [salePrice, setSalePrice] = useState(""); // bid amount
+  const [saleSlot, setSaleSlot] = useState(null); // slotIndex to fill
   const [customPosInput, setCustomPosInput] = useState(""); // custom eligibility override
 
   // ── Remove confirmation modal state ──────────────────────────────────────
@@ -206,7 +209,9 @@ export default function DraftBoard({
   function getValidSlotsForPlayer(player, teamId) {
     const team = league.teams.find((t) => t.id === teamId);
     if (!team) return [];
-    const playerPositions = (Array.isArray(player?.pos) ? player.pos : []).map(normalizePosLabel);
+    const playerPositions = (Array.isArray(player?.pos) ? player.pos : []).map(
+      normalizePosLabel,
+    );
 
     // Occupied slot indices for this team
     const takenSlots = new Set(team.roster.map((r) => r.slotIndex));
@@ -224,7 +229,7 @@ export default function DraftBoard({
       if (slotPos === "UTIL") {
         // UTIL: accepts any hitter (player has at least one non-pitcher position)
         const hasHitterEligibility = playerPositions.some(
-          (p) => !["SP", "RP"].includes(normalizePosLabel(p))
+          (p) => !["SP", "RP"].includes(normalizePosLabel(p)),
         );
         if (hasHitterEligibility) {
           acc.push({ slotIdx: si, pos: slotPos });
@@ -250,7 +255,7 @@ export default function DraftBoard({
   // so the API inflation & scarcity math stays accurate without a manual re-click.
   useEffect(() => {
     if (selectedPlayer) requestValuation(selectedPlayer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer?.id, draftStateKey]);
 
   useEffect(() => {
@@ -296,7 +301,7 @@ export default function DraftBoard({
 
     const focusFirst = () => {
       const focusables = popoverEl.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       if (focusables.length > 0) {
         focusables[0].focus();
@@ -311,8 +316,8 @@ export default function DraftBoard({
       if (event.key !== "Tab") return;
       const focusables = Array.from(
         popoverEl.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
       ).filter((el) => !el.hasAttribute("disabled"));
 
       if (focusables.length === 0) {
@@ -382,7 +387,7 @@ export default function DraftBoard({
     if (!saleModal || !extendedSalePlayer) return;
     const slots = getValidSlotsForPlayer(extendedSalePlayer, saleTeam);
     setSaleSlot(slots[0]?.slotIdx ?? null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customPosInput, saleModal?.id, saleTeam]);
 
   function handleSelectPlayer(player) {
@@ -430,7 +435,11 @@ export default function DraftBoard({
   // ─────────────────────────────────────────────────────────────────────────
   function getRecommendedBid(player) {
     const cached = valuationCache?.[player?.id];
-    if (cached && cached !== "loading" && cached.max_bid_recommendation != null) {
+    if (
+      cached &&
+      cached !== "loading" &&
+      cached.max_bid_recommendation != null
+    ) {
       return cached.max_bid_recommendation;
     }
     return player?.baseValue ?? "";
@@ -467,14 +476,14 @@ export default function DraftBoard({
   function openSaleModalForCell(player, teamId, slotIdx) {
     setIsPinnedExpanded(false);
     clearHoverPreview();
-    requestValuation(player);   // same as openSaleModal — trigger early so bid updates live
+    requestValuation(player); // same as openSaleModal — trigger early so bid updates live
     // Switch the active owner to the team being filled
     const ti = league.teams.findIndex((t) => t.id === teamId);
     if (ti >= 0) setCurrentOwnerIdx(ti);
 
     setSaleModal(player);
     setSaleTeam(teamId);
-    setSaleSlot(slotIdx);     // pre-select the exact slot that was clicked
+    setSaleSlot(slotIdx); // pre-select the exact slot that was clicked
     setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
@@ -487,16 +496,25 @@ export default function DraftBoard({
   useEffect(() => {
     if (!saleModal) return;
     const cached = valuationCache?.[saleModal.id];
-    if (!cached || cached === "loading" || cached.max_bid_recommendation == null) return;
+    if (
+      !cached ||
+      cached === "loading" ||
+      cached.max_bid_recommendation == null
+    )
+      return;
     setSalePrice((prev) => {
       const prevNum = Number(prev);
       // Only auto-fill if the field still holds the baseValue default (hasn't been manually edited)
-      if (prev === "" || Number.isNaN(prevNum) || prevNum === Number(saleModal.baseValue)) {
+      if (
+        prev === "" ||
+        Number.isNaN(prevNum) ||
+        prevNum === Number(saleModal.baseValue)
+      ) {
         return String(cached.max_bid_recommendation);
       }
       return prev;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saleModal?.id, valuationCache]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -508,7 +526,13 @@ export default function DraftBoard({
     // The draftedPos is the position label of the selected slot
     // (could differ from player.pos[0] if going into UTIL or BN)
     const draftedPos = rosterPositions[saleSlot] || "BN";
-    const saved = onSale(extendedSalePlayer || saleModal, +salePrice, saleTeam, saleSlot, draftedPos);
+    const saved = onSale(
+      extendedSalePlayer || saleModal,
+      +salePrice,
+      saleTeam,
+      saleSlot,
+      draftedPos,
+    );
     if (saved === false) return;
     closeSaleModal();
     setActiveCellSearch(null);
@@ -596,12 +620,21 @@ export default function DraftBoard({
         notes,
         slotPos: activeCellSearch?.pos || null,
       }),
-    [activeCellSearch?.pos, favorites, favoritesOnly, notes, notesOnly, players, posFilter, searchQ]
+    [
+      activeCellSearch?.pos,
+      favorites,
+      favoritesOnly,
+      notes,
+      notesOnly,
+      players,
+      posFilter,
+      searchQ,
+    ],
   );
 
   const recommendationRows = useMemo(
     () => scoutResults.slice(0, 4),
-    [scoutResults]
+    [scoutResults],
   );
 
   useEffect(() => {
@@ -613,17 +646,26 @@ export default function DraftBoard({
     }, 180);
 
     return () => window.clearTimeout(timeoutId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCellSearch?.slotIdx, draftStateKey, favoritesOnly, notesOnly, posFilter, searchQ, scoutResults]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeCellSearch?.slotIdx,
+    draftStateKey,
+    favoritesOnly,
+    notesOnly,
+    posFilter,
+    searchQ,
+    scoutResults,
+  ]);
 
-  const myTeam  = league.teams[currentOwnerIdx];
+  const myTeam = league.teams[currentOwnerIdx];
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
   const displayedPinnedPlayer = hoverPreviewPlayer ?? selectedPlayer;
   const previewingPinnedPlayer = Boolean(hoverPreviewPlayer);
   const activeContextTeam = activeCellSearch
     ? league.teams.find((team) => team.id === activeCellSearch.teamId) || null
     : null;
-  const showScoutRailHelper = !activeCellSearch && !hideScoutRailHelp && !dismissScoutRailHelp;
+  const showScoutRailHelper =
+    !activeCellSearch && !hideScoutRailHelp && !dismissScoutRailHelp;
 
   // ─────────────────────────────────────────────────────────────────────────
   // undraftedByPos — count of undrafted players eligible at each position.
@@ -650,10 +692,12 @@ export default function DraftBoard({
   // table summary footer row (below the last team row).
   // ─────────────────────────────────────────────────────────────────────────
   const totalDraftedCount = league.teams.reduce(
-    (sum, t) => sum + t.roster.length, 0
+    (sum, t) => sum + t.roster.length,
+    0,
   );
   const totalSpend = league.teams.reduce(
-    (sum, t) => sum + (league.budget - t.budget_remaining), 0
+    (sum, t) => sum + (league.budget - t.budget_remaining),
+    0,
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -661,24 +705,27 @@ export default function DraftBoard({
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="board-layout">
-
       {/* ════════════════════════════════════════════════════════════════════
           GRID + SEARCH (main/left area)
       ════════════════════════════════════════════════════════════════════ */}
       <div className="board-main">
-
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="board-header">
           <div>
             <h2 className="board-title">DRAFT LEAGUE TEAMS TABLE</h2>
             <span className="board-hint">
-              Click filled cell to remove · click empty cell to lock the slot and use the scouting rail
+              Click an empty cell, and search for a player in the side-bar to
+              add a player to that cell · Click an empty cell to remove a player
             </span>
             <div className="board-current-owner">
-              Now drafting: <strong>{myTeam?.name}</strong> · ${myTeam?.budget_remaining ?? league.budget} left · {slotsLeft} slots left
+              Now drafting: <strong>{myTeam?.name}</strong> · $
+              {myTeam?.budget_remaining ?? league.budget} left · {slotsLeft}{" "}
+              slots left
               {activeCellSearch && activeContextTeam && (
                 <>
-                  {" "}· Filling <strong>{activeContextTeam.name}</strong> <strong>{activeCellSearch.pos}</strong>
+                  {" "}
+                  · Filling <strong>{activeContextTeam.name}</strong>{" "}
+                  <strong>{activeCellSearch.pos}</strong>
                 </>
               )}
             </div>
@@ -688,7 +735,11 @@ export default function DraftBoard({
               className="undo-btn"
               onClick={onUndo}
               disabled={!canUndo}
-              title={canUndo ? "Undo the most recent board change" : "No board changes to undo"}
+              title={
+                canUndo
+                  ? "Undo the most recent board change"
+                  : "No board changes to undo"
+              }
             >
               ↩ Undo
             </button>
@@ -696,12 +747,20 @@ export default function DraftBoard({
               className="undo-btn redo-btn"
               onClick={onRedo}
               disabled={!canRedo}
-              title={canRedo ? "Redo the most recent undo" : "Redo becomes available after an undo"}
+              title={
+                canRedo
+                  ? "Redo the most recent undo"
+                  : "Redo becomes available after an undo"
+              }
             >
               ↪ Redo
             </button>
             {boardNotice && (
-              <div className={`board-toast ${boardNotice.tone || "info"}`} role="status" aria-live="polite">
+              <div
+                className={`board-toast ${boardNotice.tone || "info"}`}
+                role="status"
+                aria-live="polite"
+              >
                 {boardNotice.message}
               </div>
             )}
@@ -738,7 +797,8 @@ export default function DraftBoard({
                         className="pos-badge-header"
                         style={{
                           background: posColor(pos),
-                          outline: posFilter === pos ? "2px solid white" : "none",
+                          outline:
+                            posFilter === pos ? "2px solid white" : "none",
                           outlineOffset: 1,
                         }}
                       >
@@ -749,9 +809,11 @@ export default function DraftBoard({
                         className="pos-avail-count"
                         style={{
                           color:
-                            displayCount === 0 ? "var(--red)"
-                            : displayCount < 3 ? "var(--yellow)"
-                            : "var(--muted)",
+                            displayCount === 0
+                              ? "var(--red)"
+                              : displayCount < 3
+                                ? "var(--yellow)"
+                                : "var(--muted)",
                         }}
                       >
                         {displayCount}
@@ -766,7 +828,7 @@ export default function DraftBoard({
                 const isMe = ti === currentOwnerIdx;
                 const teamMaxBid = calcMaxBid(
                   team.budget_remaining,
-                  totalSlots - team.roster.length
+                  totalSlots - team.roster.length,
                 );
 
                 return (
@@ -781,17 +843,24 @@ export default function DraftBoard({
                       {isMe && <span className="star">★ </span>}
                       {team.name}
                       {isMe && (
-                        <div className="max-bid-mini">max bid ${teamMaxBid}</div>
+                        <div className="max-bid-mini">
+                          max bid ${teamMaxBid}
+                        </div>
                       )}
                       {/* Mini progress bar: green fill = % of slots filled */}
-                      <div className="roster-progress-wrap" title={`${team.roster.length} of ${totalSlots} slots filled`}>
+                      <div
+                        className="roster-progress-wrap"
+                        title={`${team.roster.length} of ${totalSlots} slots filled`}
+                      >
                         <div
                           className="roster-progress-bar"
                           style={{
                             width: `${Math.min((team.roster.length / totalSlots) * 100, 100)}%`,
                             // Turns amber when roster is >80% full
-                            background: team.roster.length / totalSlots > 0.8
-                              ? "var(--yellow)" : "var(--green)",
+                            background:
+                              team.roster.length / totalSlots > 0.8
+                                ? "var(--yellow)"
+                                : "var(--green)",
                           }}
                         />
                       </div>
@@ -805,9 +874,11 @@ export default function DraftBoard({
                       className="col-budget"
                       style={{
                         color:
-                          team.budget_remaining > 50 ? "#22c55e"
-                          : team.budget_remaining > 20 ? "#f59e0b"
-                          : "#ef4444",
+                          team.budget_remaining > 50
+                            ? "#22c55e"
+                            : team.budget_remaining > 20
+                              ? "#f59e0b"
+                              : "#ef4444",
                       }}
                     >
                       ${team.budget_remaining}
@@ -820,46 +891,78 @@ export default function DraftBoard({
                       // regardless of the order they were added to the roster array.
                       const entry = team.roster.find((r) => r.slotIndex === si);
                       const isHovered =
-                        hoveredCell?.teamId === team.id && hoveredCell?.slotIdx === si;
+                        hoveredCell?.teamId === team.id &&
+                        hoveredCell?.slotIdx === si;
                       const isCellSearchActive =
                         activeCellSearch?.teamId === team.id &&
                         activeCellSearch?.slotIdx === si;
 
                       if (entry) {
                         // ── FILLED CELL ────────────────────────────────────
-                        const matchedPlayer = players.find((p) => p.name === entry.name);
-                        const valueClass = getValueClass(entry.price, matchedPlayer?.baseValue);
+                        const matchedPlayer = players.find(
+                          (p) => p.name === entry.name,
+                        );
+                        const valueClass = getValueClass(
+                          entry.price,
+                          matchedPlayer?.baseValue,
+                        );
 
                         return (
                           <td
                             key={si}
                             className={`roster-cell roster-cell-filled ${valueClass}`}
-                            onClick={(e) => handleFilledCellClick(entry, team.id, pos, e)}
+                            onClick={(e) =>
+                              handleFilledCellClick(entry, team.id, pos, e)
+                            }
                             onMouseEnter={() =>
-                              setHoveredCell({ teamId: team.id, slotIdx: si, entry, pos, matchedPlayer })
+                              setHoveredCell({
+                                teamId: team.id,
+                                slotIdx: si,
+                                entry,
+                                pos,
+                                matchedPlayer,
+                              })
                             }
                             onMouseLeave={() => setHoveredCell(null)}
                             title={`${entry.name} · $${entry.price} · Click to remove`}
                             style={{ position: "relative" }}
                           >
                             <div className="roster-entry">
-                              {entry.isKeeper && <span className="keeper-badge">K</span>}
+                              {entry.isKeeper && (
+                                <span className="keeper-badge">K</span>
+                              )}
                               <span className="roster-name">{entry.name}</span>
                               <div className="roster-price-row">
-                                <span className="roster-price">${entry.price}</span>
+                                <span className="roster-price">
+                                  ${entry.price}
+                                </span>
                                 {/* Show the position slot they were drafted into (not just pos[0]) */}
                                 <span
                                   className="roster-drafted-pos"
-                                  style={{ color: posColor(entry.draftedPos || pos) }}
+                                  style={{
+                                    color: posColor(entry.draftedPos || pos),
+                                  }}
                                 >
                                   {entry.draftedPos || pos}
                                 </span>
-                                {matchedPlayer && valueClass === "value-steal" && (
-                                  <span className="value-label steal" title="Great value!">▲</span>
-                                )}
-                                {matchedPlayer && valueClass === "value-overpaid" && (
-                                  <span className="value-label overpaid" title="Overpaid">▼</span>
-                                )}
+                                {matchedPlayer &&
+                                  valueClass === "value-steal" && (
+                                    <span
+                                      className="value-label steal"
+                                      title="Great value!"
+                                    >
+                                      ▲
+                                    </span>
+                                  )}
+                                {matchedPlayer &&
+                                  valueClass === "value-overpaid" && (
+                                    <span
+                                      className="value-label overpaid"
+                                      title="Overpaid"
+                                    >
+                                      ▼
+                                    </span>
+                                  )}
                               </div>
                             </div>
 
@@ -869,7 +972,12 @@ export default function DraftBoard({
                                 <div className="ct-name">{entry.name}</div>
                                 <div className="ct-row">
                                   <span className="ct-label">SLOT</span>
-                                  <span className="ct-val" style={{ color: posColor(entry.draftedPos || pos) }}>
+                                  <span
+                                    className="ct-val"
+                                    style={{
+                                      color: posColor(entry.draftedPos || pos),
+                                    }}
+                                  >
                                     {entry.draftedPos || pos}
                                   </span>
                                 </div>
@@ -881,11 +989,15 @@ export default function DraftBoard({
                                   <>
                                     <div className="ct-row">
                                       <span className="ct-label">VALUE</span>
-                                      <span className="ct-val">${matchedPlayer.baseValue}</span>
+                                      <span className="ct-val">
+                                        ${matchedPlayer.baseValue}
+                                      </span>
                                     </div>
                                     <div className="ct-row">
                                       <span className="ct-label">FPTS</span>
-                                      <span className="ct-val">{matchedPlayer.fpts}</span>
+                                      <span className="ct-val">
+                                        {matchedPlayer.fpts}
+                                      </span>
                                     </div>
                                   </>
                                 )}
@@ -894,10 +1006,11 @@ export default function DraftBoard({
                             )}
                           </td>
                         );
-
                       } else {
                         // ── EMPTY CELL ─────────────────────────────────────
-                        const bestAvail = isHovered ? getBestAvailable(pos) : null;
+                        const bestAvail = isHovered
+                          ? getBestAvailable(pos)
+                          : null;
                         // No players left for this position — tint cell red
                         const posExhausted =
                           pos !== "BN" &&
@@ -908,69 +1021,106 @@ export default function DraftBoard({
                           <td
                             key={si}
                             className={`roster-cell roster-cell-empty ${posExhausted ? "cell-no-avail" : ""} ${isCellSearchActive ? "cell-active" : ""}`}
-                            onClick={(e) => handleEmptyCellClick(pos, team.id, si, e)}
+                            onClick={(e) =>
+                              handleEmptyCellClick(pos, team.id, si, e)
+                            }
                             onMouseEnter={() =>
-                              setHoveredCell({ teamId: team.id, slotIdx: si, entry: null, pos })
+                              setHoveredCell({
+                                teamId: team.id,
+                                slotIdx: si,
+                                entry: null,
+                                pos,
+                              })
                             }
                             onMouseLeave={() => setHoveredCell(null)}
                             title={
                               isCellSearchActive
                                 ? `Scouting ${pos} options in the right panel`
                                 : posExhausted
-                                ? `No ${pos} players remaining in pool`
-                                : `Empty ${pos} — click to scout and add player`
+                                  ? `No ${pos} players remaining in pool`
+                                  : `Empty ${pos} — click to scout and add player`
                             }
                             style={{ position: "relative", minWidth: 80 }}
                           >
                             <>
-                              <span className="roster-empty">{isCellSearchActive ? "◉" : "–"}</span>
+                              <span className="roster-empty">
+                                {isCellSearchActive ? "◉" : "–"}
+                              </span>
 
                               {/* Hover tooltip for empty cell */}
                               {isHovered && (
                                 <div className="cell-tooltip cell-tooltip-empty">
-                                  <div className="ct-name" style={{ color: posColor(pos) }}>
+                                  <div
+                                    className="ct-name"
+                                    style={{ color: posColor(pos) }}
+                                  >
                                     {pos} SLOT
                                   </div>
                                   {/* Remaining count badge */}
-                                  <div className="ct-row" style={{ marginBottom: 3 }}>
+                                  <div
+                                    className="ct-row"
+                                    style={{ marginBottom: 3 }}
+                                  >
                                     <span className="ct-label">AVAIL</span>
                                     <span
                                       className="ct-val"
                                       style={{
-                                        color: posExhausted ? "var(--red)"
-                                          : (undraftedByPos[pos] ?? 0) < 3 ? "var(--yellow)"
-                                          : "var(--green)",
+                                        color: posExhausted
+                                          ? "var(--red)"
+                                          : (undraftedByPos[pos] ?? 0) < 3
+                                            ? "var(--yellow)"
+                                            : "var(--green)",
                                       }}
                                     >
                                       {pos === "BN" || pos === "UTIL"
-                                        ? players.filter((p) => !p.drafted).length
+                                        ? players.filter((p) => !p.drafted)
+                                            .length
                                         : (undraftedByPos[pos] ?? 0)}
                                     </span>
                                   </div>
                                   {bestAvail ? (
                                     <>
-                                      <div className="ct-hint" style={{ marginBottom: 3 }}>
+                                      <div
+                                        className="ct-hint"
+                                        style={{ marginBottom: 3 }}
+                                      >
                                         Best available:
                                       </div>
                                       <div className="ct-row">
-                                        <span className="ct-val" style={{ color: "var(--white)" }}>
+                                        <span
+                                          className="ct-val"
+                                          style={{ color: "var(--white)" }}
+                                        >
                                           {bestAvail.name}
                                         </span>
                                       </div>
                                       <div className="ct-row">
                                         <span className="ct-label">VALUE</span>
-                                        <span className="ct-val" style={{ color: "var(--green)" }}>
-                                          ${valuationCache[bestAvail.id]?.max_bid_recommendation ?? bestAvail.baseValue}
+                                        <span
+                                          className="ct-val"
+                                          style={{ color: "var(--green)" }}
+                                        >
+                                          $
+                                          {valuationCache[bestAvail.id]
+                                            ?.max_bid_recommendation ??
+                                            bestAvail.baseValue}
                                         </span>
                                       </div>
                                     </>
                                   ) : (
-                                    <div className="ct-hint" style={{ color: "var(--red)" }}>
+                                    <div
+                                      className="ct-hint"
+                                      style={{ color: "var(--red)" }}
+                                    >
                                       No {pos} players left
                                     </div>
                                   )}
-                                  <div className="ct-hint" style={{ marginTop: 4 }}>
-                                    ↓ Click to scout this slot in the right panel
+                                  <div
+                                    className="ct-hint"
+                                    style={{ marginTop: 4 }}
+                                  >
+                                    ↓ Click to scout this slot in the right
+                                    panel
                                   </div>
                                 </div>
                               )}
@@ -998,13 +1148,16 @@ export default function DraftBoard({
                     {totalDraftedCount} picks · ${totalSpend} spent
                   </div>
                 </td>
-                <td className="col-budget" style={{ color: "var(--muted)", fontSize: 10 }}>
+                <td
+                  className="col-budget"
+                  style={{ color: "var(--muted)", fontSize: 10 }}
+                >
                   ${totalSpend}
                 </td>
                 {rosterPositions.map((pos, si) => {
                   // Count how many teams have a player in this exact slot
                   const filledCount = league.teams.filter(
-                    (t) => !!t.roster.find((r) => r.slotIndex === si)
+                    (t) => !!t.roster.find((r) => r.slotIndex === si),
                   ).length;
                   const pct = filledCount / league.teams.length;
                   return (
@@ -1015,9 +1168,11 @@ export default function DraftBoard({
                         fontSize: 9,
                         fontWeight: 700,
                         color:
-                          pct === 1 ? "var(--green)"
-                          : pct > 0.5 ? "var(--muted2)"
-                          : "var(--muted)",
+                          pct === 1
+                            ? "var(--green)"
+                            : pct > 0.5
+                              ? "var(--muted2)"
+                              : "var(--muted)",
                       }}
                     >
                       {filledCount}/{league.teams.length}
@@ -1028,16 +1183,19 @@ export default function DraftBoard({
             </tfoot>
           </table>
         </div>
-
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
           RIGHT PANEL
       ════════════════════════════════════════════════════════════════════ */}
-      <div className={`right-panel ${displayedPinnedPlayer ? "has-selected" : ""}`}>
+      <div
+        className={`right-panel ${displayedPinnedPlayer ? "has-selected" : ""}`}
+      >
         {/* Current player section */}
         <div className="current-player-section">
-          <div className="cp-header">{previewingPinnedPlayer ? "PLAYER PREVIEW" : "PINNED PLAYER"}</div>
+          <div className="cp-header">
+            {previewingPinnedPlayer ? "PLAYER PREVIEW" : "PINNED PLAYER"}
+          </div>
 
           {displayedPinnedPlayer ? (
             <>
@@ -1062,267 +1220,296 @@ export default function DraftBoard({
                       photoUrl={displayedPinnedPlayer.photoUrl}
                     />
                     <div className="pinned-player-copy">
-                      <div className="pinned-player-name">{displayedPinnedPlayer.name}</div>
+                      <div className="pinned-player-name">
+                        {displayedPinnedPlayer.name}
+                      </div>
                       <div className="pinned-player-meta">
                         <span>{displayedPinnedPlayer.team}</span>
                         <span>·</span>
-                        <span>{(displayedPinnedPlayer.pos || []).join("/")}</span>
+                        <span>
+                          {(displayedPinnedPlayer.pos || []).join("/")}
+                        </span>
                         <span>·</span>
-                        <span className="green">${getRecommendedBid(displayedPinnedPlayer)}</span>
+                        <span className="green">
+                          ${getRecommendedBid(displayedPinnedPlayer)}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <span className="pinned-player-toggle">
-                    {previewingPinnedPlayer ? "Pin + Open" : isPinnedExpanded ? "Close Card" : "Open Card"}
+                    {previewingPinnedPlayer
+                      ? "Pin + Open"
+                      : isPinnedExpanded
+                        ? "Close Card"
+                        : "Open Card"}
                   </span>
                 </button>
               </div>
             </>
           ) : (
             <div className="cp-empty pinned-player-empty">
-              Pick a player from the scouting rail or click a cell to lock the next slot.
+              Pick a player from the scouting rail or click a cell to lock the
+              next slot.
             </div>
           )}
         </div>
 
         <div className="right-panel-body">
-        <div className="panel-section-label">SCOUT RAIL</div>
-        <div className="rail-tabs">
-          <button
-            type="button"
-            className={`rail-tab ${activeRailTab === "search" ? "active" : ""}`}
-            onClick={() => setActiveRailTab("search")}
-          >
-            Search
-          </button>
-          <button
-            type="button"
-            className={`rail-tab ${activeRailTab === "best" ? "active" : ""}`}
-            onClick={() => setActiveRailTab("best")}
-          >
-            Best Available
-          </button>
-        </div>
+          <div className="panel-section-label">SCOUT RAIL</div>
+          <div className="rail-tabs">
+            <button
+              type="button"
+              className={`rail-tab ${activeRailTab === "search" ? "active" : ""}`}
+              onClick={() => setActiveRailTab("search")}
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              className={`rail-tab ${activeRailTab === "best" ? "active" : ""}`}
+              onClick={() => setActiveRailTab("best")}
+            >
+              Best Available
+            </button>
+          </div>
 
-        {activeRailTab === "search" ? (
-          <div className="scout-panel tabbed-scout-panel">
-            {activeCellSearch && activeContextTeam ? (
-              <div className="slot-context-banner">
-                <div className="slot-context-title">
-                  Filling {activeContextTeam.name} · {activeCellSearch.pos}
-                </div>
-                <div className="slot-context-copy">
-                  Eligible fits are filtered in. Favorites and players with notes rise to the top.
-                </div>
-                <button
-                  type="button"
-                  className="slot-context-clear"
-                  onClick={() => setActiveCellSearch(null)}
-                >
-                  Clear Slot Focus
-                </button>
-              </div>
-            ) : showScoutRailHelper ? (
-              <div className="slot-context-banner muted">
-                <div className="slot-context-title">Search lives here now</div>
-                <div className="slot-context-copy">
-                  Click a grid cell to lock a team and slot, then draft from the rail.
-                </div>
-                <div className="slot-context-actions">
-                  <button
-                    type="button"
-                    className="slot-context-clear secondary"
-                    onClick={() => setDismissScoutRailHelp(true)}
-                  >
-                    Dismiss
-                  </button>
+          {activeRailTab === "search" ? (
+            <div className="scout-panel tabbed-scout-panel">
+              {activeCellSearch && activeContextTeam ? (
+                <div className="slot-context-banner">
+                  <div className="slot-context-title">
+                    Filling {activeContextTeam.name} · {activeCellSearch.pos}
+                  </div>
+                  <div className="slot-context-copy">
+                    Eligible fits are filtered in. Favorites and players with
+                    notes rise to the top.
+                  </div>
                   <button
                     type="button"
                     className="slot-context-clear"
-                    onClick={() => {
-                      setDismissScoutRailHelp(true);
-                      setHideScoutRailHelp(true);
-                    }}
+                    onClick={() => setActiveCellSearch(null)}
                   >
-                    Don't show again
+                    Clear Slot Focus
                   </button>
                 </div>
+              ) : showScoutRailHelper ? (
+                <div className="slot-context-banner muted">
+                  <div className="slot-context-title">
+                    Search lives here now
+                  </div>
+                  <div className="slot-context-copy">
+                    Click a grid cell to lock a team and slot, then draft from
+                    the rail.
+                  </div>
+                  <div className="slot-context-actions">
+                    <button
+                      type="button"
+                      className="slot-context-clear secondary"
+                      onClick={() => setDismissScoutRailHelp(true)}
+                    >
+                      Dismiss
+                    </button>
+                    <button
+                      type="button"
+                      className="slot-context-clear"
+                      onClick={() => {
+                        setDismissScoutRailHelp(true);
+                        setHideScoutRailHelp(true);
+                      }}
+                    >
+                      Don't show again
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="search-label-row scout-label-row">
+                <span className="search-label">PLAYER SEARCH</span>
               </div>
-            ) : null}
 
-            <div className="search-label-row scout-label-row">
-              <span className="search-label">PLAYER SEARCH</span>
-              <span className="search-hint">
-                Favorites rise first. Notes and live values stay visible while scouting.
-              </span>
-            </div>
-
-            <div className="pos-filters scout-filter-row">
-              {["ALL", "C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"].map((p) => (
+              <div className="pos-filters scout-filter-row">
+                {["ALL", "C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"].map(
+                  (p) => (
+                    <button
+                      key={p}
+                      className={`pos-filter ${posFilter === p ? "active" : ""}`}
+                      onClick={() => setPosFilter(p)}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )}
                 <button
-                  key={p}
-                  className={`pos-filter ${posFilter === p ? "active" : ""}`}
-                  onClick={() => setPosFilter(p)}
+                  className={`notes-filter-btn ${notesOnly ? "active" : ""}`}
+                  onClick={() => setNotesOnly((prev) => !prev)}
+                  title="Only show players with notes"
                 >
-                  {p}
+                  Notes
                 </button>
-              ))}
-              <button
-                className={`notes-filter-btn ${notesOnly ? "active" : ""}`}
-                onClick={() => setNotesOnly((prev) => !prev)}
-                title="Only show players with notes"
-              >
-                Notes
-              </button>
-              <button
-                className={`notes-filter-btn ${favoritesOnly ? "active" : ""}`}
-                onClick={() => setFavoritesOnly((prev) => !prev)}
-                title="Only show favorite players"
-              >
-                Favorites
-              </button>
-            </div>
+                <button
+                  className={`notes-filter-btn ${favoritesOnly ? "active" : ""}`}
+                  onClick={() => setFavoritesOnly((prev) => !prev)}
+                  title="Only show favorite players"
+                >
+                  Favorites
+                </button>
+              </div>
 
-            <input
-              ref={searchRef}
-              className="search-input scout-search-input"
-              placeholder={
-                activeCellSearch
-                  ? `Search ${activeCellSearch.pos} fits for ${activeContextTeam?.name ?? "this slot"}`
-                  : posFilter !== "ALL"
-                  ? `Search ${posFilter} players…`
-                  : "Search by name or team…"
-              }
-              value={searchQ}
-              onChange={(e) => setSearchQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  e.stopPropagation();
-                  setPosFilter("ALL");
-                  setSearchQ("");
-                  setActiveCellSearch(null);
+              <input
+                ref={searchRef}
+                className="search-input scout-search-input"
+                placeholder={
+                  activeCellSearch
+                    ? `Search ${activeCellSearch.pos} fits for ${activeContextTeam?.name ?? "this slot"}`
+                    : posFilter !== "ALL"
+                      ? `Search ${posFilter} players…`
+                      : "Search by name or team…"
                 }
-              }}
-            />
-
-            <div className="scout-results-meta">
-              <span>{scoutResults.length} available</span>
-              {activeCellSearch && <span>slot locked</span>}
-            </div>
-
-            <div className="scout-results-list" onMouseLeave={clearHoverPreview}>
-              {scoutResults.slice(0, 10).map((p) => (
-                <SearchResult
-                  key={p.id}
-                  player={p}
-                  noteText={notes?.[p.id] || p.note}
-                  isFavorite={Boolean(favorites?.[p.id])}
-                  recValue={valuationCache[p.id]?.max_bid_recommendation}
-                  contextTag={activeCellSearch ? `Fits ${activeCellSearch.pos}` : null}
-                  actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
-                  onSelect={() => handleSelectPlayer(p)}
-                  onOpenCard={() => openPlayerCard(p)}
-                  onRecord={() =>
-                    activeCellSearch
-                      ? openSaleModalForCell(p, activeCellSearch.teamId, activeCellSearch.slotIdx)
-                      : openSaleModal(p)
+                value={searchQ}
+                onChange={(e) => setSearchQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.stopPropagation();
+                    setPosFilter("ALL");
+                    setSearchQ("");
+                    setActiveCellSearch(null);
                   }
-                  onToggleFavorite={() => toggleFavorite(p.id)}
-                  onPreviewStart={() => scheduleHoverPreview(p)}
-                  onPreviewEnd={() => {
+                }}
+              />
+
+              <div className="scout-results-meta">
+                <span>{scoutResults.length} available</span>
+                {activeCellSearch && <span>slot locked</span>}
+              </div>
+
+              <div
+                className="scout-results-list"
+                onMouseLeave={clearHoverPreview}
+              >
+                {scoutResults.slice(0, 10).map((p) => (
+                  <SearchResult
+                    key={p.id}
+                    player={p}
+                    noteText={notes?.[p.id] || p.note}
+                    isFavorite={Boolean(favorites?.[p.id])}
+                    recValue={valuationCache[p.id]?.max_bid_recommendation}
+                    contextTag={
+                      activeCellSearch ? `Fits ${activeCellSearch.pos}` : null
+                    }
+                    actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
+                    onSelect={() => handleSelectPlayer(p)}
+                    onOpenCard={() => openPlayerCard(p)}
+                    onRecord={() =>
+                      activeCellSearch
+                        ? openSaleModalForCell(
+                            p,
+                            activeCellSearch.teamId,
+                            activeCellSearch.slotIdx,
+                          )
+                        : openSaleModal(p)
+                    }
+                    onToggleFavorite={() => toggleFavorite(p.id)}
+                    onPreviewStart={() => scheduleHoverPreview(p)}
+                    onPreviewEnd={() => {
+                      if (hoverPreviewPlayer?.id === p.id) {
+                        clearHoverPreview();
+                      }
+                    }}
+                  />
+                ))}
+                {scoutResults.length === 0 && (
+                  <div className="cp-empty scout-empty-state">
+                    {searchQ
+                      ? `No available players match "${searchQ}".`
+                      : activeCellSearch
+                        ? `No ${activeCellSearch.pos} players are currently available.`
+                        : "No available players match the current filters."}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="recommendations rail-tab-panel"
+              onMouseLeave={clearHoverPreview}
+            >
+              <div className="rec-header">
+                BEST AVAILABLE{" "}
+                <span className="rec-sub">
+                  {activeCellSearch
+                    ? `${activeCellSearch.pos} Fits`
+                    : posFilter !== "ALL"
+                      ? posFilter
+                      : "Overall"}
+                </span>
+              </div>
+              {recommendationRows.map((p) => (
+                <div
+                  key={p.id}
+                  className="rec-row"
+                  onClick={() => handleSelectPlayer(p)}
+                  onMouseEnter={() => scheduleHoverPreview(p)}
+                  onMouseLeave={() => {
                     if (hoverPreviewPlayer?.id === p.id) {
                       clearHoverPreview();
                     }
                   }}
-                />
+                >
+                  <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
+                  <div className="rec-info">
+                    <div className="rec-name-row">
+                      <div className="rec-name">{p.name}</div>
+                      <button
+                        type="button"
+                        className={`favorite-btn compact ${favorites?.[p.id] ? "active" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(p.id);
+                        }}
+                        title={
+                          favorites?.[p.id]
+                            ? "Remove favorite"
+                            : "Favorite this player"
+                        }
+                      >
+                        ★
+                      </button>
+                    </div>
+                    <div className="rec-team">{p.team}</div>
+                    <div className="rec-pos">
+                      {p.pos.map((pos) => (
+                        <span
+                          key={pos}
+                          className="pos-badge"
+                          style={{ background: posColor(pos) }}
+                        >
+                          {pos}
+                        </span>
+                      ))}
+                    </div>
+                    {(notes?.[p.id] || p.note) && (
+                      <div className="rec-note-pill">✎ note saved</div>
+                    )}
+                  </div>
+                  <div className="rec-right">
+                    <div className="rec-value green">
+                      $
+                      {valuationCache[p.id]?.max_bid_recommendation ??
+                        p.baseValue}
+                    </div>
+                    <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
+                      {p.tier?.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
               ))}
-              {scoutResults.length === 0 && (
+              {recommendationRows.length === 0 && (
                 <div className="cp-empty scout-empty-state">
-                  {searchQ
-                    ? `No available players match "${searchQ}".`
-                    : activeCellSearch
-                    ? `No ${activeCellSearch.pos} players are currently available.`
-                    : "No available players match the current filters."}
+                  No best-available rows for the current view.
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="recommendations rail-tab-panel" onMouseLeave={clearHoverPreview}>
-            <div className="rec-header">
-              BEST AVAILABLE{" "}
-              <span className="rec-sub">
-                {activeCellSearch
-                  ? `${activeCellSearch.pos} Fits`
-                  : posFilter !== "ALL"
-                  ? posFilter
-                  : "Overall"}
-              </span>
-            </div>
-            {recommendationRows.map((p) => (
-              <div
-                key={p.id}
-                className="rec-row"
-                onClick={() => handleSelectPlayer(p)}
-                onMouseEnter={() => scheduleHoverPreview(p)}
-                onMouseLeave={() => {
-                  if (hoverPreviewPlayer?.id === p.id) {
-                    clearHoverPreview();
-                  }
-                }}
-              >
-                <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
-                <div className="rec-info">
-                  <div className="rec-name-row">
-                    <div className="rec-name">{p.name}</div>
-                    <button
-                      type="button"
-                      className={`favorite-btn compact ${favorites?.[p.id] ? "active" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(p.id);
-                      }}
-                      title={favorites?.[p.id] ? "Remove favorite" : "Favorite this player"}
-                    >
-                      ★
-                    </button>
-                  </div>
-                  <div className="rec-team">{p.team}</div>
-                  <div className="rec-pos">
-                    {p.pos.map((pos) => (
-                      <span key={pos} className="pos-badge" style={{ background: posColor(pos) }}>
-                        {pos}
-                      </span>
-                    ))}
-                  </div>
-                  {(notes?.[p.id] || p.note) && (
-                    <div className="rec-note-pill">✎ note saved</div>
-                  )}
-                </div>
-                <div className="rec-right">
-                  <div className="rec-value green">${valuationCache[p.id]?.max_bid_recommendation ?? p.baseValue}</div>
-                  <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
-                    {p.tier?.toUpperCase()}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {recommendationRows.length === 0 && (
-              <div className="cp-empty scout-empty-state">
-                No best-available rows for the current view.
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="panel-budget compact-budget-panel">
-          <button
-            type="button"
-            className={`rail-tab budget-pill active`}
-          >
-            ${myTeam?.budget_remaining ?? league.budget} · {slotsLeft} left · Max ${maxBid}
-          </button>
-        </div>
+          )}
         </div>
       </div>
 
@@ -1368,7 +1555,7 @@ export default function DraftBoard({
                     ? openSaleModalForCell(
                         selectedPlayer,
                         activeCellSearch.teamId,
-                        activeCellSearch.slotIdx
+                        activeCellSearch.slotIdx,
                       )
                     : openSaleModal(selectedPlayer)
                 }
@@ -1389,23 +1576,28 @@ export default function DraftBoard({
         </div>
       )}
 
-      {hoverPreviewPlayer && !isPinnedExpanded && !saleModal && !removeModal && (
-        <div className="pinned-popover preview-popover" aria-hidden="true">
-          <div className="pinned-popover-topbar preview-topbar">
-            <div className="pinned-popover-label">HOVER PREVIEW</div>
-            <div className="preview-popover-copy">Click row to pin this player</div>
+      {hoverPreviewPlayer &&
+        !isPinnedExpanded &&
+        !saleModal &&
+        !removeModal && (
+          <div className="pinned-popover preview-popover" aria-hidden="true">
+            <div className="pinned-popover-topbar preview-topbar">
+              <div className="pinned-popover-label">HOVER PREVIEW</div>
+              <div className="preview-popover-copy">
+                Click row to pin this player
+              </div>
+            </div>
+            <PlayerCard
+              player={hoverPreviewPlayer}
+              valuation={valuationCache[hoverPreviewPlayer?.id] ?? null}
+              notes={notes}
+              favorites={favorites}
+              saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
+              previewMode
+            />
           </div>
-          <PlayerCard
-            player={hoverPreviewPlayer}
-            valuation={valuationCache[hoverPreviewPlayer?.id] ?? null}
-            notes={notes}
-            favorites={favorites}
-            saveNote={saveNote}
-            toggleFavorite={toggleFavorite}
-            previewMode
-          />
-        </div>
-      )}
+        )}
 
       {/* ════════════════════════════════════════════════════════════════════
           SALE MODAL
@@ -1417,9 +1609,22 @@ export default function DraftBoard({
             <h3>RECORD AUCTION SALE</h3>
             <p className="modal-player">{saleModal.name}</p>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 4,
+                marginBottom: 12,
+                flexWrap: "wrap",
+              }}
+            >
               {(Array.isArray(saleModal.pos) ? saleModal.pos : []).map((p) => (
-                <span key={p} className="pos-badge" style={{ background: posColor(p) }}>{p}</span>
+                <span
+                  key={p}
+                  className="pos-badge"
+                  style={{ background: posColor(p) }}
+                >
+                  {p}
+                </span>
               ))}
               <span className={`tier-badge ${saleModal.tier?.toLowerCase()}`}>
                 {saleModal.tier?.toUpperCase()}
@@ -1429,7 +1634,10 @@ export default function DraftBoard({
             {/* Winning team selector */}
             <div className="form-group">
               <label>WINNING TEAM</label>
-              <select value={saleTeam} onChange={(e) => setSaleTeam(+e.target.value)}>
+              <select
+                value={saleTeam}
+                onChange={(e) => setSaleTeam(+e.target.value)}
+              >
                 {league.teams.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} (${t.budget_remaining} left)
@@ -1440,7 +1648,12 @@ export default function DraftBoard({
                 Active owner: <strong>{myTeam?.name}</strong>
                 {saleTeam !== myTeam?.id && (
                   <>
-                    {" "}· Recording this to <strong>{league.teams.find((t) => t.id === saleTeam)?.name}</strong> instead
+                    {" "}
+                    · Recording this to{" "}
+                    <strong>
+                      {league.teams.find((t) => t.id === saleTeam)?.name}
+                    </strong>{" "}
+                    instead
                   </>
                 )}
               </div>
@@ -1464,7 +1677,10 @@ export default function DraftBoard({
                     >
                       <span
                         className="pos-badge"
-                        style={{ background: posColor(pos), pointerEvents: "none" }}
+                        style={{
+                          background: posColor(pos),
+                          pointerEvents: "none",
+                        }}
                       >
                         {pos}
                       </span>
@@ -1472,10 +1688,16 @@ export default function DraftBoard({
                   ))}
                 </div>
               ) : (
-                <div style={{ color: "var(--red)", fontSize: 11, padding: "6px 0" }}>
+                <div
+                  style={{
+                    color: "var(--red)",
+                    fontSize: 11,
+                    padding: "6px 0",
+                  }}
+                >
                   ⚠ No eligible slots available for{" "}
-                  {league.teams.find((t) => t.id === saleTeam)?.name}
-                  — try a different team or add a custom position below.
+                  {league.teams.find((t) => t.id === saleTeam)?.name}— try a
+                  different team or add a custom position below.
                 </div>
               )}
 
@@ -1484,7 +1706,9 @@ export default function DraftBoard({
               {/* not in their database profile (e.g., multi-pos player listed    */}
               {/* only as OF but has 1B eligibility in your league).              */}
               <div className="custom-pos-row">
-                <span className="custom-pos-label">Override/add eligibility:</span>
+                <span className="custom-pos-label">
+                  Override/add eligibility:
+                </span>
                 <input
                   className="custom-pos-input"
                   value={customPosInput}
@@ -1504,7 +1728,9 @@ export default function DraftBoard({
                 min={1}
                 onChange={(e) => setSalePrice(e.target.value)}
                 autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") confirmSale(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") confirmSale();
+                }}
               />
             </div>
 
@@ -1513,18 +1739,34 @@ export default function DraftBoard({
             valuationCache[saleModal?.id] !== "loading" &&
             !valuationCache[saleModal?.id]?.error ? (
               <div className="modal-hint">
-                API suggests: <strong>${valuationCache[saleModal?.id].max_bid_recommendation}</strong> max bid
-                {valuationCache[saleModal?.id].true_dollar_value && <> · TDV: <strong>${valuationCache[saleModal?.id].true_dollar_value}</strong></>}
-                {valuationCache[saleModal?.id].scarcity_tier && <> · {valuationCache[saleModal?.id].scarcity_tier}</>}
+                API suggests:{" "}
+                <strong>
+                  ${valuationCache[saleModal?.id].max_bid_recommendation}
+                </strong>{" "}
+                max bid
+                {valuationCache[saleModal?.id].true_dollar_value && (
+                  <>
+                    {" "}
+                    · TDV:{" "}
+                    <strong>
+                      ${valuationCache[saleModal?.id].true_dollar_value}
+                    </strong>
+                  </>
+                )}
+                {valuationCache[saleModal?.id].scarcity_tier && (
+                  <> · {valuationCache[saleModal?.id].scarcity_tier}</>
+                )}
               </div>
             ) : valuationCache[saleModal?.id]?.error ? (
               <div className="modal-hint">
-                Base value: <strong>${saleModal.baseValue}</strong> · {valuationCache[saleModal?.id].message}
+                Base value: <strong>${saleModal.baseValue}</strong> ·{" "}
+                {valuationCache[saleModal?.id].message}
               </div>
             ) : (
               <div className="modal-hint">
                 Base value: <strong>${saleModal.baseValue}</strong>
-                {apiStatus !== "online" && " (API offline — using pre-calc value)"}
+                {apiStatus !== "online" &&
+                  " (API offline — using pre-calc value)"}
               </div>
             )}
 
@@ -1564,21 +1806,30 @@ export default function DraftBoard({
                 </strong>
               </div>
               <div>
-                Slot: <strong style={{ color: posColor(removeModal.pos) }}>
+                Slot:{" "}
+                <strong style={{ color: posColor(removeModal.pos) }}>
                   {removeModal.pos}
                 </strong>
               </div>
               <div>
-                Paid: <strong style={{ color: "var(--red)" }}>${removeModal.price}</strong>
+                Paid:{" "}
+                <strong style={{ color: "var(--red)" }}>
+                  ${removeModal.price}
+                </strong>
               </div>
               <div style={{ marginTop: 6, color: "var(--green)" }}>
                 ✓ Budget refunded: +${removeModal.price}
               </div>
-              <div style={{ marginTop: 4 }}>Player returns to available pool.</div>
+              <div style={{ marginTop: 4 }}>
+                Player returns to available pool.
+              </div>
             </div>
 
             <div className="modal-actions">
-              <button className="modal-cancel" onClick={() => setRemoveModal(null)}>
+              <button
+                className="modal-cancel"
+                onClick={() => setRemoveModal(null)}
+              >
                 Cancel
               </button>
               <button
@@ -1592,7 +1843,6 @@ export default function DraftBoard({
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -1626,17 +1876,21 @@ function SearchResult({
       <div className="sr-copy">
         <div className="sr-head">
           <span className="sr-name">{player.name}</span>
-          <span className="sr-team">{player.team} · {player.league}</span>
+          <span className="sr-team">
+            {player.team} · {player.league}
+          </span>
         </div>
         <div className="sr-tags">
           {player.pos.map((pos) => (
-            <span key={pos} className="pos-badge" style={{ background: posColor(pos) }}>
+            <span
+              key={pos}
+              className="pos-badge"
+              style={{ background: posColor(pos) }}
+            >
               {pos}
             </span>
           ))}
-          {player.fpts && (
-            <span className="sr-fpts">{player.fpts}pts</span>
-          )}
+          {player.fpts && <span className="sr-fpts">{player.fpts}pts</span>}
           {noteText && (
             <span className="sr-note">
               ✎ {noteText.length > 22 ? `${noteText.slice(0, 22)}…` : noteText}
@@ -1671,7 +1925,10 @@ function SearchResult({
         <button
           type="button"
           className="sr-record"
-          onClick={(e) => { e.stopPropagation(); onRecord(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRecord();
+          }}
         >
           {actionLabel}
         </button>
@@ -1729,7 +1986,10 @@ function InlineCellSearch({
       // Text search if user has typed something
       if (q) {
         const lq = q.toLowerCase();
-        if (!p.name.toLowerCase().includes(lq) && !(p.team || "").toLowerCase().includes(lq)) {
+        if (
+          !p.name.toLowerCase().includes(lq) &&
+          !(p.team || "").toLowerCase().includes(lq)
+        ) {
           return false;
         }
       }
@@ -1751,7 +2011,10 @@ function InlineCellSearch({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Escape") { e.stopPropagation(); onClose(); }
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            onClose();
+          }
           // Enter selects first result
           if (e.key === "Enter" && results.length > 0) onSelect(results[0]);
         }}
@@ -1766,7 +2029,10 @@ function InlineCellSearch({
               key={p.id}
               className="cell-search-result"
               // Use onMouseDown to fire before input blur closes the dropdown
-              onMouseDown={(e) => { e.preventDefault(); onSelect(p); }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(p);
+              }}
             >
               <PlayerAvatar name={p.name} size={20} photoUrl={p.photoUrl} />
               <div className="csr-info">
@@ -1775,7 +2041,11 @@ function InlineCellSearch({
               </div>
               <div style={{ display: "flex", gap: 2 }}>
                 {p.pos.map((pp) => (
-                  <span key={pp} className="pos-badge" style={{ background: posColor(pp), fontSize: 7 }}>
+                  <span
+                    key={pp}
+                    className="pos-badge"
+                    style={{ background: posColor(pp), fontSize: 7 }}
+                  >
                     {pp}
                   </span>
                 ))}

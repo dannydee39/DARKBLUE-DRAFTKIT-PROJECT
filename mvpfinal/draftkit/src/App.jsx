@@ -26,16 +26,21 @@ import { useState, useEffect, useRef } from "react";
 import "./styles.css";
 
 // ── Named imports from modular components ─────────────────────────────────────
-import SetupScreen       from "./components/SetupScreen.jsx";
-import DraftBoard        from "./components/DraftBoard.jsx";
-import PlayerDictionary  from "./components/PlayerDictionary.jsx";
-import LeagueSettings    from "./components/LeagueSettings.jsx";
-import KeeperSetup       from "./components/KeeperSetup.jsx";
-import TaxiSquad         from "./components/TaxiSquad.jsx";
-import ApiSandbox        from "./components/ApiSandbox.jsx";
+import SetupScreen from "./components/SetupScreen.jsx";
+import DraftBoard from "./components/DraftBoard.jsx";
+import PlayerDictionary from "./components/PlayerDictionary.jsx";
+import LeagueSettings from "./components/LeagueSettings.jsx";
+import KeeperSetup from "./components/KeeperSetup.jsx";
+import TaxiSquad from "./components/TaxiSquad.jsx";
+import ApiSandbox from "./components/ApiSandbox.jsx";
 
 // ── Shared constants and helpers ──────────────────────────────────────────────
-import { API_BASE, DEMO_KEY, DEFAULT_ROSTER, DEFAULT_SCORING } from "./constants.js";
+import {
+  API_BASE,
+  DEMO_KEY,
+  DEFAULT_ROSTER,
+  DEFAULT_SCORING,
+} from "./constants.js";
 import { buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
 import {
   buildDraftRecord,
@@ -73,16 +78,64 @@ const DEFAULT_LEAGUE = {
 //   [C=0, 1B=1, 2B=2, 3B=3, SS=4, OF=5, OF=6, OF=7, SP=8, SP=9, RP=10, RP=11, UTIL=12, BN=13, BN=14]
 // ─────────────────────────────────────────────────────────────────────────────
 const SAMPLE_PICKS = [
-  { name: "Shohei Ohtani",     teamIdx: 0, price: 65, slotIndex: 12, draftedPos: "UTIL" },
-  { name: "William Contreras", teamIdx: 0, price: 22, slotIndex: 0,  draftedPos: "C"    },
-  { name: "Juan Soto",         teamIdx: 1, price: 72, slotIndex: 5,  draftedPos: "OF"   },
-  { name: "Freddie Freeman",   teamIdx: 1, price: 28, slotIndex: 1,  draftedPos: "1B"   },
-  { name: "Kyle Tucker",       teamIdx: 2, price: 55, slotIndex: 6,  draftedPos: "OF"   },
-  { name: "Francisco Lindor",  teamIdx: 2, price: 38, slotIndex: 4,  draftedPos: "SS"   },
-  { name: "Corbin Carroll",    teamIdx: 3, price: 40, slotIndex: 7,  draftedPos: "OF"   },
-  { name: "Nolan Arenado",     teamIdx: 3, price: 20, slotIndex: 3,  draftedPos: "3B"   },
-  { name: "Elly De La Cruz",   teamIdx: 4, price: 35, slotIndex: 4,  draftedPos: "SS"   },
-  { name: "Logan Webb",        teamIdx: 5, price: 25, slotIndex: 8,  draftedPos: "SP"   },
+  {
+    name: "Shohei Ohtani",
+    teamIdx: 0,
+    price: 65,
+    slotIndex: 12,
+    draftedPos: "UTIL",
+  },
+  {
+    name: "William Contreras",
+    teamIdx: 0,
+    price: 22,
+    slotIndex: 0,
+    draftedPos: "C",
+  },
+  { name: "Juan Soto", teamIdx: 1, price: 72, slotIndex: 5, draftedPos: "OF" },
+  {
+    name: "Freddie Freeman",
+    teamIdx: 1,
+    price: 28,
+    slotIndex: 1,
+    draftedPos: "1B",
+  },
+  {
+    name: "Kyle Tucker",
+    teamIdx: 2,
+    price: 55,
+    slotIndex: 6,
+    draftedPos: "OF",
+  },
+  {
+    name: "Francisco Lindor",
+    teamIdx: 2,
+    price: 38,
+    slotIndex: 4,
+    draftedPos: "SS",
+  },
+  {
+    name: "Corbin Carroll",
+    teamIdx: 3,
+    price: 40,
+    slotIndex: 7,
+    draftedPos: "OF",
+  },
+  {
+    name: "Nolan Arenado",
+    teamIdx: 3,
+    price: 20,
+    slotIndex: 3,
+    draftedPos: "3B",
+  },
+  {
+    name: "Elly De La Cruz",
+    teamIdx: 4,
+    price: 35,
+    slotIndex: 4,
+    draftedPos: "SS",
+  },
+  { name: "Logan Webb", teamIdx: 5, price: 25, slotIndex: 8, draftedPos: "SP" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,7 +144,7 @@ const SAMPLE_PICKS = [
 export default function App() {
   // ── Screen / tab routing ──────────────────────────────────────────────────
   // "setup" shows the league creation screen; "main" shows the full draft app.
-  const [screen,    setScreen]    = useState("setup");
+  const [screen, setScreen] = useState("setup");
   const [activeTab, setActiveTab] = useState("board");
   const [savedDrafts, setSavedDrafts] = useState([]);
   const [activeDraftId, setActiveDraftId] = useState(null);
@@ -120,11 +173,11 @@ export default function App() {
   // DraftBoard and PlayerDictionary so both panels always show live values.
   // Values: undefined (not fetched) | "loading" | API response object.
   const [valuationCache, setValuationCache] = useState({});
-  const valuationCacheRef = useRef({});    // mirrors valuationCache; used in requestValuation
-                                           // to avoid stale-closure reads of the state variable
-  const inFlightRef     = useRef(new Set());   // player IDs with active requests
-  const loadingStartedRef = useRef({});        // playerId -> request start timestamp
-  const cacheVersionRef = useRef(0);           // incremented on cache invalidation
+  const valuationCacheRef = useRef({}); // mirrors valuationCache; used in requestValuation
+  // to avoid stale-closure reads of the state variable
+  const inFlightRef = useRef(new Set()); // player IDs with active requests
+  const loadingStartedRef = useRef({}); // playerId -> request start timestamp
+  const cacheVersionRef = useRef(0); // incremented on cache invalidation
 
   // Keep the ref in sync with state so requestValuation always reads fresh values
   // even when called from inside a stale closure after a cache-clear.
@@ -149,7 +202,7 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     checkApiStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -179,7 +232,7 @@ export default function App() {
     const restoredPlayers = clonePlayers(snapshot.players || []);
     const nextOwnerIdx = Math.min(
       snapshot.currentOwnerIdx || 0,
-      Math.max((restoredLeague.teams?.length || 1) - 1, 0)
+      Math.max((restoredLeague.teams?.length || 1) - 1, 0),
     );
 
     setLeague(restoredLeague);
@@ -187,14 +240,19 @@ export default function App() {
     setCurrentOwnerIdx(nextOwnerIdx);
     setSelectedPlayer(
       snapshot.selectedPlayerId != null
-        ? restoredPlayers.find((player) => player.id === snapshot.selectedPlayerId) || null
-        : null
+        ? restoredPlayers.find(
+            (player) => player.id === snapshot.selectedPlayerId,
+          ) || null
+        : null,
     );
   }
 
   function pushUndoSnapshot() {
     const snapshot = captureDraftSnapshot();
-    setUndoStack((prev) => [...prev.slice(-(MAX_HISTORY_SNAPSHOTS - 1)), snapshot]);
+    setUndoStack((prev) => [
+      ...prev.slice(-(MAX_HISTORY_SNAPSHOTS - 1)),
+      snapshot,
+    ]);
     setRedoStack([]);
   }
 
@@ -219,7 +277,7 @@ export default function App() {
     if (!libraryReady) return;
     window.localStorage.setItem(
       DRAFT_LIBRARY_STORAGE_KEY,
-      JSON.stringify(savedDrafts)
+      JSON.stringify(savedDrafts),
     );
   }, [savedDrafts, libraryReady]);
 
@@ -245,11 +303,20 @@ export default function App() {
       next[draftIdx] = { ...current, ...nextRecord };
       return next;
     });
-  }, [activeDraftId, currentOwnerIdx, favorites, league, libraryReady, notes, players, screen]);
+  }, [
+    activeDraftId,
+    currentOwnerIdx,
+    favorites,
+    league,
+    libraryReady,
+    notes,
+    players,
+    screen,
+  ]);
 
   useEffect(() => {
     setCurrentOwnerIdx((prev) =>
-      Math.min(prev, Math.max((league.teams?.length || 1) - 1, 0))
+      Math.min(prev, Math.max((league.teams?.length || 1) - 1, 0)),
     );
   }, [league.teams?.length]);
 
@@ -278,7 +345,7 @@ export default function App() {
     // after every pick. Values then appear frozen until a manual click.
     valuationCacheRef.current = {};
     setValuationCache({});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftStateKey]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -317,7 +384,8 @@ export default function App() {
     }
     if (
       cached === "loading" &&
-      Date.now() - (loadingStartedRef.current[player.id] || 0) < VALUATION_REQUEST_TIMEOUT_MS
+      Date.now() - (loadingStartedRef.current[player.id] || 0) <
+        VALUATION_REQUEST_TIMEOUT_MS
     ) {
       return;
     }
@@ -337,7 +405,10 @@ export default function App() {
 
     const version = cacheVersionRef.current;
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), VALUATION_REQUEST_TIMEOUT_MS);
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      VALUATION_REQUEST_TIMEOUT_MS,
+    );
     inFlightRef.current.add(player.id);
     loadingStartedRef.current[player.id] = Date.now();
     setValuationCache((prev) => ({ ...prev, [player.id]: "loading" }));
@@ -358,9 +429,15 @@ export default function App() {
       };
       const r = await fetch(`${API_BASE}/v1/valuate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-License-Key": DEMO_KEY },
+        headers: {
+          "Content-Type": "application/json",
+          "X-License-Key": DEMO_KEY,
+        },
         signal: controller.signal,
-        body: JSON.stringify({ license_key: DEMO_KEY, draft_state: draftState }),
+        body: JSON.stringify({
+          license_key: DEMO_KEY,
+          draft_state: draftState,
+        }),
       });
       const data = await r.json();
       // Discard stale response if the draft state changed while we were waiting
@@ -385,15 +462,16 @@ export default function App() {
       if (cacheVersionRef.current === version) {
         setValuationCache((prev) => ({
           ...prev,
-            [player.id]: {
-              error: true,
-              message:
-                error?.name === "AbortError"
+          [player.id]: {
+            error: true,
+            message:
+              error?.name === "AbortError"
                 ? "Live valuation timed out. Showing the base value instead."
-                : error?.message || "Live valuation was unavailable. Showing the base value instead.",
-              timestamp: Date.now(),
-            },
-          }));
+                : error?.message ||
+                  "Live valuation was unavailable. Showing the base value instead.",
+            timestamp: Date.now(),
+          },
+        }));
       }
     } finally {
       window.clearTimeout(timeoutId);
@@ -413,9 +491,11 @@ export default function App() {
     try {
       // Map pool setting to API query parameter
       const poolParam =
-        leagueData?.pool === "AL" ? "AL"
-        : leagueData?.pool === "NL" ? "NL"
-        : "ALL";
+        leagueData?.pool === "AL"
+          ? "AL"
+          : leagueData?.pool === "NL"
+            ? "NL"
+            : "ALL";
 
       const r = await fetch(`${API_BASE}/v1/players?league=${poolParam}`, {
         headers: { "X-License-Key": DEMO_KEY },
@@ -459,7 +539,10 @@ export default function App() {
     setActiveTab("board");
     setCurrentOwnerIdx(0);
     clearDraftHistory();
-    setBoardNotice({ tone: "info", message: "New draft workspace initialized." });
+    setBoardNotice({
+      tone: "info",
+      message: "New draft workspace initialized.",
+    });
 
     setSavedDrafts((prev) => [
       buildDraftRecord({
@@ -484,7 +567,7 @@ export default function App() {
     const restoredFavorites = { ...(draft.favorites || {}) };
     const ownerIdx = Math.min(
       draft.currentOwnerIdx || 0,
-      Math.max((restoredLeague.teams?.length || 1) - 1, 0)
+      Math.max((restoredLeague.teams?.length || 1) - 1, 0),
     );
 
     setActiveDraftId(draftId);
@@ -506,8 +589,8 @@ export default function App() {
       prev.map((entry) =>
         entry.id === draftId
           ? { ...entry, lastOpenedAt: new Date().toISOString() }
-          : entry
-      )
+          : entry,
+      ),
     );
   }
 
@@ -588,18 +671,21 @@ export default function App() {
 
       return {
         ok: true,
-        message: "Pre-draft setup saved. Owners, pool, budget, and roster structure are updated for this draft workspace.",
+        message:
+          "Pre-draft setup saved. Owners, pool, budget, and roster structure are updated for this draft workspace.",
       };
     }
 
     const rosterShrinks = Object.entries(normalized.roster || {}).some(
-      ([slot, count]) => Number(count || 0) < Number(league.roster?.[slot] || 0)
+      ([slot, count]) =>
+        Number(count || 0) < Number(league.roster?.[slot] || 0),
     );
 
     if (normalized.commissionerUnlocked && rosterShrinks) {
       return {
         ok: false,
-        message: "Commissioner override can expand roster counts mid-draft, but it will not shrink existing slot totals.",
+        message:
+          "Commissioner override can expand roster counts mid-draft, but it will not shrink existing slot totals.",
       };
     }
 
@@ -641,7 +727,9 @@ export default function App() {
     if (!player || !slotPos) return false;
 
     const normalizedSlot = String(slotPos).trim().toUpperCase();
-    const positions = (player.pos || []).map((pos) => String(pos).trim().toUpperCase());
+    const positions = (player.pos || []).map((pos) =>
+      String(pos).trim().toUpperCase(),
+    );
 
     if (normalizedSlot === "BN") return true;
     if (normalizedSlot === "UTIL") {
@@ -664,53 +752,90 @@ export default function App() {
   // @param {number} slotIndex  - Roster slot index the player is placed into
   // @param {string} draftedPos - Position label of the slot (e.g. "OF", "UTIL")
   // ─────────────────────────────────────────────────────────────────────────
-  function recordSale(player, price, teamId, slotIndex, draftedPos, options = {}) {
+  function recordSale(
+    player,
+    price,
+    teamId,
+    slotIndex,
+    draftedPos,
+    options = {},
+  ) {
     const slotLabels = buildRosterPositions(league.roster);
     const slotPos = slotLabels[slotIndex];
     const currentTeam = league.teams.find((team) => team.id === teamId);
-    const currentPlayer = players.find((candidate) => candidate.id === player?.id);
+    const currentPlayer = players.find(
+      (candidate) => candidate.id === player?.id,
+    );
     const effectivePlayer = currentPlayer
       ? {
           ...currentPlayer,
           pos: Array.from(
-            new Set([...(currentPlayer.pos || []), ...((player?.pos || []).map((pos) => String(pos).trim().toUpperCase()))])
+            new Set([
+              ...(currentPlayer.pos || []),
+              ...(player?.pos || []).map((pos) =>
+                String(pos).trim().toUpperCase(),
+              ),
+            ]),
           ),
         }
       : null;
     const numericPrice = Number(price);
 
     if (!currentTeam) {
-      setBoardNotice({ tone: "warning", message: "Could not record sale because that team no longer exists." });
+      setBoardNotice({
+        tone: "warning",
+        message: "Could not record sale because that team no longer exists.",
+      });
       return false;
     }
 
     if (!currentPlayer) {
-      setBoardNotice({ tone: "warning", message: "Could not record sale because that player is missing from the pool." });
+      setBoardNotice({
+        tone: "warning",
+        message:
+          "Could not record sale because that player is missing from the pool.",
+      });
       return false;
     }
 
     if (currentPlayer.drafted) {
-      setBoardNotice({ tone: "warning", message: `${currentPlayer.name} is already drafted in this workspace.` });
+      setBoardNotice({
+        tone: "warning",
+        message: `${currentPlayer.name} is already drafted in this workspace.`,
+      });
       return false;
     }
 
     if (!Number.isFinite(numericPrice) || numericPrice < 1) {
-      setBoardNotice({ tone: "warning", message: "Sale amount must be a valid dollar value." });
+      setBoardNotice({
+        tone: "warning",
+        message: "Sale amount must be a valid dollar value.",
+      });
       return false;
     }
 
     if (slotPos == null || draftedPos !== slotPos) {
-      setBoardNotice({ tone: "warning", message: "The selected roster slot is no longer valid. Re-open the sale modal and try again." });
+      setBoardNotice({
+        tone: "warning",
+        message:
+          "The selected roster slot is no longer valid. Re-open the sale modal and try again.",
+      });
       return false;
     }
 
     if (!canPlayerFillSlot(effectivePlayer, slotPos)) {
-      setBoardNotice({ tone: "warning", message: `${currentPlayer.name} cannot be placed into the ${slotPos} slot.` });
+      setBoardNotice({
+        tone: "warning",
+        message: `${currentPlayer.name} cannot be placed into the ${slotPos} slot.`,
+      });
       return false;
     }
 
     if (currentTeam.roster.some((entry) => entry.slotIndex === slotIndex)) {
-      setBoardNotice({ tone: "warning", message: `${currentTeam.name} already has a player in that slot.` });
+      setBoardNotice({
+        tone: "warning",
+        message: `${currentTeam.name} already has a player in that slot.`,
+      });
       return false;
     }
 
@@ -760,8 +885,8 @@ export default function App() {
               draftPrice: numericPrice,
               draftedAt: actionTime,
             }
-          : p
-      )
+          : p,
+      ),
     );
 
     setBoardNotice({
@@ -796,7 +921,7 @@ export default function App() {
     SAMPLE_PICKS.forEach((pick) => {
       // Find the player in current players state by name (case-insensitive)
       const player = players.find(
-        (p) => p.name.toLowerCase() === pick.name.toLowerCase()
+        (p) => p.name.toLowerCase() === pick.name.toLowerCase(),
       );
       if (!player) return; // player not found in pool, skip
 
@@ -844,8 +969,8 @@ export default function App() {
       prev.map((p) =>
         draftedPlayerIds.has(p.id)
           ? { ...p, drafted: true, draftedAt: baseTime + p.id }
-          : p
-      )
+          : p,
+      ),
     );
 
     setBoardNotice({
@@ -875,13 +1000,16 @@ export default function App() {
     const p = players.find((pl) => pl.id === playerId);
     const team = league.teams.find((entry) => entry.id === teamId);
     const rosterEntry = team?.roster.find(
-      (entry) => entry.slotIndex === slotIndex && (entry.playerId === playerId || entry.name === p?.name)
+      (entry) =>
+        entry.slotIndex === slotIndex &&
+        (entry.playerId === playerId || entry.name === p?.name),
     );
 
     if (!team || !rosterEntry) {
       setBoardNotice({
         tone: "warning",
-        message: "Could not remove that player because the roster entry changed.",
+        message:
+          "Could not remove that player because the roster entry changed.",
       });
       return;
     }
@@ -896,7 +1024,11 @@ export default function App() {
           ...t,
           budget_remaining: t.budget_remaining + (rosterEntry?.price || 0),
           roster: t.roster.filter(
-            (r) => !(r.slotIndex === slotIndex && (r.playerId === playerId || r.name === rosterEntry.name))
+            (r) =>
+              !(
+                r.slotIndex === slotIndex &&
+                (r.playerId === playerId || r.name === rosterEntry.name)
+              ),
           ),
         };
       }),
@@ -914,8 +1046,8 @@ export default function App() {
                 draftPrice: null,
                 draftedAt: null,
               }
-            : pl
-        )
+            : pl,
+        ),
       );
     }
 
@@ -943,7 +1075,12 @@ export default function App() {
           ...t,
           taxiSquad: [
             ...(t.taxiSquad || []),
-            { playerId: player.id, name: player.name, price: 1, pos: player.pos },
+            {
+              playerId: player.id,
+              name: player.name,
+              price: 1,
+              pos: player.pos,
+            },
           ],
         };
       }),
@@ -953,9 +1090,15 @@ export default function App() {
     setPlayers((prev) =>
       prev.map((p) =>
         p.id === player.id
-          ? { ...p, drafted: true, draftedBy: teamId, draftPrice: 1, taxi: true }
-          : p
-      )
+          ? {
+              ...p,
+              drafted: true,
+              draftedBy: teamId,
+              draftPrice: 1,
+              taxi: true,
+            }
+          : p,
+      ),
     );
 
     setBoardNotice({
@@ -968,7 +1111,10 @@ export default function App() {
     if (redoStack.length === 0) return;
     const snapshot = redoStack[redoStack.length - 1];
     const currentSnapshot = captureDraftSnapshot();
-    setUndoStack((prevUndo) => [...prevUndo.slice(-(MAX_HISTORY_SNAPSHOTS - 1)), currentSnapshot]);
+    setUndoStack((prevUndo) => [
+      ...prevUndo.slice(-(MAX_HISTORY_SNAPSHOTS - 1)),
+      currentSnapshot,
+    ]);
     setRedoStack((prevRedo) => prevRedo.slice(0, -1));
     restoreDraftSnapshot(snapshot);
     setBoardNotice({
@@ -985,7 +1131,10 @@ export default function App() {
     if (undoStack.length === 0) return;
     const snapshot = undoStack[undoStack.length - 1];
     const currentSnapshot = captureDraftSnapshot();
-    setRedoStack((prevRedo) => [...prevRedo.slice(-(MAX_HISTORY_SNAPSHOTS - 1)), currentSnapshot]);
+    setRedoStack((prevRedo) => [
+      ...prevRedo.slice(-(MAX_HISTORY_SNAPSHOTS - 1)),
+      currentSnapshot,
+    ]);
     setUndoStack((prevUndo) => prevUndo.slice(0, -1));
     restoreDraftSnapshot(snapshot);
     setBoardNotice({
@@ -1037,11 +1186,11 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   // Derived values (re-computed each render)
   // ─────────────────────────────────────────────────────────────────────────
-  const myTeam          = league.teams[currentOwnerIdx];
+  const myTeam = league.teams[currentOwnerIdx];
   const rosterPositions = buildRosterPositions(league.roster);
-  const totalSlots      = rosterPositions.length;
-  const slotsLeft       = totalSlots - (myTeam?.roster?.length || 0);
-  const maxBid          = calcMaxBid(myTeam?.budget_remaining || 0, slotsLeft);
+  const totalSlots = rosterPositions.length;
+  const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
+  const maxBid = calcMaxBid(myTeam?.budget_remaining || 0, slotsLeft);
   const totalRecordedPicks = countDraftEntries(league);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1049,7 +1198,6 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="app">
-
       {/* ── Navigation bar ────────────────────────────────────────────────── */}
       <nav className="nav">
         <div className="nav-left">
@@ -1057,19 +1205,20 @@ export default function App() {
           <div className="nav-brand">
             <div className="nav-league">{league.name}</div>
             <div className="nav-season">
-              SEASON {league.season} · {formatPoolLabel(league.pool)} · {savedDrafts.length} SAVED
+              SEASON {league.season} · {formatPoolLabel(league.pool)} ·{" "}
+              {savedDrafts.length} SAVED
             </div>
           </div>
 
           {/* Tab navigation buttons */}
           {[
-            ["board",      "Draft Board"],
+            ["board", "Draft Board"],
             ["dictionary", "Player Dictionary"],
-            ["settings",   "League Settings"],
-            ["keeper",     "Keeper Setup"],
+            ["settings", "League Settings"],
+            ["keeper", "Keeper Setup"],
             // "sandbox" tab intentionally omitted from nav — use setActiveTab("sandbox")
             // programmatically or navigate directly for API diagnostics.
-            ["taxi",       "Taxi Squad"],
+            ["taxi", "Taxi Squad"],
           ].map(([tab, label]) => (
             <button
               key={tab}
@@ -1126,9 +1275,13 @@ export default function App() {
           </button>
           */}
           <div className="nav-badge">
-            {totalRecordedPicks > 0 ? `${totalRecordedPicks} PICKS SAVED` : "SETUP READY"}
+            {totalRecordedPicks > 0
+              ? `${totalRecordedPicks} PICKS SAVED`
+              : "SETUP READY"}
           </div>
-          <div className="nav-avatar" title="User profile">👤</div>
+          <div className="nav-avatar" title="User profile">
+            👤
+          </div>
         </div>
       </nav>
 
@@ -1148,16 +1301,24 @@ export default function App() {
             >
               <div className="owner-strip-top">
                 <span className="owner-strip-name">{team.name}</span>
-                {isActive && <span className="owner-strip-live">ON CLOCK</span>}
               </div>
               <div className="owner-strip-stats">
-                <span className="owner-strip-stat owner-strip-stat-budget budget" title={`${team.budget_remaining} budget left`}>
+                <span
+                  className="owner-strip-stat owner-strip-stat-budget budget"
+                  title={`${team.budget_remaining} budget left`}
+                >
                   ${team.budget_remaining}
                 </span>
-                <span className="owner-strip-stat owner-strip-stat-roster" title={`${team.roster.length} of ${totalSlots} roster slots filled`}>
+                <span
+                  className="owner-strip-stat owner-strip-stat-roster"
+                  title={`${team.roster.length} of ${totalSlots} roster slots filled`}
+                >
                   {team.roster.length}/{totalSlots}
                 </span>
-                <span className="owner-strip-stat owner-strip-stat-max" title={`Maximum bid ${teamMaxBid}`}>
+                <span
+                  className="owner-strip-stat owner-strip-stat-max"
+                  title={`Maximum bid ${teamMaxBid}`}
+                >
                   max {teamMaxBid}
                 </span>
               </div>
@@ -1168,7 +1329,6 @@ export default function App() {
 
       {/* ── Main Content Area (tab-driven) ────────────────────────────────── */}
       <div className="main-content">
-
         {/* Draft Board — the primary screen */}
         {activeTab === "board" && (
           <DraftBoard
@@ -1218,7 +1378,10 @@ export default function App() {
 
         {/* League Settings — scoring categories + roster config */}
         {activeTab === "settings" && (
-          <LeagueSettings league={league} onSaveSettings={applyLeagueSettings} />
+          <LeagueSettings
+            league={league}
+            onSaveSettings={applyLeagueSettings}
+          />
         )}
 
         {/* Keeper Setup — pre-draft keeper contracts */}
@@ -1245,7 +1408,6 @@ export default function App() {
             rosterPositions={rosterPositions}
           />
         )}
-
       </div>
     </div>
   );

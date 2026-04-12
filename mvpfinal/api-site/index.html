@@ -1,33 +1,24 @@
 <!DOCTYPE html>
 <!--
-  index.html — Dark Blue Valuation API · Marketing & Licensing Site
-  ──────────────────────────────────────────────────────────────────
-  Single-page application shell. All page content is rendered into
-  #app-viewport by the hash-based router (js/router.js). The nav
-  is rendered into #site-nav by nav.js and refreshed on every route.
+  index.html — Dark Blue Valuation API · Licensing & Endpoint Reference
+  ──────────────────────────────────────────────────────────────────────
+  Two-tab SPA. No build step — open in a browser or serve with any
+  static file server (e.g. `npx serve .`).
 
-  Page map (hash → JS renderer):
-    #home       → js/pages/home.js
-    #pricing    → js/pages/pricing.js
-    #login      → js/pages/login.js
-    #signup     → js/pages/login.js  (same renderer, different default tab)
-    #dashboard  → js/pages/dashboard.js  (auth-guarded)
-    #docs       → js/pages/docs.js
-
-  No bundler or build step required — open directly in a browser or
-  serve with any static file server (e.g. `npx serve .`).
+  Tab map (hash → renderer):
+    #license    → js/pages/license.js     (default)
+    #endpoints  → js/pages/endpoints.js
 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-        content="Dark Blue Valuation API — real-time auction draft intelligence for fantasy baseball platforms. License the engine behind smarter bids." />
-  <meta name="theme-color" content="#0a1e3d" />
+        content="Dark Blue Valuation API — licensing, authentication, and endpoint reference for fantasy baseball draft intelligence." />
+  <meta name="theme-color" content="#080d19" />
 
-  <title>Dark Blue API — Fantasy Baseball Valuation Engine</title>
+  <title>Dark Blue API — Licensing & Endpoints</title>
 
-  <!-- ── Google Fonts ── Alexandria matches the Dark Blue Draft Kit brand ── -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -35,93 +26,35 @@
     rel="stylesheet"
   />
 
-  <!-- ── CSS load order is significant: tokens → base → components → pages ── -->
-
-  <!-- 1. Design tokens (CSS custom properties) — must be first -->
-  <link rel="stylesheet" href="css/variables.css" />
-
-  <!-- 2. Reset + base typography + layout containers -->
-  <link rel="stylesheet" href="css/base.css" />
-
-  <!-- 3. Navigation bar -->
-  <link rel="stylesheet" href="css/nav.css" />
-
-  <!-- 4. Reusable component library (buttons, cards, badges, code blocks, forms) -->
-  <link rel="stylesheet" href="css/components.css" />
-
-  <!-- 5. Page-specific styles -->
-  <link rel="stylesheet" href="css/pages/home.css" />
-  <link rel="stylesheet" href="css/pages/pricing.css" />
-  <link rel="stylesheet" href="css/pages/login.css" />
-  <link rel="stylesheet" href="css/pages/dashboard.css" />
-  <link rel="stylesheet" href="css/pages/docs.css" />
-
-  <!-- Supplementary classes used by dashboard.js and docs.js page renderers -->
-  <link rel="stylesheet" href="css/site-extras.css" />
+  <!-- CSS: tokens → base → nav → components → page styles -->
+  <link rel="stylesheet" href="css/variables.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/base.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/nav.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/components.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/app.css?v=20260411-darkfix" />
 </head>
 
 <body>
 
-  <!--
-    Scroll sentinel: a zero-height, zero-width div anchored to the very
-    top of the document. nav.js's IntersectionObserver watches this element
-    to know when the user has scrolled down far enough to warrant a nav shadow.
-  -->
   <div
     id="scroll-sentinel"
     aria-hidden="true"
     style="position:absolute;top:0;height:1px;width:100%;pointer-events:none;z-index:-1;"
   ></div>
 
-  <!-- Navigation bar — DOM is written by nav.js on every route change -->
   <header id="site-nav" role="banner"></header>
-
-  <!--
-    Page viewport — router.js clears and re-renders this div on every
-    hash change. Each page renderer writes its own HTML here.
-  -->
   <main id="app-viewport" role="main"></main>
 
-  <!-- ════════════════════════════════════════════════════════════════════════
-       JavaScript — loaded synchronously in dependency order.
-       All scripts must finish executing before DOMContentLoaded fires so the
-       router has access to every page renderer on its first render pass.
-       ════════════════════════════════════════════════════════════════════════ -->
+  <!-- JS: state → router → nav → page renderers -->
+  <script src="js/state.js?v=20260411-darkfix"></script>
+  <script src="js/router.js?v=20260411-darkfix"></script>
+  <script src="js/nav.js?v=20260411-darkfix"></script>
+  <script src="js/pages/license.js?v=20260411-darkfix"></script>
+  <script src="js/pages/endpoints.js?v=20260411-darkfix"></script>
 
-  <!-- 1. Global state + session helpers (defines window.DB) -->
-  <script src="js/state.js"></script>
-
-  <!-- 2. Hash-based SPA router (registers its DOMContentLoaded listener here) -->
-  <script src="js/router.js"></script>
-
-  <!-- 3. Navigation component (depends on DB.state; renders into #site-nav) -->
-  <script src="js/nav.js"></script>
-
-  <!-- 4. Page renderers — each adds one property to DB.pages -->
-  <script src="js/pages/home.js"></script>
-  <script src="js/pages/pricing.js"></script>
-  <script src="js/pages/login.js"></script>
-  <script src="js/pages/dashboard.js"></script>
-  <script src="js/pages/docs.js"></script>
-
-  <!--
-    5. Bootstrap script — runs synchronously after all JS files load but
-       BEFORE DOMContentLoaded, so pages are registered before the router
-       attempts its first render.
-  -->
   <script>
-    // Restore any auth state saved from earlier in this browser session.
-    // Must run before the router so auth guards work correctly on first render.
-    DB.restoreSession();
-
-    // Register every page renderer with the router.
-    // The '#signup' hash reuses the login renderer (it handles both tabs).
-    DB.router.register('home',      DB.pages.home);
-    DB.router.register('pricing',   DB.pages.pricing);
-    DB.router.register('login',     DB.pages.login);
-    DB.router.register('signup',    DB.pages.login);
-    DB.router.register('dashboard', DB.pages.dashboard);
-    DB.router.register('docs',      DB.pages.docs);
+    DB.router.register('license',   DB.pages.license);
+    DB.router.register('endpoints', DB.pages.endpoints);
   </script>
 
 </body>

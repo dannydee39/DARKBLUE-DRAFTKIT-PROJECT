@@ -9,60 +9,59 @@ const rateLimit = require("express-rate-limit");
 const valuateRouter = require("./routes/valuate");
 const playersRouter = require("./routes/players");
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-const NODE_ENV = process.env.NODE_ENV || "development";
+function createApp(options = {}) {
+  const app = express();
+  const NODE_ENV = options.nodeEnv || process.env.NODE_ENV || "development";
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim());
+  const rateLimitWindowMs = Number(options.rateLimitWindowMs ?? process.env.RATE_LIMIT_WINDOW_MS ?? 60 * 1000);
+  const rateLimitMax = Number(options.rateLimitMax ?? process.env.RATE_LIMIT_MAX ?? 120);
 
-// ── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
-  .split(",")
-  .map((o) => o.trim());
+  // ── CORS ───────────────────────────────────────────────────────────────────
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin) || NODE_ENV === "development") {
+          return callback(null, true);
+        }
+        callback(new Error("Not allowed by CORS policy"));
+      },
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "X-License-Key"],
+    })
+  );
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. curl, Postman, server-to-server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || NODE_ENV === "development") {
-        return callback(null, true);
-      }
-      callback(new Error("Not allowed by CORS policy"));
-    },
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-License-Key"],
-  })
-);
-
-// ── RATE LIMITING ─────────────────────────────────────────────────────────────
-const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 120,            // 120 requests per minute per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too Many Requests", message: "Rate limit exceeded. Please wait 60 seconds." },
-});
-app.use(limiter);
-
-// ── BODY PARSING ──────────────────────────────────────────────────────────────
-app.use(express.json({ limit: "1mb" }));
-
-// ── ROUTES ────────────────────────────────────────────────────────────────────
-app.use("/v1/valuate", valuateRouter);
-app.use("/v1/players", playersRouter);
-
-// Health check (no auth required)
-app.get("/health", (req, res) => {
-  res.json({
-    status: "online",
-    service: "Dark Blue Valuation API",
-    version: "1.0.0",
-    timestamp: new Date().toISOString(),
-    environment: NODE_ENV,
+  // ── RATE LIMITING ───────────────────────────────────────────────────────────
+  const limiter = rateLimit({
+    windowMs: rateLimitWindowMs,
+    max: rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too Many Requests", message: "Rate limit exceeded. Please wait 60 seconds." },
   });
-});
+  app.use(limiter);
 
-// API info / landing — rich HTML testing sandbox
-app.get("/", (req, res) => {
+  // ── BODY PARSING ────────────────────────────────────────────────────────────
+  app.use(express.json({ limit: "1mb" }));
+
+  // ── ROUTES ──────────────────────────────────────────────────────────────────
+  app.use("/v1/valuate", valuateRouter);
+  app.use("/v1/players", playersRouter);
+
+  app.get("/health", (req, res) => {
+    res.json({
+      status: "online",
+      service: "Dark Blue Valuation API",
+      version: "1.0.0",
+      timestamp: new Date().toISOString(),
+      environment: NODE_ENV,
+    });
+  });
+
+  // API info / landing — rich HTML testing sandbox
+  app.get("/", (req, res) => {
   res.setHeader("Content-Type", "text/html");
   res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -706,37 +705,44 @@ updatePlayersCurl();
 </script>
 </body>
 </html>`);
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Not Found",
-    message: `Route ${req.method} ${req.path} not found.`,
   });
-});
 
-// Global error handler
-app.use((err, req, res, _next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: "Internal Server Error",
-    message: NODE_ENV === "development" ? err.message : "An unexpected error occurred.",
+  app.use((req, res) => {
+    res.status(404).json({
+      error: "Not Found",
+      message: `Route ${req.method} ${req.path} not found.`,
+    });
   });
-});
 
-// ── START ──────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🟢 Dark Blue Valuation API`);
-  console.log(`   Port:        ${PORT}`);
-  console.log(`   Environment: ${NODE_ENV}`);
-  console.log(`   Health:      http://localhost:${PORT}/health`);
-  console.log(`   Valuate:     POST http://localhost:${PORT}/v1/valuate`);
-  console.log(`   Players:     GET  http://localhost:${PORT}/v1/players`);
-  console.log(
-    `\n   API Keys:    ${(process.env.API_KEYS || "DB-2026-DEMO-0001").split(",").length} key(s) active`
-  );
-  console.log(`\n   Deploy to VPS: set PORT, API_KEYS, ALLOWED_ORIGINS in .env\n`);
-});
+  app.use((err, req, res, _next) => {
+    console.error(err.stack);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: NODE_ENV === "development" ? err.message : "An unexpected error occurred.",
+    });
+  });
+
+  return app;
+}
+
+const app = createApp();
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  const NODE_ENV = process.env.NODE_ENV || "development";
+  app.listen(PORT, () => {
+    console.log(`\n🟢 Dark Blue Valuation API`);
+    console.log(`   Port:        ${PORT}`);
+    console.log(`   Environment: ${NODE_ENV}`);
+    console.log(`   Health:      http://localhost:${PORT}/health`);
+    console.log(`   Valuate:     POST http://localhost:${PORT}/v1/valuate`);
+    console.log(`   Players:     GET  http://localhost:${PORT}/v1/players`);
+    console.log(
+      `\n   API Keys:    ${(process.env.API_KEYS || "DB-2026-DEMO-0001").split(",").length} key(s) active`
+    );
+    console.log(`\n   Deploy to VPS: set PORT, API_KEYS, ALLOWED_ORIGINS in .env\n`);
+  });
+}
 
 module.exports = app;
+module.exports.createApp = createApp;

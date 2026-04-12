@@ -715,7 +715,7 @@ export default function DraftBoard({
             <h2 className="board-title">DRAFT LEAGUE TEAMS TABLE</h2>
             <span className="board-hint">
               Click an empty cell, and search for a player in the side-bar to
-              add a player to that cell · Click an empty cell to remove a player
+              add a player to that cell · Click an empty cell to remove
             </span>
             <div className="board-current-owner">
               Now drafting: <strong>{myTeam?.name}</strong> · $

@@ -33,7 +33,7 @@ a {
   transition:      color var(--duration-fast) var(--ease);
 }
 
-a:hover { color: var(--green-light); }
+a:hover { color: var(--accent-soft); }
 
 button {
   font-family: inherit;
@@ -43,7 +43,8 @@ button {
 }
 
 input, textarea, select { font-family: inherit; font-size: inherit; }
-code, pre { font-family: var(--font-mono); }
+code { font-family: var(--font-mono); font-size: 0.9em; }
+pre  { font-family: var(--font-mono); }
 
 /* ── Layout Containers ─────────────────────────────────────────────────────── */
 
@@ -106,13 +107,13 @@ code, pre { font-family: var(--font-mono); }
   font-weight:    var(--font-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color:          var(--green);
+  color:          var(--accent-soft);
 }
 
 /* ── Section spacing ─────────────────────────────────────────────────────────── */
 
-.section     { padding-block: var(--space-20); }
-.section-sm  { padding-block: var(--space-12); }
+.section     { padding-block: var(--space-16); }
+.section-sm  { padding-block: var(--space-10); }
 .section-alt { background: var(--bg-soft); }
 
 /* ── Page viewport ───────────────────────────────────────────────────────────── */

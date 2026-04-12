@@ -24,7 +24,7 @@ export function cloneLeagueConfig(source = {}) {
     season: String(source.season || "2025"),
     owners: Number(source.owners || 12),
     budget: Number(source.budget || 260),
-    pool: source.pool || "NL",
+    pool: source.pool || "MLB",
     roster: { ...DEFAULT_ROSTER, ...(source.roster || {}) },
     scoring: { ...DEFAULT_SCORING, ...(source.scoring || {}) },
     keeperLeague: source.keeperLeague ?? true,
@@ -67,7 +67,7 @@ export function hasDraftStarted(league) {
 export function formatPoolLabel(pool) {
   if (pool === "AL") return "AL Only";
   if (pool === "NL") return "NL Only";
-  return "MLB";
+  return "MLB (All)";
 }
 
 export function formatDraftTimestamp(timestamp) {
@@ -110,10 +110,6 @@ export function validateLeagueConfig(config) {
 
   if (activeRosterSlots === 0) {
     errors.push("Add at least one active roster slot before starting the draft.");
-  }
-
-  if (config.pool !== "NL") {
-    warnings.push("The current sample data is NL-first, so AL or MLB pools may load fewer players.");
   }
 
   return { errors, warnings };

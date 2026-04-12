@@ -1,0 +1,784 @@
+/**
+ * app.css — Page-specific styles for both tabs (License + Endpoints).
+ *
+ * Dark operator-console surfaces. No accent stripes.
+ * Uses design tokens from variables.css. Component primitives
+ * (buttons, cards, code blocks) come from components.css.
+ */
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SHARED
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.license-kicker,
+.endpoints-kicker {
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--accent-soft);
+  margin-bottom:  var(--space-2);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LICENSE TAB
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.page-license {
+  padding: var(--space-8) var(--space-6) var(--space-12);
+}
+
+.license-container {
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.license-header {
+  margin-bottom: var(--space-8);
+}
+
+.license-header h1 {
+  font-size:      var(--text-3xl);
+  font-weight:    var(--font-extrabold);
+  line-height:    var(--leading-tight);
+  color:          var(--text-primary);
+  letter-spacing: -0.025em;
+  margin-bottom:  var(--space-3);
+}
+
+.license-lead {
+  font-size:    var(--text-md);
+  line-height:  var(--leading-normal);
+  color:        var(--text-muted);
+  max-width:    540px;
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.license-section {
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--border);
+}
+
+.license-section:last-of-type {
+  border-bottom: none;
+}
+
+.license-section-label {
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--accent-soft);
+  margin-bottom:  var(--space-2);
+}
+
+.license-section h2 {
+  font-size:      var(--text-lg);
+  font-weight:    var(--font-bold);
+  color:          var(--text-primary);
+  letter-spacing: -0.015em;
+  margin-bottom:  var(--space-3);
+}
+
+.license-section > p {
+  color:         var(--text-body);
+  margin-bottom: var(--space-4);
+}
+
+/* Inline code inside section paragraphs */
+.license-section p code,
+.license-step-copy p code {
+  padding:        0.1rem 0.3rem;
+  background:     var(--surface-2);
+  border-radius:  var(--radius-sm);
+  color:          var(--text-primary);
+}
+
+/* ── Key Block ───────────────────────────────────────────────────────────── */
+
+.license-key-block {
+  background:    var(--surface-2);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow:      hidden;
+  margin-bottom: var(--space-4);
+}
+
+.license-key-row {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-3);
+  padding:     var(--space-3) var(--space-4);
+}
+
+.license-key-row + .license-key-row {
+  border-top: 1px solid var(--border);
+}
+
+.license-key-label {
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          var(--text-faint);
+  min-width:      60px;
+}
+
+.license-key-mono {
+  font-family: var(--font-mono);
+  font-size:   var(--text-sm);
+  font-weight: var(--font-semibold);
+  color:       var(--accent-soft);
+  background:  var(--accent-dim);
+  border:      1px solid rgba(96, 165, 250, 0.18);
+  padding:     0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.license-key-value {
+  flex: 1;
+}
+
+.license-copy-btn {
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-semibold);
+  font-family:    var(--font-sans);
+  color:          var(--accent-soft);
+  padding:        0.25rem 0.6rem;
+  border:         1px solid rgba(96, 165, 250, 0.20);
+  border-radius:  var(--radius-sm);
+  background:     transparent;
+  cursor:         pointer;
+  transition:     background var(--duration-fast), border-color var(--duration-fast);
+}
+
+.license-copy-btn:hover {
+  background:   rgba(37, 99, 235, 0.08);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.license-copy-btn.copied {
+  color:        var(--success);
+  border-color: rgba(16, 185, 129, 0.30);
+}
+
+/* ── Key Notes ───────────────────────────────────────────────────────────── */
+
+.license-key-notes {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-2);
+}
+
+.license-note {
+  font-size:      var(--text-sm);
+  line-height:    var(--leading-normal);
+  color:          var(--text-body);
+  padding:        var(--space-3) var(--space-4);
+  background:     var(--surface-1);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius);
+}
+
+.license-note strong {
+  color:       var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ── Response Fields ─────────────────────────────────────────────────────── */
+
+.license-fields {
+  display:        flex;
+  flex-direction: column;
+  background:     var(--surface-1);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius-md);
+  overflow:       hidden;
+  margin-bottom:  var(--space-4);
+}
+
+.license-field {
+  padding: var(--space-3) var(--space-4);
+}
+
+.license-field + .license-field {
+  border-top: 1px solid var(--border);
+}
+
+.license-field-head {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-2);
+  margin-bottom: 2px;
+}
+
+.license-field code {
+  font-family: var(--font-mono);
+  font-size:   var(--text-sm);
+  font-weight: var(--font-semibold);
+  color:       var(--accent-soft);
+}
+
+.license-field-type {
+  font-size:   var(--text-xs);
+  color:       var(--text-faint);
+  font-weight: var(--font-medium);
+}
+
+.license-field p {
+  font-size:   var(--text-sm);
+  color:       var(--text-muted);
+  line-height: var(--leading-normal);
+}
+
+.license-aside {
+  font-size:     var(--text-sm);
+  color:         var(--text-body);
+  padding:       var(--space-3) var(--space-4);
+  background:    var(--surface-1);
+  border:        1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ── Integration Steps ───────────────────────────────────────────────────── */
+
+.license-steps {
+  list-style: none;
+  display:    flex;
+  flex-direction: column;
+  gap:        var(--space-4);
+  counter-reset: step;
+}
+
+.license-steps li {
+  display: flex;
+  gap:     var(--space-3);
+  align-items: flex-start;
+}
+
+.license-step-num {
+  flex-shrink: 0;
+  width:       28px;
+  height:      28px;
+  border-radius: var(--radius-full);
+  background:  var(--accent);
+  color:       #f0f4f8;
+  font-size:   var(--text-xs);
+  font-weight: var(--font-bold);
+  display:     flex;
+  align-items: center;
+  justify-content: center;
+  margin-top:  2px;
+}
+
+.license-step-copy strong {
+  display:      block;
+  font-size:    var(--text-base);
+  color:        var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.license-step-copy p {
+  font-size:   var(--text-sm);
+  color:       var(--text-body);
+  line-height: var(--leading-normal);
+}
+
+/* ── Plans ────────────────────────────────────────────────────────────────── */
+
+.license-plans-section {
+  border-bottom: none;
+}
+
+.license-plans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.license-plan {
+  padding:       var(--space-5);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  background:    var(--surface-1);
+}
+
+.license-plan-featured {
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+.license-plan-header {
+  display:        flex;
+  align-items:    baseline;
+  justify-content: space-between;
+  margin-bottom:  var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom:  1px solid var(--border);
+}
+
+.license-plan-name {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-bold);
+  color:       var(--text-primary);
+}
+
+.license-plan-price {
+  font-size:   var(--text-lg);
+  font-weight: var(--font-extrabold);
+  color:       var(--text-primary);
+}
+
+.license-plan-unit {
+  font-size:   var(--text-sm);
+  font-weight: var(--font-normal);
+  color:       var(--text-muted);
+}
+
+.license-plan ul {
+  list-style: none;
+  display:    flex;
+  flex-direction: column;
+  gap:        var(--space-2);
+}
+
+.license-plan li {
+  font-size:    var(--text-sm);
+  color:        var(--text-body);
+  padding-left: var(--space-5);
+  position:     relative;
+}
+
+.license-plan li::before {
+  content:    '\2713';
+  position:   absolute;
+  left:       0;
+  color:      var(--success);
+  font-weight: var(--font-bold);
+  font-size:  var(--text-xs);
+}
+
+/* Inline code in plan list items */
+.license-plan li code {
+  padding:        0.1rem 0.3rem;
+  background:     var(--surface-2);
+  border-radius:  var(--radius-sm);
+  color:          var(--accent-soft);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+.license-footer {
+  margin-top:  var(--space-6);
+  padding-top: var(--space-4);
+  border-top:  1px solid var(--border);
+  font-size:   var(--text-sm);
+  color:       var(--text-faint);
+  display:     flex;
+  gap:         var(--space-6);
+  flex-wrap:   wrap;
+}
+
+.license-footer code {
+  font-size:     var(--text-xs);
+  background:    var(--surface-2);
+  padding:       0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  color:         var(--text-muted);
+}
+
+/* ── License responsive ──────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .license-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .license-plans {
+    grid-template-columns: 1fr;
+  }
+
+  .license-key-row {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ENDPOINTS TAB
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.page-endpoints {
+  padding: var(--space-8) var(--space-6) var(--space-12);
+}
+
+.endpoints-container {
+  max-width: 820px;
+  margin-inline: auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.endpoints-header {
+  margin-bottom: var(--space-8);
+}
+
+.endpoints-header h1 {
+  font-size:      var(--text-3xl);
+  font-weight:    var(--font-extrabold);
+  line-height:    var(--leading-tight);
+  color:          var(--text-primary);
+  letter-spacing: -0.025em;
+  margin-bottom:  var(--space-2);
+}
+
+.endpoints-lead {
+  font-size:   var(--text-base);
+  color:       var(--text-muted);
+}
+
+.endpoints-lead code {
+  font-size:      var(--text-sm);
+  background:     var(--surface-2);
+  padding:        0.1rem 0.4rem;
+  border-radius:  var(--radius-sm);
+  border:         1px solid var(--border);
+  color:          var(--text-primary);
+}
+
+/* ── Endpoint Cards ──────────────────────────────────────────────────────── */
+
+.ep-card {
+  background:    var(--surface-1);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow:      hidden;
+  margin-bottom: var(--space-5);
+}
+
+.ep-card-head {
+  display:      flex;
+  align-items:  center;
+  gap:          var(--space-3);
+  padding:      var(--space-3) var(--space-5);
+  background:   var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.ep-method {
+  display:        inline-flex;
+  align-items:    center;
+  padding:        0.2rem 0.5rem;
+  border-radius:  var(--radius-sm);
+  font-family:    var(--font-mono);
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.04em;
+}
+
+.ep-get {
+  background: rgba(16, 185, 129, 0.12);
+  color:      #34d399;
+}
+
+.ep-post {
+  background: rgba(37, 99, 235, 0.12);
+  color:      var(--accent-soft);
+}
+
+.ep-path {
+  font-family: var(--font-mono);
+  font-size:   var(--text-sm);
+  font-weight: var(--font-semibold);
+  color:       var(--text-primary);
+}
+
+.ep-auth {
+  margin-left:   auto;
+  font-size:     var(--text-xs);
+  font-weight:   var(--font-semibold);
+  padding:       0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+}
+
+.ep-auth-none {
+  background: rgba(255, 255, 255, 0.04);
+  color:      var(--text-faint);
+  border:     1px solid var(--border);
+}
+
+.ep-auth-required {
+  background: var(--accent-dim);
+  color:      var(--accent-soft);
+  border:     1px solid rgba(96, 165, 250, 0.18);
+}
+
+.ep-card-body {
+  padding: var(--space-5);
+}
+
+.ep-desc {
+  font-size:     var(--text-base);
+  color:         var(--text-body);
+  line-height:   var(--leading-normal);
+  margin-bottom: var(--space-3);
+}
+
+/* Inline code inside endpoint descriptions */
+.ep-desc code {
+  padding:        0.1rem 0.3rem;
+  background:     var(--surface-2);
+  border-radius:  var(--radius-sm);
+  color:          var(--text-primary);
+}
+
+.ep-why {
+  font-size:      var(--text-sm);
+  color:          var(--text-body);
+  line-height:    var(--leading-normal);
+  padding:        var(--space-3) var(--space-4);
+  background:     var(--surface-2);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius);
+  margin-bottom:  var(--space-4);
+}
+
+.ep-why strong {
+  color: var(--text-primary);
+}
+
+.ep-callout {
+  font-size:      var(--text-sm);
+  color:          var(--text-body);
+  line-height:    var(--leading-normal);
+  padding:        var(--space-3) var(--space-4);
+  background:     var(--warning-bg);
+  border:         1px solid rgba(245, 158, 11, 0.15);
+  border-radius:  var(--radius);
+  margin-bottom:  var(--space-3);
+}
+
+/* ── Params Tables ───────────────────────────────────────────────────────── */
+
+.ep-params {
+  margin-top:    var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.ep-params h4 {
+  font-size:      var(--text-sm);
+  font-weight:    var(--font-bold);
+  color:          var(--text-primary);
+  margin-bottom:  var(--space-2);
+}
+
+.ep-table {
+  width:           100%;
+  border-collapse: collapse;
+  font-size:       var(--text-sm);
+}
+
+.ep-table thead {
+  background: var(--surface-2);
+}
+
+.ep-table th {
+  padding:        var(--space-2) var(--space-3);
+  text-align:     left;
+  font-weight:    var(--font-semibold);
+  color:          var(--text-muted);
+  font-size:      var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom:  1px solid var(--border-medium);
+}
+
+.ep-table td {
+  padding:        var(--space-2) var(--space-3);
+  color:          var(--text-body);
+  border-bottom:  1px solid var(--border);
+  vertical-align: top;
+}
+
+.ep-table code {
+  font-size:      var(--text-xs);
+  background:     var(--accent-dim);
+  padding:        0.1rem 0.3rem;
+  border-radius:  3px;
+  color:          var(--accent-soft);
+  font-weight:    var(--font-medium);
+}
+
+.ep-req {
+  font-size:      10px;
+  font-weight:    var(--font-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color:          var(--error);
+  background:     var(--error-bg);
+  padding:        0.1rem 0.35rem;
+  border-radius:  3px;
+}
+
+/* ── Code blocks inside endpoint cards ───────────────────────────────────── */
+
+.ep-card-body .code-block {
+  margin-bottom: var(--space-3);
+}
+
+.ep-card-body .code-block:last-child {
+  margin-bottom: 0;
+}
+
+.ep-copy-btn {
+  font-size:      var(--text-xs);
+  font-weight:    var(--font-medium);
+  font-family:    var(--font-sans);
+  color:          var(--text-faint);
+  padding:        3px 8px;
+  border:         1px solid var(--border-medium);
+  border-radius:  var(--radius-sm);
+  background:     transparent;
+  cursor:         pointer;
+  transition:     color var(--duration-fast), border-color var(--duration-fast),
+                  background var(--duration-fast);
+}
+
+.ep-copy-btn:hover {
+  color:        var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.18);
+  background:   rgba(255, 255, 255, 0.05);
+}
+
+.ep-copy-btn.copied {
+  color:        var(--accent-soft);
+  border-color: rgba(96, 165, 250, 0.30);
+}
+
+/* ── Try It ──────────────────────────────────────────────────────────────── */
+
+.ep-tryit {
+  background:    var(--surface-1);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding:       var(--space-5);
+}
+
+.ep-tryit-head {
+  margin-bottom: var(--space-3);
+}
+
+.ep-tryit-head h2 {
+  font-size:      var(--text-lg);
+  font-weight:    var(--font-bold);
+  color:          var(--text-primary);
+  margin-bottom:  2px;
+}
+
+.ep-tryit-head p {
+  font-size:   var(--text-sm);
+  color:       var(--text-muted);
+}
+
+.ep-tryit-note {
+  font-size:      var(--text-xs);
+  color:          var(--text-muted);
+  padding:        var(--space-2) var(--space-3);
+  background:     var(--surface-2);
+  border:         1px solid var(--border);
+  border-radius:  var(--radius);
+  margin-bottom:  var(--space-3);
+}
+
+.ep-tryit-label {
+  display:      block;
+  font-size:    var(--text-sm);
+  font-weight:  var(--font-semibold);
+  color:        var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.ep-tryit-textarea {
+  width:         100%;
+  min-height:    260px;
+  padding:       var(--space-3);
+  font-family:   var(--font-mono);
+  font-size:     0.8125rem;
+  line-height:   1.7;
+  color:         #cbd5e1;
+  background:    var(--brand-navy-deep);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  resize:        vertical;
+  outline:       none;
+  tab-size:      2;
+  transition:    border-color var(--duration-fast);
+}
+
+.ep-tryit-textarea:focus {
+  border-color: rgba(96, 165, 250, 0.30);
+  box-shadow:   0 0 0 2px rgba(37, 99, 235, 0.10);
+}
+
+.ep-tryit-actions {
+  display:      flex;
+  gap:          var(--space-3);
+  margin-top:   var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.ep-tryit-status {
+  font-family: var(--font-mono);
+  font-size:   var(--text-sm);
+  font-weight: var(--font-medium);
+  padding:     var(--space-2) 0;
+  min-height:  1.5em;
+}
+
+.ep-tryit-ok {
+  color: var(--success);
+}
+
+.ep-tryit-error {
+  color: var(--error);
+}
+
+/* ── Endpoints responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .endpoints-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .ep-card-head {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .ep-auth {
+    margin-left: 0;
+  }
+
+  .ep-card-body {
+    padding: var(--space-3);
+  }
+
+  .ep-tryit {
+    padding: var(--space-3);
+  }
+
+  .ep-tryit-textarea {
+    min-height: 180px;
+  }
+
+  .ep-table {
+    font-size: var(--text-xs);
+  }
+}

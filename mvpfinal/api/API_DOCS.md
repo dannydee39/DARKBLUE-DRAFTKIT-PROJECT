@@ -10,12 +10,50 @@ Base URL (production): `https://api.darkblue.io`
 
 The Dark Blue Valuation API is a **stateless** REST service that calculates real-time auction dollar values for fantasy baseball players during a live draft. It is designed to be called on each player nomination and returns a recommended maximum bid based on:
 
-- The player's projected stats (from NL sample CSV data)
+- A normalized player pool built from real MLB data
 - Current draft state (remaining budgets, already-drafted players)
 - Position scarcity
 - Market inflation
 
 The API does **not** maintain session state — every request must include the full draft state payload.
+
+### Customer Integration Contract
+
+The API is primarily designed for the Dark Blue Draft Kit, but it is intentionally stable enough for outside customers if they normalize their own draft data into the same request shape.
+
+That means a customer does **not** need to copy the Draft Kit frontend or our internal file layout. They only need to transform their CSV, spreadsheet, or app state into the `draft_state` payload expected by `/v1/valuate`.
+
+In practice, the contract is:
+
+```text
+customer CSV / spreadsheet / app state
+-> customer-side normalization
+-> Dark Blue draft_state payload
+-> /v1/valuate
+```
+
+This keeps the API focused on valuation logic instead of trying to parse arbitrary customer spreadsheet formats at runtime.
+
+### Current Player Pool Build
+
+The live player pool is now generated from the official MLB Stats API, not from the old NL sample CSVs.
+
+Build summary:
+
+- seasons blended: `2025`, `2024`, `2023`
+- source data:
+  - full-league hitting season stats
+  - full-league pitching season stats
+  - player metadata for age, team, league, and primary position
+- preprocessing:
+  - weighted 3-year blend
+  - hitter/pitcher fantasy-style score calculation
+  - `baseValue` derived from points above replacement inside hitter and pitcher buckets
+  - headshots derived from `mlbId`
+
+The runtime API still serves one normalized file:
+
+`mvpfinal/api/data/players.json`
 
 ---
 
@@ -202,7 +240,7 @@ Returns the full player pool with optional filters.
 
 | Parameter | Values | Default | Description |
 |---|---|---|---|
-| `league` | `NL`, `AL`, `ALL` | `ALL` | Filter by conference (NL-only data in current build) |
+| `league` | `NL`, `AL`, `ALL` | `ALL` | Filter by conference |
 | `pos` | `C`, `1B`, `2B`, `3B`, `SS`, `OF`, `SP`, `RP` | `ALL` | Filter to players eligible at this position |
 | `tier` | `Elite`, `Starter`, `Bench` | `ALL` | Filter by tier |
 | `drafted` | comma-separated names | — | Exclude these players from results _(marks them unavailable)_ |
@@ -252,35 +290,18 @@ X-License-Key: DB-2026-DEMO-0001
 
 ## Valuation Algorithm
 
-The valuation engine uses a **SGP-based Points Above Replacement (PAR)** model:
+The valuation engine uses an **explainable heuristic model**:
 
 ### Step 1 — Find the Player
-Fuzzy name matching (exact → partial) against the player database.
+Find the player in the normalized player database using exact name first, then alias support for disambiguated duplicate-name players, then a partial-name fallback.
 
 ### Step 2 — Build the Undrafted Pool
 Filter out all players already appearing in `draft_state.teams[].roster`.
 
-### Step 3 — Compute Pool Stats
-For each active scoring category, compute the min/max range across the undrafted pool. Used to normalize player stats to a 0–1 scale.
+### Step 3 — Start From Precomputed Base Value
+Each player already has a `baseValue` calculated from projected fantasy output and points above replacement during the data-generation step. Live valuation starts from that baseline instead of recomputing the entire player pool from scratch on every request.
 
-### Step 4 — Score the Player (SGP-normalized)
-Each active category is normalized: `(playerStat - min) / (max - min)`.
-The player's score is the average across all active categories.
-
-**Note:** ERA and WHIP are inverted (lower = better) before normalization.
-
-### Step 5 — Compute Total Pool Value
-Sum scores for all undrafted players to get the "total pool score."
-
-### Step 6 — Calculate Base True Dollar Value
-```
-baseTDV = (playerScore / totalPoolScore) × spendableBudget
-```
-
-Where `spendableBudget = totalRemainingBudget - reservedDollars`
-(`$1` reserved per remaining unfilled roster slot across all teams).
-
-### Step 7 — Position Scarcity Multiplier
+### Step 4 — Position Scarcity Multiplier
 Counts how many teams still need this position vs. how many undrafted players fill it.
 
 | Demand/Supply Ratio | Scarcity Level | Multiplier |
@@ -290,15 +311,22 @@ Counts how many teams still need this position vs. how many undrafted players fi
 | ≥ 0.7 | MEDIUM | ×1.08 |
 | < 0.7 | LOW | ×1.00 |
 
-### Step 8 — Market Inflation Factor
+### Step 5 — Market Inflation Factor
 Tracks how much of the draft budget has been spent vs. how much was expected at this point. Clamped between 0.85 and 1.45.
 
-### Step 9 — Final Value
+### Step 6 — Final Value
 ```
-TDV = round(baseTDV × scarcityMultiplier × inflationFactor)
-TDV = clamp(TDV, $1, $80)
+TDV = round(baseValue × scarcityMultiplier × inflationFactor)
+TDV = clamp(TDV, $1, $120)
 max_bid_recommendation = round(TDV × 0.92)
 ```
+
+### Step 7 — Explain The Result
+The API returns:
+
+- `player_tier` from the precomputed player dataset
+- `market_context` with a human-readable inflation label such as `Hot`, `Neutral`, or `Cold`
+- `reasoning`, a short text explanation tying scarcity, inflation, and final value together
 
 ---
 

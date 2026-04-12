@@ -1,5 +1,6 @@
 // services/valuation.js — Heuristic valuation engine
 const players = require("../data/players.json");
+const PLAYER_TIER_ORDER = { Elite: 0, Starter: 1, Bench: 2 };
 
 /**
  * Calculate the dollar value for a nominated player given live draft state.
@@ -113,9 +114,13 @@ function calculateValuation(draftState) {
     1.0
   );
 
+  const marketContext = summarizeMarket(inflationFactor);
+  const valueDelta = trueDollarValueClamped - baseTDV;
+
   // Human-readable reasoning
   const reasoning = buildReasoning(
     nominated,
+    nominated.tier,
     scarcityTier,
     positionScarcityMap,
     inflationFactor,
@@ -124,12 +129,16 @@ function calculateValuation(draftState) {
 
   return {
     player: nominated.name,
+    player_tier: nominated.tier,
+    base_value: baseTDV,
     true_dollar_value: trueDollarValueClamped,
     max_bid_recommendation: maxBidRecommendation,
     market_inflation: parseFloat(inflationFactor.toFixed(3)),
+    market_context: marketContext,
     scarcity_tier: scarcityTier,
     position_scarcity: positionScarcityMap,
     draftability_score: draftabilityScore,
+    value_delta: valueDelta,
     reasoning,
     stats: {
       tier: nominated.tier,
@@ -144,11 +153,16 @@ function calculateValuation(draftState) {
 function findPlayer(name) {
   if (!name) return null;
   const q = name.toLowerCase().trim();
-  return (
-    players.find((p) => p.name.toLowerCase() === q) ||
-    players.find((p) => p.name.toLowerCase().includes(q)) ||
-    null
+  const exact = players.find((p) => p.name.toLowerCase() === q);
+  if (exact) return exact;
+
+  const aliasMatches = players.filter((p) =>
+    (p.aliases || []).some((alias) => String(alias).toLowerCase() === q)
   );
+  if (aliasMatches.length === 1) return aliasMatches[0];
+  if (aliasMatches.length > 1) return null;
+
+  return players.find((p) => p.name.toLowerCase().includes(q)) || null;
 }
 
 /** Compute min/max for each stat in the undrafted pool */
@@ -233,8 +247,7 @@ function analyzeScarcity(player, undrafted, teams, totalTeams, rosterConfig) {
 
   // How many teams still need this position
   const slotsPerTeam = rosterConfig[primaryPos] || 1;
-  const ofMultiplier = primaryPos === "OF" ? 3 : 1;
-  const totalSlotsNeeded = totalTeams * slotsPerTeam * ofMultiplier;
+  const totalSlotsNeeded = totalTeams * slotsPerTeam;
   const slotsFilled = teams.reduce((sum, t) => {
     return (
       sum +
@@ -285,7 +298,7 @@ function analyzeScarcity(player, undrafted, teams, totalTeams, rosterConfig) {
 }
 
 /** Build a concise reasoning string */
-function buildReasoning(player, tier, posMap, inflation, tdv) {
+function buildReasoning(player, playerTier, scarcityTier, posMap, inflation, tdv) {
   const pos = player.pos[0];
   const scarcityLevel = posMap[pos] || "LOW";
   const inflPct = ((inflation - 1) * 100).toFixed(1);
@@ -294,11 +307,13 @@ function buildReasoning(player, tier, posMap, inflation, tdv) {
   const parts = [];
   if (scarcityLevel === "CRITICAL" || scarcityLevel === "HIGH") {
     parts.push(`${pos} scarce — high demand in pool.`);
+  } else if (scarcityLevel === "MEDIUM") {
+    parts.push(`${pos} demand is steady.`);
   }
   if (Math.abs(inflation - 1) > 0.02) {
     parts.push(`Market inflation ${inflSign}${inflPct}%.`);
   }
-  parts.push(`Tier: ${tier}. TDV: $${tdv}.`);
+  parts.push(`Player tier: ${playerTier}. Scarcity: ${scarcityTier}. TDV: $${tdv}.`);
 
   return parts.join(" ");
 }
@@ -321,7 +336,59 @@ function getPlayers({ league, pos, tier, available_only, drafted_names }) {
     result = result.filter((p) => !draftedSet.has(p.name));
   }
 
-  return result;
+  const sorted = result
+    .slice()
+    .sort((a, b) => {
+      const tierDelta =
+        (PLAYER_TIER_ORDER[a.tier] ?? Number.MAX_SAFE_INTEGER) -
+        (PLAYER_TIER_ORDER[b.tier] ?? Number.MAX_SAFE_INTEGER);
+      if (tierDelta !== 0) return tierDelta;
+      if ((b.baseValue ?? 0) !== (a.baseValue ?? 0)) return (b.baseValue ?? 0) - (a.baseValue ?? 0);
+      if ((b.fpts ?? 0) !== (a.fpts ?? 0)) return (b.fpts ?? 0) - (a.fpts ?? 0);
+      return a.name.localeCompare(b.name);
+    });
+
+  return annotateRanks(sorted);
 }
 
-module.exports = { calculateValuation, getPlayers, findPlayer };
+function annotateRanks(sortedPlayers) {
+  const tierCounts = {};
+  return sortedPlayers.map((player, index) => {
+    const nextTierRank = (tierCounts[player.tier] || 0) + 1;
+    tierCounts[player.tier] = nextTierRank;
+    return {
+      ...player,
+      overall_rank: index + 1,
+      tier_rank: nextTierRank,
+    };
+  });
+}
+
+function groupPlayersByTier(sortedPlayers) {
+  return ["Elite", "Starter", "Bench"]
+    .map((tier) => ({
+      tier,
+      count: sortedPlayers.filter((player) => player.tier === tier).length,
+      players: sortedPlayers.filter((player) => player.tier === tier),
+    }))
+    .filter((group) => group.count > 0);
+}
+
+function summarizeMarket(inflationFactor) {
+  const deltaPercent = Number(((inflationFactor - 1) * 100).toFixed(1));
+  if (inflationFactor >= 1.15) {
+    return { label: "Very Hot", delta_percent: deltaPercent };
+  }
+  if (inflationFactor >= 1.05) {
+    return { label: "Hot", delta_percent: deltaPercent };
+  }
+  if (inflationFactor <= 0.9) {
+    return { label: "Very Cold", delta_percent: deltaPercent };
+  }
+  if (inflationFactor <= 0.97) {
+    return { label: "Cold", delta_percent: deltaPercent };
+  }
+  return { label: "Neutral", delta_percent: deltaPercent };
+}
+
+module.exports = { calculateValuation, getPlayers, findPlayer, groupPlayersByTier };

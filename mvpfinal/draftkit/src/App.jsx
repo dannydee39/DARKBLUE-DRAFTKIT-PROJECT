@@ -64,7 +64,7 @@ const DEFAULT_LEAGUE = {
   season: "2025",
   owners: 12,
   budget: 260,
-  pool: "NL",
+  pool: "MLB",
   roster: { ...DEFAULT_ROSTER },
   scoring: { ...DEFAULT_SCORING },
   keeperLeague: true,

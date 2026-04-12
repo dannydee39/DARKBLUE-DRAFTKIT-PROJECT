@@ -5,7 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "build:players": "node scripts/generate-players.js",
+    "validate:players": "node scripts/validate-player-pool.js",
+    "test:api": "node scripts/test-api.js",
+    "test:api:fixtures": "node scripts/export-sample-api-data.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

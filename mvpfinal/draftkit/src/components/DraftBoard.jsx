@@ -23,7 +23,7 @@
 // Each roster entry: { name, price, pos, slotIndex, draftedPos, isKeeper? }
 // Grid displays via: team.roster.find(r => r.slotIndex === si)
 // This means position matters — a C drafted into slot 0 stays in that cell.
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────-
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";

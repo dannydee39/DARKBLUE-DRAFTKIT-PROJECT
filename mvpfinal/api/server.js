@@ -6,6 +6,9 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 
+const authRouter = require("./routes/auth");
+const draftsRouter = require("./routes/drafts");
+const { deleteExpiredSessions } = require("./lib/db");
 const valuateRouter = require("./routes/valuate");
 const playersRouter = require("./routes/players");
 
@@ -17,6 +20,15 @@ function createApp(options = {}) {
     .map((o) => o.trim());
   const rateLimitWindowMs = Number(options.rateLimitWindowMs ?? process.env.RATE_LIMIT_WINDOW_MS ?? 60 * 1000);
   const rateLimitMax = Number(options.rateLimitMax ?? process.env.RATE_LIMIT_MAX ?? 120);
+  const sessionCleanupMs = Number(process.env.SESSION_CLEANUP_MS || 15 * 60 * 1000);
+
+  setInterval(() => {
+    try {
+      deleteExpiredSessions();
+    } catch (error) {
+      console.error("Session cleanup failed:", error.message);
+    }
+  }, sessionCleanupMs).unref();
 
   // ── CORS ───────────────────────────────────────────────────────────────────
   app.use(
@@ -28,7 +40,8 @@ function createApp(options = {}) {
         }
         callback(new Error("Not allowed by CORS policy"));
       },
-      methods: ["GET", "POST", "OPTIONS"],
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "X-License-Key"],
     })
   );
@@ -47,6 +60,8 @@ function createApp(options = {}) {
   app.use(express.json({ limit: "1mb" }));
 
   // ── ROUTES ──────────────────────────────────────────────────────────────────
+  app.use("/v1/auth", authRouter);
+  app.use("/v1/drafts", draftsRouter);
   app.use("/v1/valuate", valuateRouter);
   app.use("/v1/players", playersRouter);
 

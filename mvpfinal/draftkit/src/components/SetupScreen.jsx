@@ -35,6 +35,10 @@ export default function SetupScreen({
   onResumeDraft,
   onDuplicateDraft,
   onDeleteDraft,
+  user = null,
+  authReady = false,
+  storageMode = "local",
+  onOpenAuth,
 }) {
   // ── Local form state ─────────────────────────────────────────────────────
   // This state is ONLY used on this screen. Once onInit() is called the
@@ -274,19 +278,48 @@ export default function SetupScreen({
             {creating ? "INITIALIZING…" : "INITIALIZE DRAFT →"}
           </button>
           <p className="setup-hint">
-            Each draft is saved locally so you can return to previous league setups and seasons.
+            {user
+              ? "Drafts created while signed in sync to your VPS-backed cloud library."
+              : "Each guest draft is saved locally in this browser until you sign in."}
           </p>
         </div>
 
         <div className="setup-card setup-library-card">
           <div className="setup-library-header">
             <h2 className="setup-card-title">SAVED DRAFT LIBRARY</h2>
-            <span className="setup-library-count">{drafts.length} total</span>
+            <span className="setup-library-count">
+              {drafts.length} total · {storageMode === "cloud" ? "cloud" : "local"}
+            </span>
+          </div>
+
+          <div className={`setup-cloud-banner ${user ? "connected" : ""}`}>
+            <div>
+              <div className="setup-cloud-title">
+                {user
+                  ? `Cloud sync enabled for ${user.displayName || user.email}`
+                  : authReady
+                    ? "Sign in to save drafts on the VPS"
+                    : "Checking cloud account status…"}
+              </div>
+              <div className="setup-cloud-copy">
+                {user
+                  ? "Saved drafts now persist to your Draft Kit account and follow you across devices."
+                  : "Guest mode still works locally, but account login unlocks cloud-backed draft storage and profile sync."}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="setup-cloud-btn"
+              onClick={() => onOpenAuth?.()}
+            >
+              {user ? "Account" : "Login / Sign Up"}
+            </button>
           </div>
 
           {drafts.length === 0 && (
             <p className="setup-library-empty">
-              No saved drafts yet. Create your first league setup to start a reusable draft library.
+              No saved drafts yet. Create your first league setup to start a reusable{" "}
+              {storageMode === "cloud" ? "cloud" : "local"} draft library.
             </p>
           )}
 
@@ -318,6 +351,9 @@ export default function SetupScreen({
                     <div className="saved-draft-stats">
                       <span>{mainPicks} main picks</span>
                       <span>{taxiPicks} taxi picks</span>
+                      <span className="saved-draft-source">
+                        {(draft.source || storageMode || "local").toUpperCase()}
+                      </span>
                     </div>
                     <div className="saved-draft-updated">
                       Last saved: {formatDraftTimestamp(draft.updatedAt || draft.lastOpenedAt)}

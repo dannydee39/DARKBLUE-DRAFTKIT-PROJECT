@@ -84,3 +84,4 @@ JIRA.md
 
 # ── Generated API validation artifacts ─────────────────────────────────────
 mvpfinal/api/artifacts/
+mvpfinal/api/data/draftkit-auth.db

@@ -27,6 +27,7 @@ import "./styles.css";
 
 // ── Named imports from modular components ─────────────────────────────────────
 import SetupScreen from "./components/SetupScreen.jsx";
+import AuthModal from "./components/AuthModal.jsx";
 import DraftBoard from "./components/DraftBoard.jsx";
 import PlayerDictionary from "./components/PlayerDictionary.jsx";
 import LeagueSettings from "./components/LeagueSettings.jsx";
@@ -43,7 +44,19 @@ import {
 } from "./constants.js";
 import { buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
 import {
+  createCloudDraft,
+  deleteCloudDraft,
+  getCurrentUser,
+  listCloudDrafts,
+  login as loginToCloud,
+  logout as logoutFromCloud,
+  markCloudDraftOpened,
+  signup as signupForCloud,
+  updateCloudDraft,
+} from "./utils/cloudApi.js";
+import {
   buildDraftRecord,
+  buildCloudDraftPayload,
   buildTeamsFromConfig,
   cloneLeagueConfig,
   clonePlayers,
@@ -52,12 +65,14 @@ import {
   DRAFT_LIBRARY_STORAGE_KEY,
   formatPoolLabel,
   hasDraftStarted,
+  hydratePlayersFromLeague,
   validateLeagueConfig,
 } from "./utils/draftSessions.js";
 
 const MAX_HISTORY_SNAPSHOTS = 30;
 const VALUATION_REQUEST_TIMEOUT_MS = 7000;
 const VALUATION_ERROR_RETRY_MS = 10000;
+const CLOUD_SAVE_DEBOUNCE_MS = 900;
 
 const DEFAULT_LEAGUE = {
   name: "",
@@ -149,6 +164,14 @@ export default function App() {
   const [savedDrafts, setSavedDrafts] = useState([]);
   const [activeDraftId, setActiveDraftId] = useState(null);
   const [libraryReady, setLibraryReady] = useState(false);
+  const [storageMode, setStorageMode] = useState("local");
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [cloudSyncMessage, setCloudSyncMessage] = useState("");
+  const cloudSaveTimeoutRef = useRef(null);
 
   // ── API health state ──────────────────────────────────────────────────────
   // "checking" → "online" | "offline" based on GET /health response.
@@ -211,6 +234,12 @@ export default function App() {
     return () => window.clearTimeout(timeoutId);
   }, [boardNotice]);
 
+  useEffect(() => {
+    if (!cloudSyncMessage) return;
+    const timeoutId = window.setTimeout(() => setCloudSyncMessage(""), 3200);
+    return () => window.clearTimeout(timeoutId);
+  }, [cloudSyncMessage]);
+
   function clearDraftHistory() {
     setUndoStack([]);
     setRedoStack([]);
@@ -256,40 +285,145 @@ export default function App() {
     setRedoStack([]);
   }
 
+  function readLocalDraftLibrary() {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_LIBRARY_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((draft) => ({
+        ...draft,
+        source: draft.source || "local",
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async function fetchCloudDraftLibrary() {
+    const response = await listCloudDrafts();
+    return (response.drafts || []).map((draft) => ({
+      ...draft,
+      source: "cloud",
+    }));
+  }
+
+  async function hydrateDraftPlayers(draft) {
+    if (draft?.players?.length) {
+      return clonePlayers(draft.players);
+    }
+
+    const livePlayers = await fetchPlayers(draft.league || DEFAULT_LEAGUE);
+    return hydratePlayersFromLeague(livePlayers, draft.league || {});
+  }
+
+  async function refreshCloudDraftLibrary() {
+    const cloudDrafts = await fetchCloudDraftLibrary();
+    const localDrafts = readLocalDraftLibrary().filter(
+      (localDraft) => !cloudDrafts.some((cloudDraft) => cloudDraft.id === localDraft.id),
+    );
+    setStorageMode("cloud");
+    setSavedDrafts([...cloudDrafts, ...localDrafts]);
+    return cloudDrafts;
+  }
+
+  function upsertDraftInLibrary(record) {
+    setSavedDrafts((prev) => {
+      const next = prev.filter((draft) => draft.id !== record.id);
+      return [{ ...record }, ...next];
+    });
+  }
+
+  async function persistCloudDraftRecord(record, options = {}) {
+    const payload = buildCloudDraftPayload(record);
+    const response = options.forceCreate
+      ? await createCloudDraft(payload)
+      : record.source === "cloud"
+      ? await updateCloudDraft(payload)
+      : await createCloudDraft(payload);
+    return {
+      ...record,
+      source: "cloud",
+      updatedAt: response?.draft?.updatedAt || record.updatedAt,
+      lastOpenedAt: response?.draft?.lastOpenedAt || record.lastOpenedAt,
+    };
+  }
+
+  async function promoteActiveDraftToCloud() {
+    if (screen !== "main" || !activeDraftId) return;
+
+    const record = buildDraftRecord({
+      id: activeDraftId,
+      league,
+      players,
+      notes,
+      favorites,
+      currentOwnerIdx,
+      createdAt: savedDrafts.find((draft) => draft.id === activeDraftId)?.createdAt,
+    });
+
+    const persisted = await persistCloudDraftRecord({
+      ...record,
+      source: "cloud",
+    }, { forceCreate: true });
+    upsertDraftInLibrary(persisted);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Draft library hydration + persistence
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(DRAFT_LIBRARY_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(parsed)) {
-        setSavedDrafts(parsed);
-      }
-    } catch {
-      setSavedDrafts([]);
-    } finally {
-      setLibraryReady(true);
-    }
+    setSavedDrafts(readLocalDraftLibrary());
+    setLibraryReady(true);
   }, []);
 
   useEffect(() => {
     if (!libraryReady) return;
     window.localStorage.setItem(
       DRAFT_LIBRARY_STORAGE_KEY,
-      JSON.stringify(savedDrafts),
+      JSON.stringify(savedDrafts.filter((draft) => (draft.source || "local") !== "cloud")),
     );
   }, [savedDrafts, libraryReady]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateAuth() {
+      try {
+        const response = await getCurrentUser();
+        if (cancelled) return;
+        if (response?.authenticated && response?.user) {
+          setUser(response.user);
+          await refreshCloudDraftLibrary();
+        } else {
+          setUser(null);
+          setStorageMode("local");
+        }
+      } catch {
+        if (!cancelled) {
+          setUser(null);
+          setStorageMode("local");
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthReady(true);
+        }
+      }
+    }
+
+    hydrateAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!libraryReady || !activeDraftId || screen !== "main") return;
+    const current = savedDrafts.find((draft) => draft.id === activeDraftId);
+    if (!current) return;
 
-    setSavedDrafts((prev) => {
-      const draftIdx = prev.findIndex((draft) => draft.id === activeDraftId);
-      if (draftIdx === -1) return prev;
-
-      const current = prev[draftIdx];
-      const nextRecord = buildDraftRecord({
+    const nextRecord = {
+      ...current,
+      ...buildDraftRecord({
         id: activeDraftId,
         league,
         players,
@@ -297,12 +431,37 @@ export default function App() {
         favorites,
         currentOwnerIdx,
         createdAt: current.createdAt,
-      });
+      }),
+    };
 
-      const next = [...prev];
-      next[draftIdx] = { ...current, ...nextRecord };
-      return next;
-    });
+    upsertDraftInLibrary(nextRecord);
+
+    if (cloudSaveTimeoutRef.current) {
+      window.clearTimeout(cloudSaveTimeoutRef.current);
+    }
+
+    if (user && nextRecord.source === "cloud") {
+      cloudSaveTimeoutRef.current = window.setTimeout(async () => {
+        try {
+          const persisted = await persistCloudDraftRecord({
+            ...nextRecord,
+            source: "cloud",
+          });
+          setCloudSyncMessage("Cloud draft saved.");
+          upsertDraftInLibrary(persisted);
+        } catch (error) {
+          setCloudSyncMessage(
+            error?.message || "Cloud save failed. Keeping the local in-memory draft open.",
+          );
+        }
+      }, CLOUD_SAVE_DEBOUNCE_MS);
+    }
+
+    return () => {
+      if (cloudSaveTimeoutRef.current) {
+        window.clearTimeout(cloudSaveTimeoutRef.current);
+      }
+    };
   }, [
     activeDraftId,
     currentOwnerIdx,
@@ -312,6 +471,8 @@ export default function App() {
     notes,
     players,
     screen,
+    storageMode,
+    user,
   ]);
 
   useEffect(() => {
@@ -510,6 +671,88 @@ export default function App() {
     }
   }
 
+  async function handleSignup(credentials) {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const response = await signupForCloud(credentials);
+      setUser(response.user);
+      setShowAuthModal(false);
+      setCloudSyncMessage("Account created. Cloud draft sync is active.");
+      await refreshCloudDraftLibrary();
+      try {
+        await promoteActiveDraftToCloud();
+      } catch (error) {
+        setCloudSyncMessage(
+          error?.message ||
+            "Signed in, but the current draft could not be promoted to cloud yet.",
+        );
+      }
+    } catch (error) {
+      setAuthError(error?.message || "Account creation failed.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleLogin(credentials) {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const response = await loginToCloud(credentials);
+      setUser(response.user);
+      setShowAuthModal(false);
+      setCloudSyncMessage("Signed in. Cloud draft sync is active.");
+      await refreshCloudDraftLibrary();
+      try {
+        await promoteActiveDraftToCloud();
+      } catch (error) {
+        setCloudSyncMessage(
+          error?.message ||
+            "Signed in, but the current draft could not be promoted to cloud yet.",
+        );
+      }
+    } catch (error) {
+      setAuthError(error?.message || "Sign in failed.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleLogout() {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      await logoutFromCloud();
+      setUser(null);
+      setStorageMode("local");
+      setSavedDrafts((prev) => {
+        const localDrafts = readLocalDraftLibrary();
+        if (!activeDraftId || screen !== "main") return localDrafts;
+
+        const snapshot = buildDraftRecord({
+          id: activeDraftId,
+          league,
+          players,
+          notes,
+          favorites,
+          currentOwnerIdx,
+        });
+
+        return [
+          { ...snapshot, source: "local" },
+          ...localDrafts.filter((draft) => draft.id !== activeDraftId),
+        ];
+      });
+      setShowAuthModal(false);
+      setCloudSyncMessage("Signed out. Current draft remains available locally in this browser.");
+    } catch (error) {
+      setAuthError(error?.message || "Sign out failed.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // initDraft — called when the user submits the setup form.
   // Creates the teams array, fetches the player pool, and transitions
@@ -544,25 +787,45 @@ export default function App() {
       message: "New draft workspace initialized.",
     });
 
-    setSavedDrafts((prev) => [
-      buildDraftRecord({
-        id: draftId,
-        league: lg,
-        players: loadedPlayers,
-        notes: {},
-        favorites: {},
-        currentOwnerIdx: 0,
-      }),
-      ...prev.filter((draft) => draft.id !== draftId),
-    ]);
+    const record = buildDraftRecord({
+      id: draftId,
+      league: lg,
+      players: loadedPlayers,
+      notes: {},
+      favorites: {},
+      currentOwnerIdx: 0,
+    });
+
+    upsertDraftInLibrary({
+      ...record,
+      source: "local",
+    });
+
+    if (user) {
+      try {
+        const persisted = await persistCloudDraftRecord({
+          ...record,
+          source: "cloud",
+        }, { forceCreate: true });
+        upsertDraftInLibrary(persisted);
+        setStorageMode("cloud");
+        setCloudSyncMessage("Draft created in your cloud library.");
+      } catch (error) {
+        setStorageMode("local");
+        upsertDraftInLibrary({ ...record, source: "local" });
+        setCloudSyncMessage(
+          error?.message || "Cloud save failed. This draft is local only for now.",
+        );
+      }
+    }
   }
 
-  function resumeDraft(draftId) {
+  async function resumeDraft(draftId) {
     const draft = savedDrafts.find((entry) => entry.id === draftId);
     if (!draft) return;
 
     const restoredLeague = cloneLeagueConfig(draft.league);
-    const restoredPlayers = clonePlayers(draft.players || []);
+    const restoredPlayers = await hydrateDraftPlayers(draft);
     const restoredNotes = { ...(draft.notes || {}) };
     const restoredFavorites = { ...(draft.favorites || {}) };
     const ownerIdx = Math.min(
@@ -585,36 +848,54 @@ export default function App() {
       message: `Resumed ${restoredLeague.name || "saved draft"}.`,
     });
 
-    setSavedDrafts((prev) =>
-      prev.map((entry) =>
-        entry.id === draftId
-          ? { ...entry, lastOpenedAt: new Date().toISOString() }
-          : entry,
-      ),
-    );
+    upsertDraftInLibrary({
+      ...draft,
+      players: restoredPlayers,
+      lastOpenedAt: new Date().toISOString(),
+    });
+
+    if (draft.source === "cloud") {
+      try {
+        const response = await markCloudDraftOpened(draftId);
+        upsertDraftInLibrary({
+          ...draft,
+          players: restoredPlayers,
+          source: "cloud",
+          lastOpenedAt: response?.draft?.lastOpenedAt || new Date().toISOString(),
+        });
+      } catch {
+        // keep the local in-memory resume path functional even if the open ping fails
+      }
+    }
   }
 
-  function duplicateDraft(draftId) {
+  async function duplicateDraft(draftId) {
     const draft = savedDrafts.find((entry) => entry.id === draftId);
     if (!draft) return;
 
     const copyId = createDraftId();
     const copiedLeague = cloneLeagueConfig(draft.league);
     copiedLeague.name = `${copiedLeague.name || "Draft"} Copy`;
+    const duplicatedPlayers = draft.players?.length
+      ? clonePlayers(draft.players || [])
+      : await hydrateDraftPlayers(draft);
 
     const copy = buildDraftRecord({
       id: copyId,
       league: copiedLeague,
-      players: clonePlayers(draft.players || []),
+      players: duplicatedPlayers,
       notes: { ...(draft.notes || {}) },
       favorites: { ...(draft.favorites || {}) },
       currentOwnerIdx: draft.currentOwnerIdx || 0,
     });
 
-    setSavedDrafts((prev) => [copy, ...prev]);
+    upsertDraftInLibrary({
+      ...copy,
+      source: user ? "local" : draft.source || storageMode,
+    });
     setActiveDraftId(copyId);
     setLeague(cloneLeagueConfig(copy.league));
-    setPlayers(clonePlayers(copy.players));
+    setPlayers(clonePlayers(copy.players || duplicatedPlayers));
     setNotes({ ...(copy.notes || {}) });
     setFavorites({ ...(copy.favorites || {}) });
     setSelectedPlayer(null);
@@ -626,10 +907,39 @@ export default function App() {
       tone: "info",
       message: `Opened duplicate workspace for ${copiedLeague.name}.`,
     });
+
+    if (user) {
+      try {
+        const persisted = await persistCloudDraftRecord({
+          ...copy,
+          source: "cloud",
+        }, { forceCreate: true });
+        upsertDraftInLibrary(persisted);
+        setStorageMode("cloud");
+      } catch (error) {
+        setCloudSyncMessage(
+          error?.message || "Cloud duplicate failed. The copy is available locally.",
+        );
+      }
+    }
   }
 
-  function deleteDraft(draftId) {
+  async function deleteDraft(draftId) {
     if (!window.confirm("Delete this saved draft workspace?")) return;
+
+    const draft = savedDrafts.find((entry) => entry.id === draftId);
+    if (draft?.source === "cloud") {
+      try {
+        await deleteCloudDraft(draftId);
+      } catch (error) {
+        setBoardNotice({
+          tone: "warning",
+          message:
+            error?.message || "Could not delete that cloud draft right now.",
+        });
+        return;
+      }
+    }
 
     setSavedDrafts((prev) => prev.filter((entry) => entry.id !== draftId));
     if (draftId === activeDraftId) {
@@ -1172,14 +1482,33 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   if (screen === "setup") {
     return (
-      <SetupScreen
-        onInit={initDraft}
-        drafts={savedDrafts}
-        activeDraftId={activeDraftId}
-        onResumeDraft={resumeDraft}
-        onDuplicateDraft={duplicateDraft}
-        onDeleteDraft={deleteDraft}
-      />
+      <>
+        <SetupScreen
+          onInit={initDraft}
+          drafts={savedDrafts}
+          activeDraftId={activeDraftId}
+          onResumeDraft={resumeDraft}
+          onDuplicateDraft={duplicateDraft}
+          onDeleteDraft={deleteDraft}
+          user={user}
+          authReady={authReady}
+          storageMode={storageMode}
+          onOpenAuth={() => {
+            setAuthError("");
+            setShowAuthModal(true);
+          }}
+        />
+        <AuthModal
+          open={showAuthModal}
+          user={user}
+          busy={authBusy}
+          error={authError}
+          onClose={() => setShowAuthModal(false)}
+          onLogin={handleLogin}
+          onSignup={handleSignup}
+          onLogout={handleLogout}
+        />
+      </>
     );
   }
 
@@ -1279,9 +1608,27 @@ export default function App() {
               ? `${totalRecordedPicks} PICKS SAVED`
               : "SETUP READY"}
           </div>
-          <div className="nav-avatar" title="User profile">
-            👤
-          </div>
+          {cloudSyncMessage ? (
+            <div className="nav-cloud-message">{cloudSyncMessage}</div>
+          ) : null}
+          <button
+            type="button"
+            className="nav-avatar-btn"
+            title={user ? "Open account" : "Login or sign up"}
+            onClick={() => {
+              setAuthError("");
+              setShowAuthModal(true);
+            }}
+          >
+            <span className="nav-avatar" aria-hidden="true">
+              {user?.displayName?.[0]?.toUpperCase() ||
+                user?.email?.[0]?.toUpperCase() ||
+                "👤"}
+            </span>
+            <span className="nav-avatar-label">
+              {user ? user.displayName || user.email : "Account"}
+            </span>
+          </button>
         </div>
       </nav>
 
@@ -1409,6 +1756,17 @@ export default function App() {
           />
         )}
       </div>
+
+      <AuthModal
+        open={showAuthModal}
+        user={user}
+        busy={authBusy}
+        error={authError}
+        onClose={() => setShowAuthModal(false)}
+        onLogin={handleLogin}
+        onSignup={handleSignup}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }

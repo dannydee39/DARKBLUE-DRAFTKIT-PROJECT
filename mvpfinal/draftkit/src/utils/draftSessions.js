@@ -138,3 +138,62 @@ export function buildDraftRecord({
     currentOwnerIdx,
   };
 }
+
+export function buildCloudDraftPayload(record = {}) {
+  return {
+    ...record,
+    players: [],
+    source: "cloud",
+  };
+}
+
+export function hydratePlayersFromLeague(players = [], league = {}) {
+  const mainAssignments = new Map();
+  const taxiAssignments = new Map();
+
+  (league.teams || []).forEach((team) => {
+    (team.roster || []).forEach((entry) => {
+      if (entry?.playerId == null) return;
+      mainAssignments.set(entry.playerId, {
+        drafted: true,
+        draftedBy: team.id,
+        draftPrice: entry.price ?? null,
+        draftedAt: entry.draftedAt ?? null,
+        taxi: false,
+      });
+    });
+
+    (team.taxiSquad || []).forEach((entry) => {
+      if (entry?.playerId == null) return;
+      taxiAssignments.set(entry.playerId, {
+        drafted: true,
+        draftedBy: team.id,
+        draftPrice: entry.price ?? 1,
+        draftedAt: entry.draftedAt ?? null,
+        taxi: true,
+      });
+    });
+  });
+
+  return players.map((player) => {
+    const mainEntry = mainAssignments.get(player.id);
+    const taxiEntry = taxiAssignments.get(player.id);
+    const assignment = mainEntry || taxiEntry;
+
+    if (!assignment) {
+      return {
+        ...player,
+        drafted: false,
+        draftedBy: null,
+        draftPrice: null,
+        draftedAt: null,
+        taxi: false,
+      };
+    }
+
+    return {
+      ...player,
+      ...assignment,
+    };
+  });
+}

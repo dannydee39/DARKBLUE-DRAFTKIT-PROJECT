@@ -269,10 +269,10 @@ The pipeline (`generate-players.js`) merges them by player name, filters to FPTS
 |---|---|
 | Frontend | React 18, Vite 5 |
 | Backend API | Node.js, Express 4 |
-| Data pipeline | Node.js (no external dependencies) |
+| Data pipeline | Node.js |
 | Auth | API key via `X-License-Key` header |
-| Styling | Custom CSS (dark theme, CSS custom properties) |
-| Player data | JSON file (no database required) |
+| Styling | CSS |
+| Player data | JSON file |
 
 ---
 

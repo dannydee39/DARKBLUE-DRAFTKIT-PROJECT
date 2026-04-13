@@ -3,13 +3,9 @@
 ## Overview
 
 - `mvpfinal` contains 3 connected products:
-  - `draftkit`: the main fantasy auction draft application
-  - `api`: the valuation engine and player-data service
-  - `api-site`: the separate licensing, docs, and account-facing website for the API
-- High-level relationship:
-  - `draftkit` is the app the commissioner uses during the draft
-  - `api` supplies player pool data and live bid recommendations
-  - `api-site` explains how the API works and how a licensed user would integrate it
+  - `draftkit`: the main fantasy auction draft application; the app the commissioner uses during the draft
+  - `api`: the valuation engine and player-data service; supplies player pool data and live bid recommendations
+  - `api-site`: the separate licensing, docs, and account-facing website for the API; explains how the API works and how a licensed user would integrate it
 
 ## Folder Structure
 

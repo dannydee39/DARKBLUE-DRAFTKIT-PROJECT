@@ -3671,7 +3671,26 @@ a {
   color: var(--green);
 }
 
-/* Custom position override row */
+/* Inline override position dropdown */
+.pos-override-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  font-size: 8px;
+  color: var(--muted2);
+  outline: none;
+  font-weight: 400;
+}
+.pos-override-select:focus {
+  border-color: var(--green);
+  color: var(--green);
+}
 .custom-pos-row {
   display: flex;
   align-items: center;

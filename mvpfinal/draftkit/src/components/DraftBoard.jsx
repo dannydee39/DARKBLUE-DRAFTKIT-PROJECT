@@ -198,6 +198,22 @@ export default function DraftBoard({
     ? getValidSlotsForPlayer(extendedSalePlayer, saleTeam)
     : [];
 
+  // Deduplicate slots by position type, keeping first slotIdx for each position
+  const uniqueSlotPositions = validSlotsForModal.reduce((acc, { slotIdx, pos }) => {
+    if (!acc.some((item) => item.pos === pos)) {
+      acc.push({ slotIdx, pos });
+    }
+    return acc;
+  }, []);
+
+  // Positions available for override (not already eligible)
+  const playerEligiblePositions = new Set(
+    Array.isArray(saleModal?.pos) ? saleModal.pos : [],
+  );
+  const availableOverridePositions = rosterPositions.filter(
+    (pos) => !playerEligiblePositions.has(pos),
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
   // getValidSlotsForPlayer — returns all valid empty roster slots for a player
   // on a given team. Used in both the sale modal slot picker and inline search.
@@ -1464,64 +1480,31 @@ export default function DraftBoard({
                 </span>
               </div>
               {recommendationRows.map((p) => (
-                <div
+                <SearchResult
                   key={p.id}
-                  className="rec-row"
-                  onClick={() => handleSelectPlayer(p)}
-                  onMouseEnter={() => scheduleHoverPreview(p)}
-                  onMouseLeave={() => {
+                  player={p}
+                  noteText={notes?.[p.id] || p.note}
+                  isFavorite={Boolean(favorites?.[p.id])}
+                  recValue={valuationCache[p.id]?.max_bid_recommendation}
+                  onSelect={() => handleSelectPlayer(p)}
+                  onOpenCard={() => openPlayerCard(p)}
+                  onRecord={() =>
+                    activeCellSearch
+                      ? openSaleModalForCell(
+                          p,
+                          activeCellSearch.teamId,
+                          activeCellSearch.slotIdx,
+                        )
+                      : openSaleModal(p)
+                  }
+                  onToggleFavorite={() => toggleFavorite(p.id)}
+                  onPreviewStart={() => scheduleHoverPreview(p)}
+                  onPreviewEnd={() => {
                     if (hoverPreviewPlayer?.id === p.id) {
                       clearHoverPreview();
                     }
                   }}
-                >
-                  <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
-                  <div className="rec-info">
-                    <div className="rec-name-row">
-                      <div className="rec-name">{p.name}</div>
-                      <button
-                        type="button"
-                        className={`favorite-btn compact ${favorites?.[p.id] ? "active" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(p.id);
-                        }}
-                        title={
-                          favorites?.[p.id]
-                            ? "Remove favorite"
-                            : "Favorite this player"
-                        }
-                      >
-                        ★
-                      </button>
-                    </div>
-                    <div className="rec-team">{p.team}</div>
-                    <div className="rec-pos">
-                      {p.pos.map((pos) => (
-                        <span
-                          key={pos}
-                          className="pos-badge"
-                          style={{ background: posColor(pos) }}
-                        >
-                          {pos}
-                        </span>
-                      ))}
-                    </div>
-                    {(notes?.[p.id] || p.note) && (
-                      <div className="rec-note-pill">✎ note saved</div>
-                    )}
-                  </div>
-                  <div className="rec-right">
-                    <div className="rec-value green">
-                      $
-                      {valuationCache[p.id]?.max_bid_recommendation ??
-                        p.baseValue}
-                    </div>
-                    <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
-                      {p.tier?.toUpperCase()}
-                    </div>
-                  </div>
-                </div>
+                />
               ))}
               {recommendationRows.length === 0 && (
                 <div className="cp-empty scout-empty-state">
@@ -1580,17 +1563,8 @@ export default function DraftBoard({
                     : openSaleModal(selectedPlayer)
                 }
               >
-                {activeCellSearch ? "ADD TO SELECTED CELL" : "OPEN SALE MODAL"}
+                {activeCellSearch ? "ADD TO SELECTED CELL" : "RECORD SALE"}
               </button>
-              {activeCellSearch && (
-                <button
-                  type="button"
-                  className="undo-btn ghost-btn"
-                  onClick={() => setActiveCellSearch(null)}
-                >
-                  Clear Slot
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -1627,28 +1601,13 @@ export default function DraftBoard({
         <div className="modal-overlay" onClick={closeSaleModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>RECORD AUCTION SALE</h3>
-            <p className="modal-player">{saleModal.name}</p>
-
-            <div
-              style={{
-                display: "flex",
-                gap: 4,
-                marginBottom: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              {(Array.isArray(saleModal.pos) ? saleModal.pos : []).map((p) => (
-                <span
-                  key={p}
-                  className="pos-badge"
-                  style={{ background: posColor(p) }}
-                >
-                  {p}
-                </span>
-              ))}
-              <span className={`tier-badge ${saleModal.tier?.toLowerCase()}`}>
-                {saleModal.tier?.toUpperCase()}
-              </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <PlayerAvatar
+                name={saleModal.name}
+                size={36}
+                photoUrl={saleModal.photoUrl}
+              />
+              <p className="modal-player" style={{ margin: 0 }}>{saleModal.name}</p>
             </div>
 
             {/* Winning team selector */}
@@ -1664,19 +1623,6 @@ export default function DraftBoard({
                   </option>
                 ))}
               </select>
-              <div className="modal-hint" style={{ marginTop: 8 }}>
-                Active owner: <strong>{myTeam?.name}</strong>
-                {saleTeam !== myTeam?.id && (
-                  <>
-                    {" "}
-                    · Recording this to{" "}
-                    <strong>
-                      {league.teams.find((t) => t.id === saleTeam)?.name}
-                    </strong>{" "}
-                    instead
-                  </>
-                )}
-              </div>
             </div>
 
             {/* ── Position Slot Picker ─────────────────────────────────────── */}
@@ -1685,15 +1631,15 @@ export default function DraftBoard({
             {/* into the grid at that exact column position.                     */}
             <div className="form-group">
               <label>DRAFT INTO SLOT</label>
-              {validSlotsForModal.length > 0 ? (
+              {uniqueSlotPositions.length > 0 ? (
                 <div className="slot-picker">
-                  {validSlotsForModal.map(({ slotIdx, pos }) => (
+                  {uniqueSlotPositions.map(({ slotIdx, pos }) => (
                     <button
-                      key={slotIdx}
+                      key={pos}
                       type="button"
                       className={`slot-btn ${saleSlot === slotIdx ? "active" : ""}`}
                       onClick={() => setSaleSlot(slotIdx)}
-                      title={`Slot ${slotIdx + 1}: ${pos}`}
+                      title={`Slot: ${pos}`}
                     >
                       <span
                         className="pos-badge"
@@ -1706,6 +1652,38 @@ export default function DraftBoard({
                       </span>
                     </button>
                   ))}
+                  {availableOverridePositions.length > 0 && (
+                    <select
+                      className="pos-override-select"
+                      value={customPosInput || ""}
+                      onChange={(e) => {
+                        const selectedPos = e.target.value;
+                        setCustomPosInput(selectedPos);
+                        // Recalculate valid slots with the new override
+                        const overriddenPlayer = {
+                          ...saleModal,
+                          pos: [
+                            ...new Set([
+                              ...(Array.isArray(saleModal.pos) ? saleModal.pos : []),
+                              selectedPos,
+                            ]),
+                          ],
+                        };
+                        const nextSlots = getValidSlotsForPlayer(overriddenPlayer, saleTeam);
+                        if (nextSlots[0]) {
+                          setSaleSlot(nextSlots[0].slotIdx);
+                        }
+                      }}
+                      title="Click to override eligibility for an additional position"
+                    >
+                      <option value=""></option>
+                      {availableOverridePositions.map((pos) => (
+                        <option key={pos} value={pos}>
+                          {pos}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               ) : (
                 <div
@@ -1716,27 +1694,9 @@ export default function DraftBoard({
                   }}
                 >
                   ⚠ No eligible slots available for{" "}
-                  {league.teams.find((t) => t.id === saleTeam)?.name}— try a
-                  different team or add a custom position below.
+                  {league.teams.find((t) => t.id === saleTeam)?.name}
                 </div>
               )}
-
-              {/* Custom eligibility override */}
-              {/* Lets you temporarily grant a player eligibility at a position  */}
-              {/* not in their database profile (e.g., multi-pos player listed    */}
-              {/* only as OF but has 1B eligibility in your league).              */}
-              <div className="custom-pos-row">
-                <span className="custom-pos-label">
-                  Override/add eligibility:
-                </span>
-                <input
-                  className="custom-pos-input"
-                  value={customPosInput}
-                  onChange={(e) => setCustomPosInput(e.target.value)}
-                  placeholder="e.g. 2B or SS,3B"
-                  title="Add custom position eligibility for this player"
-                />
-              </div>
             </div>
 
             {/* Bid amount */}
@@ -1758,25 +1718,7 @@ export default function DraftBoard({
             {valuationCache[saleModal?.id] &&
             valuationCache[saleModal?.id] !== "loading" &&
             !valuationCache[saleModal?.id]?.error ? (
-              <div className="modal-hint">
-                API suggests:{" "}
-                <strong>
-                  ${valuationCache[saleModal?.id].max_bid_recommendation}
-                </strong>{" "}
-                max bid
-                {valuationCache[saleModal?.id].true_dollar_value && (
-                  <>
-                    {" "}
-                    · TDV:{" "}
-                    <strong>
-                      ${valuationCache[saleModal?.id].true_dollar_value}
-                    </strong>
-                  </>
-                )}
-                {valuationCache[saleModal?.id].scarcity_tier && (
-                  <> · {valuationCache[saleModal?.id].scarcity_tier}</>
-                )}
-              </div>
+              <div></div> // Horrible practice dead code
             ) : valuationCache[saleModal?.id]?.error ? (
               <div className="modal-hint">
                 Base value: <strong>${saleModal.baseValue}</strong> ·{" "}

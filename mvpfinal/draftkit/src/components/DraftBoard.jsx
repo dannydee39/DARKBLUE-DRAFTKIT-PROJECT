@@ -1194,7 +1194,7 @@ export default function DraftBoard({
         {/* Current player section */}
         <div className="current-player-section">
           <div className="cp-header">
-            {previewingPinnedPlayer ? "PLAYER PREVIEW" : "PINNED PLAYER"}
+            PINNED PLAYER
           </div>
 
           {displayedPinnedPlayer ? (
@@ -1275,53 +1275,6 @@ export default function DraftBoard({
 
           {activeRailTab === "search" ? (
             <div className="scout-panel tabbed-scout-panel">
-              {activeCellSearch && activeContextTeam ? (
-                <div className="slot-context-banner">
-                  <div className="slot-context-title">
-                    Filling {activeContextTeam.name} · {activeCellSearch.pos}
-                  </div>
-                  <div className="slot-context-copy">
-                    Eligible fits are filtered in. Favorites and players with
-                    notes rise to the top.
-                  </div>
-                  <button
-                    type="button"
-                    className="slot-context-clear"
-                    onClick={() => setActiveCellSearch(null)}
-                  >
-                    Clear Slot Focus
-                  </button>
-                </div>
-              ) : showScoutRailHelper ? (
-                <div className="slot-context-banner muted">
-                  <div className="slot-context-title">
-                    Search lives here now
-                  </div>
-                  <div className="slot-context-copy">
-                    Click a grid cell to lock a team and slot, then draft from
-                    the rail.
-                  </div>
-                  <div className="slot-context-actions">
-                    <button
-                      type="button"
-                      className="slot-context-clear secondary"
-                      onClick={() => setDismissScoutRailHelp(true)}
-                    >
-                      Dismiss
-                    </button>
-                    <button
-                      type="button"
-                      className="slot-context-clear"
-                      onClick={() => {
-                        setDismissScoutRailHelp(true);
-                        setHideScoutRailHelp(true);
-                      }}
-                    >
-                      Don't show again
-                    </button>
-                  </div>
-                </div>
-              ) : null}
 
               <div className="search-label-row scout-label-row">
                 <span className="search-label">PLAYER SEARCH</span>

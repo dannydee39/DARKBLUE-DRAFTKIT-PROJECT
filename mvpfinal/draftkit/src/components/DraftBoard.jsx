@@ -1249,9 +1249,10 @@ export default function DraftBoard({
           {displayedPinnedPlayer ? (
             <>
               <div className="pinned-player-shell">
-                <button
-                  type="button"
+                <div
                   className={`pinned-player-strip ${previewingPinnedPlayer ? "previewing" : ""}`}
+                  role="button"
+                  tabIndex={0}
                   ref={pinnedStripRef}
                   onClick={() => {
                     if (previewingPinnedPlayer) {
@@ -1261,11 +1262,22 @@ export default function DraftBoard({
                     }
                     setIsPinnedExpanded((prev) => !prev);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (previewingPinnedPlayer) {
+                        handleSelectPlayer(displayedPinnedPlayer);
+                        setIsPinnedExpanded(true);
+                        return;
+                      }
+                      setIsPinnedExpanded((prev) => !prev);
+                    }
+                  }}
                 >
                   <div className="pinned-player-main">
                     <PlayerAvatar
                       name={displayedPinnedPlayer.name}
-                      size={36}
+                      size={48}
                       photoUrl={displayedPinnedPlayer.photoUrl}
                     />
                     <div className="pinned-player-copy">
@@ -1285,14 +1297,23 @@ export default function DraftBoard({
                       </div>
                     </div>
                   </div>
-                  <span className="pinned-player-toggle">
-                    {previewingPinnedPlayer
-                      ? "Pin + Open"
-                      : isPinnedExpanded
-                        ? "Close Card"
-                        : "Open Card"}
-                  </span>
-                </button>
+                  {activeCellSearch && (
+                    <button
+                      type="button"
+                      className="sr-record pinned-player-add-slot"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openSaleModalForCell(
+                          displayedPinnedPlayer,
+                          activeCellSearch.teamId,
+                          activeCellSearch.slotIdx,
+                        );
+                      }}
+                    >
+                      Add to Slot
+                    </button>
+                  )}
+                </div>
               </div>
             </>
           ) : (
@@ -1357,6 +1378,11 @@ export default function DraftBoard({
                 </button>
               </div>
 
+              <div className="scout-results-meta">
+                <span>{scoutResults.length} available</span>
+                {activeCellSearch && <span>slot locked</span>}
+              </div>
+
               <input
                 ref={searchRef}
                 className="search-input scout-search-input"
@@ -1379,11 +1405,6 @@ export default function DraftBoard({
                 }}
               />
 
-              <div className="scout-results-meta">
-                <span>{scoutResults.length} available</span>
-                {activeCellSearch && <span>slot locked</span>}
-              </div>
-
               <div
                 className="scout-results-list"
                 onMouseLeave={clearHoverPreview}
@@ -1395,9 +1416,6 @@ export default function DraftBoard({
                     noteText={notes?.[p.id] || p.note}
                     isFavorite={Boolean(favorites?.[p.id])}
                     recValue={valuationCache[p.id]?.max_bid_recommendation}
-                    contextTag={
-                      activeCellSearch ? `Fits ${activeCellSearch.pos}` : null
-                    }
                     actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
                     onSelect={() => handleSelectPlayer(p)}
                     onOpenCard={() => openPlayerCard(p)}
@@ -1874,7 +1892,7 @@ function SearchResult({
       onMouseLeave={onPreviewEnd}
       title={`Pin ${player.name} in the scouting rail`}
     >
-      <PlayerAvatar name={player.name} size={48} photoUrl={player.photoUrl} />
+      <PlayerAvatar name={player.name} size={40} photoUrl={player.photoUrl} />
       <div className="sr-copy">
         <div className="sr-head">
           <span className="sr-name">{player.name}</span>

@@ -1,317 +1,191 @@
-# Dark Blue Draft Kit Architecture
+# mvpfinal Architecture
 
 ## Overview
 
-- `mvpfinal` contains 3 connected products:
-  - `draftkit`: the main fantasy auction draft application; the app the commissioner uses during the draft
-  - `api`: the valuation engine and player-data service; supplies player pool data and live bid recommendations
-  - `api-site`: the separate licensing, docs, and account-facing website for the API; explains how the API works and how a licensed user would integrate it
+- `mvpfinal` now contains 4 runtime folders split into 2 products:
+  - `DB Draft Kit`
+    - `draftkit-web`
+    - `draftkit-api`
+  - `Dark Blue MLB Valuation API`
+    - `valuation-api`
+    - `valuation-site`
+
+## Live URLs
+
+- `DB Draft Kit`
+  - Frontend: `https://draft.anythingavenue.com`
+  - Backend API: `https://draftapi.anythingavenue.com`
+- `Dark Blue MLB Valuation API`
+  - Product site: `https://darkbluevalue.anythingavenue.com`
+  - Licensed API: `https://darkblueapi.anythingavenue.com`
 
 ## Folder Structure
 
-- `mvpfinal/draftkit`
-  - React + Vite frontend
-  - owns the live draft state, saved drafts, notes, favorites, keeper flow, taxi flow, and board UI
-- `mvpfinal/api`
-  - Express API
-  - owns valuation logic, player-pool filtering, license-key auth, and data generation scripts
-- `mvpfinal/api-site`
-  - static site for API licensing and documentation
-  - separate from the Draft Kit app
+- `draftkit-web`
+  - React + Vite frontend for the commissioner-facing draft application
+  - owns board UI, setup flow, notes, favorites, keeper flow, taxi flow, and account UI
+- `draftkit-api`
+  - Express backend for Draft Kit auth, cloud draft persistence, and valuation proxying
+  - owns user accounts, sessions, draft records, and the backend integration layer used by the frontend
+- `valuation-api`
+  - Express backend for licensed MLB player data and valuation logic
+  - owns player-pool filtering, API-key auth, valuation heuristics, and data-generation scripts
+- `valuation-site`
+  - static product site for the licensed API
+  - explains licensing, authentication, endpoints, and buyer-facing usage
 
-## draftkit
+## DB Draft Kit
+
+### `draftkit-web`
 
 - Purpose:
-  - run the live auction draft
-  - let the user create and resume drafts
-  - manage teams, budgets, roster slots, keepers, taxi squad, and player notes
-  - request live values from the API during the draft
+  - run the live fantasy auction draft
+  - let users create, resume, and manage draft states
+  - let signed-in users persist drafts in the cloud through `draftkit-api`
+  - consume valuations and player-pool data without exposing license-key logic in the browser
 
 ### Main Files
 
-- `src/App.jsx`
+- `draftkit-web/src/App.jsx`
   - top-level application coordinator
-  - controls setup vs main-screen flow
-  - owns shared app state:
-    - league config
-    - teams
-    - player pool
-    - notes
-    - favorites
-    - selected player
-    - valuation cache
-    - saved draft library
-  - handles major draft actions such as recording sales, undo, taxi additions, and draft persistence
-- `src/components/SetupScreen.jsx`
-  - create new draft flow
-  - resume existing draft flow
-  - saved draft library UI
-  - setup-time pool selection and draft validation
-- `src/components/DraftBoard.jsx`
-  - main live draft board
-  - team grid and roster cells
-  - scouting/search rail
-  - hover/pin player interactions
-  - sale modal and nomination flow
-- `src/components/PlayerDictionary.jsx`
-  - broader player browser outside the board context
-  - useful for scouting, searching, and note/favorite workflows
-- `src/components/LeagueSettings.jsx`
-  - league configuration editing after setup
-  - commissioner-facing controls and safeguards
-- `src/components/KeeperSetup.jsx`
-  - keeper assignment and review flow
-- `src/components/TaxiSquad.jsx`
-  - taxi squad and reserve-pick workflow
-- `src/components/ApiSandbox.jsx`
-  - internal testing/debugging surface for API behavior
-- `src/utils/helpers.js`
-  - stateless helper functions
-  - roster expansion
-  - max-bid math
-  - API payload shaping
-  - value-display formatting
-- `src/utils/draftSessions.js`
-  - saved-draft serialization and cloning helpers
-  - local storage key
-  - draft record creation
-  - setup validation
-- `src/constants.js`
-  - default roster and scoring definitions
-  - API base URL and demo key
-  - shared display constants
+  - owns shared league state, player pool, saved-draft state, auth state, valuation cache, and tab routing
+- `draftkit-web/src/components/SetupScreen.jsx`
+  - create/resume draft flow
+  - pool counts and draft-library UI
+- `draftkit-web/src/components/DraftBoard.jsx`
+  - main draft grid
+  - scouting rail
+  - sale flow
+  - hover/pinned player interactions
+- `draftkit-web/src/components/PlayerDictionary.jsx`
+  - full player browser outside the board
+- `draftkit-web/src/components/LeagueSettings.jsx`
+  - post-setup configuration editing and safeguards
+- `draftkit-web/src/components/KeeperSetup.jsx`
+  - keeper workflow
+- `draftkit-web/src/components/TaxiSquad.jsx`
+  - taxi workflow
+- `draftkit-web/src/components/AuthModal.jsx`
+  - sign-in / sign-up surface for cloud drafts
+- `draftkit-web/src/components/ApiSandbox.jsx`
+  - Draft Kit-facing sandbox for testing the valuation flow through the Draft Kit backend
+- `draftkit-web/src/utils/cloudApi.js`
+  - small client for `draftkit-api` auth and draft routes
+- `draftkit-web/src/utils/draftSessions.js`
+  - local draft serialization, cloning, validation, and storage helpers
+- `draftkit-web/src/constants.js`
+  - Draft Kit API base URL and the separate valuation product display URL
 
-### draftkit State Design
-
-- The frontend is local-first.
-- The app keeps the current league state in React state and browser storage.
-- The API is not the source of truth for draft progress.
-- This means:
-  - the UI remains responsive even if the API is temporarily unavailable
-  - the API can stay stateless
-  - outside customers can theoretically wire their own frontend to the same API contract
-
-### Saved Drafts
-
-- Saved drafts are stored locally through `draftSessions.js`.
-- Each saved draft contains:
-  - league config
-  - teams
-  - current player pool snapshot
-  - notes
-  - favorites
-  - current owner turn
-  - timestamps
-- The draft library is meant to support multiple seasons and multiple league instances on the same machine.
-
-## api
+### `draftkit-api`
 
 - Purpose:
-  - provide the Draft Kit with player pool data
-  - return contextual player valuations during the draft
-  - enforce API key authentication
-  - expose a stable contract that a customer could integrate against
+  - authenticate Draft Kit users
+  - persist cloud-saved draft states
+  - proxy valuation requests server-side to the licensed valuation product
 
 ### Main Files
 
-- `server.js`
-  - creates the Express app
-  - sets up CORS
-  - applies rate limiting
-  - mounts the API routes
-  - exposes `/health`
-- `routes/players.js`
-  - serves the player pool
-  - supports filters like league, position, tier, and drafted exclusions
-- `routes/valuate.js`
-  - accepts a full `draft_state`
-  - validates required input
-  - calls the valuation service
-- `middleware/auth.js`
-  - checks `X-License-Key`
-  - blocks unauthorized access to protected endpoints
-- `services/valuation.js`
-  - main valuation engine
-  - finds the nominated player
-  - analyzes drafted supply vs remaining supply
-  - calculates scarcity and inflation
-  - returns live value guidance
-- `data/players.json`
-  - normalized runtime player dataset
-  - consumed by both `/v1/players` and the valuation engine
-- `scripts/generate-players.js`
-  - ETL pipeline that rebuilds `players.json`
-  - currently uses real MLB data
-- `scripts/validate-player-pool.js`
-  - sanity check for generated player data
-- `scripts/test-api.js`
-  - automated API regression test suite
-- `API_DOCS.md`
-  - API contract explanation and integration notes
+- `draftkit-api/server.js`
+  - Draft Kit API entrypoint
+  - CORS, rate limiting, auth routes, draft routes, valuation proxy routes, and health endpoint
+- `draftkit-api/routes/auth.js`
+  - signup, login, logout, and current-session lookup
+- `draftkit-api/routes/drafts.js`
+  - CRUD for cloud-saved drafts
+- `draftkit-api/routes/valuation-proxy.js`
+  - forwards `/v1/players` and `/v1/valuate` to the licensed valuation API using a server-managed license key
+- `draftkit-api/lib/db.js`
+  - SQLite user/session/draft persistence
+- `draftkit-api/lib/security.js`
+  - password hashing, token hashing, and user/session helpers
+- `draftkit-api/middleware/session.js`
+  - cookie parsing, session attachment, and auth guard helpers
+- `draftkit-api/scripts/test-auth-drafts.js`
+  - auth + cloud-draft regression suite
+- `draftkit-api/scripts/test-valuation-proxy.js`
+  - valuation proxy regression suite against a live local valuation API instance
 
-### API Endpoints
+## Dark Blue MLB Valuation API
 
-- `/health`
-  - service health/status endpoint
-  - used to verify the API is online
-- `/v1/players`
-  - returns the player pool
-  - supports filtering
-  - used by the Draft Kit to populate its searchable draft data
-- `/v1/valuate`
-  - accepts the current draft state plus a nominated player
-  - returns live valuation information
-
-### Valuation Composition
-
-- The valuation engine is heuristic and stateless.
-- The API expects the client to send the full draft context.
-- The valuation output is based on:
-  - a precomputed player `baseValue`
-  - positional scarcity
-  - draft-room inflation
-  - remaining budgets and roster slots
-- Important output fields include:
-  - `true_dollar_value`
-  - `max_bid_recommendation`
-  - `market_inflation`
-  - `market_context`
-  - `scarcity_tier`
-  - `position_scarcity`
-  - `reasoning`
-
-### Why the API Is Stateless
-
-- The backend does not persist a live league.
-- Instead, the Draft Kit sends the current draft state on demand.
-- Benefits:
-  - easier testing
-  - easier deployment
-  - simpler licensing story
-  - easier adaptation for third-party customers who want to map their own CSV or app state into the same request format
-
-## Player Data Pipeline
-
-- Runtime data is stored in `api/data/players.json`.
-- That file is generated, not hand-maintained.
-- Current source data comes from real MLB sources through `generate-players.js`.
-- The pipeline:
-  - fetches player metadata and season statistics
-  - blends multiple recent seasons
-  - normalizes player identity and position eligibility
-  - computes fantasy-oriented scoring values
-  - computes `baseValue`
-  - assigns tiers and ranks
-  - outputs one consistent player schema for runtime use
-
-### Important Data Characteristics
-
-- The player pool is normalized so the frontend does not need to care where the original stats came from.
-- Common runtime fields include:
-  - player identity
-  - MLB id
-  - team
-  - league
-  - eligible positions
-  - tier
-  - rank
-  - base value
-  - projected stats
-  - headshot/photo URL
-
-## api-site
+### `valuation-api`
 
 - Purpose:
-  - present the API as a product
-  - explain licensing and authentication
-  - show what the API returns
-  - provide docs/quickstart information
-- This is intentionally separate from `draftkit`.
+  - expose a licensed MLB player-data and valuation service
+  - let the Draft Kit and outside customers request player pools and dynamic valuations
 
 ### Main Files
 
-- `index.html`
-  - entry point for the site
-- `js/router.js`
-  - lightweight hash router for the site pages
-- `js/state.js`
-  - global site state
-  - API base/display URL
-  - demo key
-- `js/pages/license.js`
-  - licensing and authentication explanation
-  - quickstart content
-  - plan comparison
-- `js/pages/endpoints.js`
-  - endpoint-oriented docs/tester surface
-- `css/`
-  - page styling, shared theme variables, navigation styling, and page-specific layout rules
+- `valuation-api/server.js`
+  - licensed API entrypoint
+  - CORS, rate limiting, API-key auth, route mounting, health, and tester landing page
+- `valuation-api/routes/players.js`
+  - filtered player-pool endpoint
+- `valuation-api/routes/valuate.js`
+  - stateless valuation endpoint
+- `valuation-api/middleware/auth.js`
+  - `X-License-Key` enforcement
+- `valuation-api/services/valuation.js`
+  - scarcity, inflation, and valuation heuristics
+- `valuation-api/data/players.json`
+  - normalized runtime MLB player dataset
+- `valuation-api/scripts/generate-players.js`
+  - rebuilds the player dataset from MLB data sources
+- `valuation-api/scripts/validate-player-pool.js`
+  - validates the generated player dataset
+- `valuation-api/scripts/test-api.js`
+  - regression suite for health, auth, player filters, valuation responses, and rate limiting
+- `valuation-api/API_DOCS.md`
+  - endpoint contract and integration notes
 
-### Role in the System
+### `valuation-site`
 
-- `api-site` is not the valuation engine.
-- It is the wrapper product around the valuation engine.
-- Think of it as:
-  - storefront
-  - onboarding surface
-  - quick reference for buyers and reviewers
+- Purpose:
+  - present the licensed valuation product as its own buyer-facing site
+  - show authentication, pricing, and endpoint usage
 
-## How Everything Ties Together
+### Main Files
 
-- `draftkit` calls `api` to:
-  - load players
-  - get live valuations
-- `api-site` points to the same `api` and explains how to use it
-- Shared ideas across all 3 products:
-  - license key
-  - player pool contract
-  - valuation response contract
+- `valuation-site/index.html`
+  - static entry point
+- `valuation-site/js/state.js`
+  - valuation API base/display URL and demo key
+- `valuation-site/js/pages/license.js`
+  - licensing and quickstart UI
+- `valuation-site/js/pages/endpoints.js`
+  - endpoint explorer and tester UI
+- `valuation-site/css/`
+  - shared theme and page-specific layout rules
 
-## Testing and Validation
+## Product Composition
 
-- Backend
+- `DB Draft Kit` is the full-stack app product.
+- `Dark Blue MLB Valuation API` is the separate licensed data + valuation product.
+- The Draft Kit frontend does not call the licensed API directly anymore.
+- Instead:
+  - `draftkit-web` -> `draftkit-api`
+  - `draftkit-api` -> `valuation-api`
+- This keeps:
+  - Draft Kit auth and draft persistence inside the Draft Kit product
+  - license-key logic and valuation heuristics inside the valuation product
+
+## Testing
+
+- `draftkit-web`
+  - `npm run build`
+- `draftkit-api`
+  - `npm run test:auth`
+  - `npm run test:proxy`
+- `valuation-api`
   - `npm run test:api`
-  - validates health, auth, player filters, valuation success/failure paths, and rate limiting
-- Data pipeline
   - `npm run validate:players`
-  - checks the generated player pool
-- Frontend
-  - `npm run build` in `mvpfinal/draftkit`
-  - catches integration/build issues
-  - manual testing is also done through the live board and setup flows
-- API integration
-  - `ApiSandbox.jsx` provides an internal place to inspect API behavior from within the Draft Kit
 
-## Local Development
+## Review Notes
 
-### API
-
-- Start from `mvpfinal/api`
-- install dependencies
-- create `.env` from `.env.example`
-- run the dev server
-
-### Draft Kit
-
-- Start from `mvpfinal/draftkit`
-- install dependencies
-- run the Vite dev server
-
-### Expected Local Flow
-
-- API runs locally
-- Draft Kit points to the API
-- green/online indicators confirm API connectivity
-
-## Practical Review Notes
-
-- If someone asks where the main logic lives:
-  - Draft app logic is mainly in `draftkit/src/App.jsx`
-  - valuation logic is mainly in `api/services/valuation.js`
-  - data generation logic is mainly in `api/scripts/generate-players.js`
-- If someone asks how a customer would use the API:
-  - they would map their own draft state into the same request contract used by the Draft Kit
-- If someone asks what the system is optimized for:
-  - fast local draft interaction
-  - clear API contract
-  - realistic value suggestions rather than perfect predictive modeling
+- If someone asks where Draft Kit account and draft-save logic lives:
+  - `draftkit-api`
+- If someone asks where MLB player data and valuation math lives:
+  - `valuation-api`
+- If someone asks where the buyer-facing API website lives:
+  - `valuation-site`
+- If someone asks where the commissioner-facing draft app lives:
+  - `draftkit-web`

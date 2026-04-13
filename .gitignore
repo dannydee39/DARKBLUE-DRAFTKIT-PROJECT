@@ -83,5 +83,8 @@ CHANGELOG.md
 JIRA.md
 
 # ── Generated API validation artifacts ─────────────────────────────────────
-mvpfinal/api/artifacts/
-mvpfinal/api/data/draftkit-auth.db
+mvpfinal/draftkit-api/artifacts/
+mvpfinal/draftkit-api/data/draftkit-auth.db
+mvpfinal/draftkit-api/data/draftkit-auth.db-shm
+mvpfinal/draftkit-api/data/draftkit-auth.db-wal
+mvpfinal/valuation-api/artifacts/

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+  index.html — Dark Blue MLB Valuation API · Licensing & Endpoint Reference
+  ──────────────────────────────────────────────────────────────────────
+  Two-tab SPA. No build step — open in a browser or serve with any
+  static file server (e.g. `npx serve .`).
+
+  Tab map (hash → renderer):
+    #license    → js/pages/license.js     (default)
+    #endpoints  → js/pages/endpoints.js
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+        content="Dark Blue MLB Valuation API — licensing, authentication, and endpoint reference for fantasy baseball draft intelligence." />
+  <meta name="theme-color" content="#080d19" />
+
+  <title>Dark Blue MLB API — Licensing & Endpoints</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- CSS: tokens → base → nav → components → page styles -->
+  <link rel="stylesheet" href="css/variables.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/base.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/nav.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/components.css?v=20260411-darkfix" />
+  <link rel="stylesheet" href="css/app.css?v=20260411-darkfix" />
+</head>
+
+<body>
+
+  <div
+    id="scroll-sentinel"
+    aria-hidden="true"
+    style="position:absolute;top:0;height:1px;width:100%;pointer-events:none;z-index:-1;"
+  ></div>
+
+  <header id="site-nav" role="banner"></header>
+  <main id="app-viewport" role="main"></main>
+
+  <!-- JS: state → router → nav → page renderers -->
+  <script src="js/state.js?v=20260411-darkfix"></script>
+  <script src="js/router.js?v=20260411-darkfix"></script>
+  <script src="js/nav.js?v=20260411-darkfix"></script>
+  <script src="js/pages/license.js?v=20260411-darkfix"></script>
+  <script src="js/pages/endpoints.js?v=20260411-darkfix"></script>
+
+  <script>
+    DB.router.register('license',   DB.pages.license);
+    DB.router.register('endpoints', DB.pages.endpoints);
+  </script>
+
+</body>
+</html>

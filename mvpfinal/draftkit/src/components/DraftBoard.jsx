@@ -161,11 +161,16 @@ export default function DraftBoard({
   });
   const [dismissScoutRailHelp, setDismissScoutRailHelp] = useState(false);
 
+  // ── Right panel resize state ──────────────────────────────────────────────
+  const [rightPanelWidth, setRightPanelWidth] = useState(400);
+  const [isResizing, setIsResizing] = useState(false);
+
   const searchRef = useRef(null);
   const pinnedPopoverRef = useRef(null);
   const pinnedStripRef = useRef(null);
   const previousFocusRef = useRef(null);
   const hoverPreviewTimeoutRef = useRef(null);
+  const resizeHandleRef = useRef(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Derived: extend saleModal player with custom eligibility override.
@@ -277,6 +282,29 @@ export default function DraftBoard({
       // Ignore storage failures.
     }
   }, [activeRailTab]);
+
+  // ── Resize handling for right panel ───────────────────────────────────────
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+      const newWidth = window.innerWidth - e.clientX;
+      setRightPanelWidth(Math.max(400, Math.min(800, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   useEffect(() => {
     if (!selectedPlayer) {
@@ -1190,7 +1218,28 @@ export default function DraftBoard({
       ════════════════════════════════════════════════════════════════════ */}
       <div
         className={`right-panel ${displayedPinnedPlayer ? "has-selected" : ""}`}
+        style={{ 
+          width: rightPanelWidth, 
+          position: 'relative',
+          borderLeft: isResizing ? '3px solid #22c55e' : 'none'
+        }}
       >
+        {/* Resize handle */}
+        <div
+          ref={resizeHandleRef}
+          className="resize-handle"
+          onMouseDown={() => setIsResizing(true)}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 5,
+            cursor: 'ew-resize',
+            background: 'transparent',
+            zIndex: 10,
+          }}
+        />
         {/* Current player section */}
         <div className="current-player-section">
           <div className="cp-header">
@@ -1825,7 +1874,7 @@ function SearchResult({
       onMouseLeave={onPreviewEnd}
       title={`Pin ${player.name} in the scouting rail`}
     >
-      <PlayerAvatar name={player.name} size={28} photoUrl={player.photoUrl} />
+      <PlayerAvatar name={player.name} size={48} photoUrl={player.photoUrl} />
       <div className="sr-copy">
         <div className="sr-head">
           <span className="sr-name">{player.name}</span>

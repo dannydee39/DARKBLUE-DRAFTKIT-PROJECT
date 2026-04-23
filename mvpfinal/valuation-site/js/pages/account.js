@@ -10,7 +10,18 @@ window.DB = window.DB || {};
 DB.pages = DB.pages || {};
 
 DB.pages.account = function (container) {
+  var user = DB.auth && DB.auth.current ? DB.auth.current() : null;
+  if (!user) {
+    _renderSignInPrompt(container);
+    return;
+  }
   var profile = _loadProfile();
+  // Pull owner/email from the authed session so the dashboard reflects
+  // who is actually signed in instead of the hard-coded default buyer.
+  profile = Object.assign({}, profile, {
+    ownerName: user.displayName || profile.ownerName,
+    email: user.email || profile.email,
+  });
   var KEY = profile.licenseKey || DB.DEMO_KEY;
   var DISPLAY = DB.API_DISPLAY;
   var PRODUCT_SITE = DB.PRODUCT_SITE;
@@ -44,6 +55,7 @@ DB.pages.account = function (container) {
             '<button class="btn btn-primary" id="account-edit-open" type="button">Edit Buyer Details</button>' +
             '<a class="btn btn-secondary" href="#endpoints">Open Endpoint Guide</a>' +
             '<button class="btn btn-secondary account-copy-trigger" type="button" data-copy="' + _attr(DISPLAY) + '">Copy API Base URL</button>' +
+            '<button class="btn btn-secondary" id="account-signout" type="button">Sign Out</button>' +
           '</div>' +
         '</header>' +
 
@@ -201,7 +213,38 @@ DB.pages.account = function (container) {
   _bindCopyButtons(container);
   _bindEditor(container, profile);
   _runLiveChecks(container, KEY);
+
+  var signOutBtn = container.querySelector('#account-signout');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', function () {
+      if (DB.auth) DB.auth.logout();
+    });
+  }
 };
+
+function _renderSignInPrompt(container) {
+  container.innerHTML =
+    '<div class="page-account">' +
+      '<div class="account-container">' +
+        '<div class="account-signin-gate">' +
+          '<p class="license-kicker">Buyer Account</p>' +
+          '<h1>Sign in to view your buyer dashboard.</h1>' +
+          '<p>Licensing, usage, and live API checks live behind a session so ' +
+          'the account view reflects a real buyer instead of a demo placeholder.</p>' +
+          '<div class="account-signin-actions">' +
+            '<button class="btn btn-primary" type="button" id="account-gate-login">Sign In</button>' +
+            '<button class="btn btn-secondary" type="button" id="account-gate-signup">Create Account</button>' +
+            '<a class="btn btn-secondary" href="#pricing">See Pricing</a>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  var loginBtn = container.querySelector('#account-gate-login');
+  var signupBtn = container.querySelector('#account-gate-signup');
+  if (loginBtn) loginBtn.addEventListener('click', function () { if (DB.authModal) DB.authModal.open('login'); });
+  if (signupBtn) signupBtn.addEventListener('click', function () { if (DB.authModal) DB.authModal.open('signup'); });
+}
 
 function _bindEditor(container, profile) {
   var openBtn = container.querySelector('#account-edit-open');

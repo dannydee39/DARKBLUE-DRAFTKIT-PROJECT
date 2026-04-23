@@ -50,6 +50,6 @@ DB.router = (function () {
   window.addEventListener('hashchange', _render);
   window.addEventListener('DOMContentLoaded', _render);
 
-  return { register: register, go: go };
+  return { register: register, go: go, refresh: _render };
 
 }());

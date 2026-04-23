@@ -32,7 +32,8 @@
   <link rel="stylesheet" href="css/base.css?v=20260411-darkfix" />
   <link rel="stylesheet" href="css/nav.css?v=20260411-darkfix" />
   <link rel="stylesheet" href="css/components.css?v=20260411-darkfix" />
-  <link rel="stylesheet" href="css/app.css?v=20260421-customerdash" />
+  <link rel="stylesheet" href="css/app.css?v=20260423-auth" />
+  <link rel="stylesheet" href="css/auth.css?v=20260423-auth" />
 </head>
 
 <body>
@@ -47,15 +48,18 @@
   <main id="app-viewport" role="main"></main>
 
   <!-- JS: state → router → nav → page renderers -->
-  <script src="js/state.js?v=20260411-darkfix"></script>
-  <script src="js/router.js?v=20260411-darkfix"></script>
-  <script src="js/nav.js?v=20260421-customerdash"></script>
-  <script src="js/pages/license.js?v=20260421-customerdash"></script>
-  <script src="js/pages/endpoints.js?v=20260421-customerdash"></script>
-  <script src="js/pages/account.js?v=20260421-customerdash"></script>
+  <script src="js/state.js?v=20260423-auth"></script>
+  <script src="js/router.js?v=20260423-auth"></script>
+  <script src="js/auth-modal.js?v=20260423-auth"></script>
+  <script src="js/nav.js?v=20260423-auth"></script>
+  <script src="js/pages/license.js?v=20260423-auth"></script>
+  <script src="js/pages/pricing.js?v=20260423-auth"></script>
+  <script src="js/pages/endpoints.js?v=20260411-darkfix"></script>
+  <script src="js/pages/account.js?v=20260423-auth"></script>
 
   <script>
     DB.router.register('license',   DB.pages.license);
+    DB.router.register('pricing',   DB.pages.pricing);
     DB.router.register('endpoints', DB.pages.endpoints);
     DB.router.register('account',   DB.pages.account);
   </script>

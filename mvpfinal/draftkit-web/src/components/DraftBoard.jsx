@@ -39,6 +39,14 @@ function normalizePosLabel(value) {
     .toUpperCase();
 }
 
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 function slotAcceptsPlayer(player, slotPos) {
   const normalizedSlot = normalizePosLabel(slotPos);
   const playerPositions = (player?.pos || []).map(normalizePosLabel);
@@ -54,7 +62,7 @@ function sortPlayersForScout(
   players,
   { searchQ, posFilter, notesOnly, favoritesOnly, favorites, notes, slotPos },
 ) {
-  const q = searchQ.trim().toLowerCase();
+  const q = normalizeSearchText(searchQ);
 
   return players
     .filter((player) => {
@@ -64,7 +72,9 @@ function sortPlayersForScout(
       if (player.drafted) return false;
       if (slotPos && !slotAcceptsPlayer(player, slotPos)) return false;
       if (q) {
-        const haystack = `${player.name} ${player.team || ""}`.toLowerCase();
+        const haystack = normalizeSearchText(
+          `${player.name} ${player.team || ""}`,
+        );
         if (!haystack.includes(q)) return false;
       }
       if (

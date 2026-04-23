@@ -111,7 +111,7 @@
 
   /* ── Layout ─────────────────────────────────────────────────────────────── */
   --nav-height:     52px;
-  --content-width:  100%;        /* stretch to viewport, capped via padding  */
-  --content-narrow: 100%;
+  --content-width:  1280px;       /* wide-but-bounded default                 */
+  --content-narrow: 900px;
   --content-gutter: clamp(16px, 4vw, 56px);
 }

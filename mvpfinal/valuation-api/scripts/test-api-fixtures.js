@@ -35,7 +35,7 @@ function buildDraftState(draftedCount) {
     budget_per_team: 260,
     scoring_categories: ["R", "HR", "RBI", "SB", "AVG", "W", "SV", "ERA", "WHIP", "SO"],
     teams: buildTeams(draftedCount),
-    roster_config: { C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
+    roster_config: { C: 2, "1B": 1, "2B": 2, CI: 1, "3B": 0, SS: 1, MI: 1, OF: 5, SP: 0, RP: 0, P: 9, UTIL: 1, BN: 0, TAXI: 0 },
   };
 }
 

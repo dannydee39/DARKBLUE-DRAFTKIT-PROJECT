@@ -7,6 +7,17 @@
 
 import { POSITION_COLORS } from "../constants.js";
 
+const DEFAULT_SLOT_SEQUENCE = [
+  "C", "C", "1B", "2B", "CI", "2B", "SS", "MI",
+  "OF", "OF", "OF", "OF", "OF", "UTIL",
+  "P", "P", "P", "P", "P", "P", "P", "P", "P",
+];
+
+const ROSTER_FALLBACK_ORDER = [
+  "C", "1B", "2B", "CI", "3B", "SS", "MI",
+  "OF", "UTIL", "SP", "RP", "P", "BN", "TAXI",
+];
+
 function normalizePlayerKey(value) {
   return String(value || "")
     .normalize("NFD")
@@ -47,6 +58,30 @@ export function posColor(pos) {
   return POSITION_COLORS[pos] || "#9ca3af";
 }
 
+export function slotAcceptsPlayer(player, slotPos) {
+  const normalizedSlot = String(slotPos || "")
+    .trim()
+    .toUpperCase();
+  const playerPositions = (player?.pos || []).map((pos) =>
+    String(pos || "").trim().toUpperCase(),
+  );
+
+  if (normalizedSlot === "BN") return true;
+  if (normalizedSlot === "UTIL") {
+    return playerPositions.some((pos) => !["SP", "RP", "P"].includes(pos));
+  }
+  if (normalizedSlot === "CI") {
+    return playerPositions.some((pos) => ["1B", "3B"].includes(pos));
+  }
+  if (normalizedSlot === "MI") {
+    return playerPositions.some((pos) => ["2B", "SS"].includes(pos));
+  }
+  if (normalizedSlot === "P") {
+    return playerPositions.some((pos) => ["SP", "RP", "P"].includes(pos));
+  }
+  return playerPositions.includes(normalizedSlot);
+}
+
 // ── buildRosterPositions ──────────────────────────────────────────────────────
 /**
  * Expands the compact roster-config object into a flat ordered array of
@@ -61,9 +96,34 @@ export function posColor(pos) {
  *   // ["C", "OF", "OF", "OF"]
  */
 export function buildRosterPositions(roster) {
-  // Canonical order for display — mirrors traditional lineup card order.
-  const ORDER = ["C", "1B", "2B", "3B", "SS", "OF", "SP", "RP", "UTIL", "BN"];
-  return ORDER.flatMap((slot) => Array(roster[slot] || 0).fill(slot));
+  const remaining = Object.fromEntries(
+    Object.entries(roster || {}).map(([slot, count]) => [
+      slot,
+      Math.max(0, Number(count) || 0),
+    ]),
+  );
+  const slots = [];
+
+  DEFAULT_SLOT_SEQUENCE.forEach((slot) => {
+    if ((remaining[slot] || 0) <= 0) return;
+    slots.push(slot);
+    remaining[slot] -= 1;
+  });
+
+  ROSTER_FALLBACK_ORDER.forEach((slot) => {
+    while ((remaining[slot] || 0) > 0) {
+      slots.push(slot);
+      remaining[slot] -= 1;
+    }
+  });
+
+  Object.entries(remaining).forEach(([slot, count]) => {
+    for (let i = 0; i < count; i += 1) {
+      slots.push(slot);
+    }
+  });
+
+  return slots;
 }
 
 // ── buildDraftState ───────────────────────────────────────────────────────────

@@ -41,7 +41,12 @@ import {
   DEFAULT_ROSTER,
   DEFAULT_SCORING,
 } from "./constants.js";
-import { buildDraftState, buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
+import {
+  buildDraftState,
+  buildRosterPositions,
+  calcMaxBid,
+  slotAcceptsPlayer,
+} from "./utils/helpers.js";
 import {
   createCloudDraft,
   deleteCloudDraft,
@@ -88,14 +93,14 @@ const DEFAULT_LEAGUE = {
 // ─────────────────────────────────────────────────────────────────────────────
 // SAMPLE_PICKS — hardcoded debug picks for fillSampleDraft().
 // slotIndex based on default roster order:
-//   [C=0, 1B=1, 2B=2, 3B=3, SS=4, OF=5, OF=6, OF=7, SP=8, SP=9, RP=10, RP=11, UTIL=12, BN=13, BN=14]
+//   [C=0, C=1, 1B=2, 2B=3, CI=4, 2B=5, SS=6, MI=7, OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
 // ─────────────────────────────────────────────────────────────────────────────
 const SAMPLE_PICKS = [
   {
     name: "Shohei Ohtani",
     teamIdx: 0,
     price: 65,
-    slotIndex: 12,
+    slotIndex: 13,
     draftedPos: "UTIL",
   },
   {
@@ -110,45 +115,45 @@ const SAMPLE_PICKS = [
     name: "Freddie Freeman",
     teamIdx: 1,
     price: 28,
-    slotIndex: 1,
+    slotIndex: 2,
     draftedPos: "1B",
   },
   {
     name: "Kyle Tucker",
     teamIdx: 2,
     price: 55,
-    slotIndex: 6,
+    slotIndex: 9,
     draftedPos: "OF",
   },
   {
     name: "Francisco Lindor",
     teamIdx: 2,
     price: 38,
-    slotIndex: 4,
+    slotIndex: 6,
     draftedPos: "SS",
   },
   {
     name: "Corbin Carroll",
     teamIdx: 3,
     price: 40,
-    slotIndex: 7,
+    slotIndex: 10,
     draftedPos: "OF",
   },
   {
     name: "Nolan Arenado",
     teamIdx: 3,
     price: 20,
-    slotIndex: 3,
-    draftedPos: "3B",
+    slotIndex: 4,
+    draftedPos: "CI",
   },
   {
     name: "Elly De La Cruz",
     teamIdx: 4,
     price: 35,
-    slotIndex: 4,
+    slotIndex: 6,
     draftedPos: "SS",
   },
-  { name: "Logan Webb", teamIdx: 5, price: 25, slotIndex: 8, draftedPos: "SP" },
+  { name: "Logan Webb", teamIdx: 5, price: 25, slotIndex: 14, draftedPos: "P" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1013,11 +1018,7 @@ export default function App() {
       String(pos).trim().toUpperCase(),
     );
 
-    if (normalizedSlot === "BN") return true;
-    if (normalizedSlot === "UTIL") {
-      return positions.some((pos) => !["SP", "RP"].includes(pos));
-    }
-    return positions.includes(normalizedSlot);
+    return slotAcceptsPlayer({ pos: positions }, normalizedSlot);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1194,8 +1195,8 @@ export default function App() {
   // with fully accumulated changes.
   //
   // Picks use the default roster slot order:
-  //   [C=0, 1B=1, 2B=2, 3B=3, SS=4, OF=5, OF=6, OF=7,
-  //    SP=8, SP=9, RP=10, RP=11, UTIL=12, BN=13, BN=14]
+  //   [C=0, C=1, 1B=2, 2B=3, CI=4, 2B=5, SS=6, MI=7,
+  //    OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
   // ─────────────────────────────────────────────────────────────────────────
   function fillSampleDraft() {
     const baseTime = Date.now();

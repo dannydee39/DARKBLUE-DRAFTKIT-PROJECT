@@ -41,19 +41,24 @@ export const TIERS = ["Elite", "Starter", "Bench"];
 // ── Default Roster Configuration ─────────────────────────────────────────────
 // DEFAULT_ROSTER: the starting roster slot counts for a new draft instance.
 // Each key maps to the number of roster slots for that position.
-// UTIL = utility (any non-pitcher), BN = bench, TAXI = minor-league reserve.
+// CI = corner infield (1B / 3B), MI = middle infield (2B / SS),
+// P = any pitcher (SP / RP), UTIL = any non-pitcher, BN = bench,
+// TAXI = minor-league reserve.
 export const DEFAULT_ROSTER = {
-  C: 1,
+  C: 2,
   "1B": 1,
-  "2B": 1,
-  "3B": 1,
+  "2B": 2,
+  CI: 1,
+  "3B": 0,
   SS: 1,
-  OF: 3,
-  SP: 2,
-  RP: 2,
+  MI: 1,
+  OF: 5,
+  SP: 0,
+  RP: 0,
+  P: 9,
   UTIL: 1,
-  BN: 2,
-  TAXI: 3,
+  BN: 0,
+  TAXI: 0,
 };
 
 // ── Default Scoring Categories ────────────────────────────────────────────────
@@ -97,11 +102,14 @@ export const POSITION_COLORS = {
   C:    "#f59e0b",  // amber
   "1B": "#ef4444",  // red
   "2B": "#f97316",  // orange
+  CI:   "#f59e0b",  // amber
   "3B": "#a855f7",  // purple
   SS:   "#06b6d4",  // cyan
+  MI:   "#14b8a6",  // teal
   OF:   "#22c55e",  // green
   SP:   "#3b82f6",  // blue
   RP:   "#ec4899",  // pink
+  P:    "#60a5fa",  // light blue
   DH:   "#6366f1",  // indigo
   UTIL: "#84cc16",  // lime
   BN:   "#6b7280",  // gray

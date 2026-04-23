@@ -29,7 +29,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
-import { posColor, calcMaxBid, getValueClass } from "../utils/helpers.js";
+import {
+  posColor,
+  calcMaxBid,
+  getValueClass,
+  slotAcceptsPlayer,
+} from "../utils/helpers.js";
 
 const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
 
@@ -45,17 +50,6 @@ function normalizeSearchText(value) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
-}
-
-function slotAcceptsPlayer(player, slotPos) {
-  const normalizedSlot = normalizePosLabel(slotPos);
-  const playerPositions = (player?.pos || []).map(normalizePosLabel);
-
-  if (normalizedSlot === "BN") return true;
-  if (normalizedSlot === "UTIL") {
-    return playerPositions.some((p) => !["SP", "RP"].includes(p));
-  }
-  return playerPositions.includes(normalizedSlot);
 }
 
 function sortPlayersForScout(
@@ -79,7 +73,7 @@ function sortPlayersForScout(
       }
       if (
         normalizedFilter !== "ALL" &&
-        !playerPositions.includes(normalizedFilter)
+        !slotAcceptsPlayer({ pos: playerPositions }, normalizedFilter)
       )
         return false;
       if (notesOnly && !noteText) return false;
@@ -216,8 +210,10 @@ export default function DraftBoard({
   const playerEligiblePositions = new Set(
     Array.isArray(saleModal?.pos) ? saleModal.pos : [],
   );
-  const availableOverridePositions = rosterPositions.filter(
-    (pos) => !playerEligiblePositions.has(pos),
+  const availableOverridePositions = [...new Set(rosterPositions)].filter(
+    (pos) =>
+      !playerEligiblePositions.has(pos) &&
+      !slotAcceptsPlayer(extendedSalePlayer || saleModal || { pos: [] }, pos),
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -247,25 +243,7 @@ export default function DraftBoard({
       // Skip occupied slots
       if (takenSlots.has(si)) return acc;
 
-      if (slotPos === "BN") {
-        // Bench: accepts any player
-        acc.push({ slotIdx: si, pos: slotPos });
-        return acc;
-      }
-
-      if (slotPos === "UTIL") {
-        // UTIL: accepts any hitter (player has at least one non-pitcher position)
-        const hasHitterEligibility = playerPositions.some(
-          (p) => !["SP", "RP"].includes(normalizePosLabel(p)),
-        );
-        if (hasHitterEligibility) {
-          acc.push({ slotIdx: si, pos: slotPos });
-        }
-        return acc;
-      }
-
-      // Standard slot: player must have this position in their eligibility
-      if (playerPositions.includes(normalizePosLabel(slotPos))) {
+      if (slotAcceptsPlayer({ pos: playerPositions }, slotPos)) {
         acc.push({ slotIdx: si, pos: slotPos });
       }
 
@@ -732,7 +710,7 @@ export default function DraftBoard({
       setActiveCellSearch(null);
       return;
     }
-    setPosFilter(pos !== "BN" && pos !== "UTIL" ? pos : "ALL");
+    setPosFilter(pos !== "BN" ? pos : "ALL");
     setActiveCellSearch({ teamId, slotIdx, pos });
     window.setTimeout(() => searchRef.current?.focus(), 0);
   }
@@ -908,16 +886,22 @@ export default function DraftBoard({
   // since this touches every player for every render).
   // ─────────────────────────────────────────────────────────────────────────
   const undraftedByPos = useMemo(() => {
-    const map = {};
+    const map = Object.fromEntries(
+      [...new Set(rosterPositions)].map((slotPos) => [slotPos, 0]),
+    );
+
     players
       .filter((p) => !p.drafted)
-      .forEach((p) => {
-        p.pos.forEach((pos) => {
-          map[pos] = (map[pos] || 0) + 1;
+      .forEach((player) => {
+        Object.keys(map).forEach((slotPos) => {
+          if (slotAcceptsPlayer(player, slotPos)) {
+            map[slotPos] += 1;
+          }
         });
       });
+
     return map;
-  }, [players]);
+  }, [players, rosterPositions]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // totalDraftedCount / totalSpend — aggregate counters shown in the
@@ -1007,13 +991,7 @@ export default function DraftBoard({
                 <th className="col-owner">OWNER</th>
                 <th className="col-budget">$ LEFT</th>
                 {rosterPositions.map((pos, i) => {
-                  // Number of undrafted players still eligible at this position
-                  const availCount = undraftedByPos[pos] ?? 0;
-                  // BN/UTIL have all undrafted hitters available — show total undrafted
-                  const displayCount =
-                    pos === "BN" || pos === "UTIL"
-                      ? players.filter((p) => !p.drafted).length
-                      : availCount;
+                  const displayCount = undraftedByPos[pos] ?? 0;
 
                   return (
                     <th
@@ -1244,7 +1222,6 @@ export default function DraftBoard({
                         // No players left for this position — tint cell red
                         const posExhausted =
                           pos !== "BN" &&
-                          pos !== "UTIL" &&
                           (undraftedByPos[pos] ?? 0) === 0;
 
                         return (
@@ -1454,11 +1431,10 @@ export default function DraftBoard({
 
               <div className="search-label-row scout-label-row">
                 <span className="search-label">PLAYER SEARCH</span>
-                <span className="search-hint">Click on a player to pin them</span>
               </div>
 
               <div className="pos-filters scout-filter-row">
-                {["ALL", "C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"].map(
+                {["ALL", "C", "1B", "2B", "3B", "SS", "CI", "MI", "OF", "P", "SP", "RP"].map(
                   (p) => (
                     <button
                       key={p}
@@ -1976,18 +1952,13 @@ function InlineCellSearch({
   const results = players
     .filter((p) => {
       if (p.drafted) return false;
-      // Filter by position eligibility for this slot type
-      if (pos !== "BN" && pos !== "UTIL" && !p.pos.includes(pos)) return false;
-      if (pos === "UTIL") {
-        // UTIL: hitters only
-        if (!p.pos.some((pp) => !["SP", "RP"].includes(pp))) return false;
-      }
+      if (!slotAcceptsPlayer(p, pos)) return false;
       // Text search if user has typed something
       if (q) {
-        const lq = q.toLowerCase();
+        const lq = normalizeSearchText(q);
         if (
-          !p.name.toLowerCase().includes(lq) &&
-          !(p.team || "").toLowerCase().includes(lq)
+          !normalizeSearchText(p.name).includes(lq) &&
+          !normalizeSearchText(p.team || "").includes(lq)
         ) {
           return false;
         }

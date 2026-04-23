@@ -22,7 +22,7 @@ function buildDraftState(overrides = {}) {
       { id: 2, budget_remaining: 233, roster: [rosterTuple("Francisco Lindor")] },
       { id: 3, budget_remaining: 260, roster: [] },
     ],
-    roster_config: { C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
+    roster_config: { C: 2, "1B": 1, "2B": 2, CI: 1, "3B": 0, SS: 1, MI: 1, OF: 5, SP: 0, RP: 0, P: 9, UTIL: 1, BN: 0, TAXI: 0 },
     ...overrides,
   };
 }

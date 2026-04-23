@@ -27,6 +27,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
+import { MLB_TEAM_CODES } from "../constants.js";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import {
@@ -37,6 +38,7 @@ import {
 } from "../utils/helpers.js";
 
 const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
+const MLB_TEAM_CODE_SET = new Set(MLB_TEAM_CODES);
 
 function normalizePosLabel(value) {
   return String(value || "")
@@ -64,7 +66,9 @@ function sortPlayersForScout(
       const playerPositions = (player.pos || []).map(normalizePosLabel);
       const normalizedFilter = normalizePosLabel(posFilter);
       if (player.drafted) return false;
-      if (slotPos && !slotAcceptsPlayer(player, slotPos)) return false;
+      if (slotPos && !player.custom && !slotAcceptsPlayer(player, slotPos)) {
+        return false;
+      }
       if (q) {
         const haystack = normalizeSearchText(
           `${player.name} ${player.team || ""}`,
@@ -73,6 +77,7 @@ function sortPlayersForScout(
       }
       if (
         normalizedFilter !== "ALL" &&
+        !player.custom &&
         !slotAcceptsPlayer({ pos: playerPositions }, normalizedFilter)
       )
         return false;
@@ -123,6 +128,7 @@ export default function DraftBoard({
   canUndo = false,
   canRedo = false,
   boardNotice = null,
+  onAddCustomPlayer,
 }) {
   // ── Search / filter state (right scouting rail) ───────────────────────────
   const [searchQ, setSearchQ] = useState("");
@@ -140,6 +146,10 @@ export default function DraftBoard({
   const [salePrice, setSalePrice] = useState(""); // bid amount
   const [saleSlot, setSaleSlot] = useState(null); // slotIndex to fill
   const [customPosInput, setCustomPosInput] = useState(""); // custom eligibility override
+  const [customPlayerModalOpen, setCustomPlayerModalOpen] = useState(false);
+  const [customPlayerName, setCustomPlayerName] = useState("");
+  const [customPlayerTeam, setCustomPlayerTeam] = useState("");
+  const [customPlayerError, setCustomPlayerError] = useState("");
 
   // ── Remove confirmation modal state ──────────────────────────────────────
   const [removeModal, setRemoveModal] = useState(null); // {playerName, teamId, price, pos}
@@ -171,6 +181,7 @@ export default function DraftBoard({
   const previousFocusRef = useRef(null);
   const hoverPreviewTimeoutRef = useRef(null);
   const resizeHandleRef = useRef(null);
+  const modalBackdropPressStartedRef = useRef(false);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Derived: extend saleModal player with custom eligibility override.
@@ -680,6 +691,73 @@ export default function DraftBoard({
     setCustomPosInput("");
   }
 
+  function handleModalBackdropMouseDown(e) {
+    modalBackdropPressStartedRef.current = e.target === e.currentTarget;
+  }
+
+  function handleSaleModalBackdropClick(e) {
+    const shouldClose =
+      modalBackdropPressStartedRef.current && e.target === e.currentTarget;
+    modalBackdropPressStartedRef.current = false;
+    if (shouldClose) {
+      closeSaleModal();
+    }
+  }
+
+  function openCustomPlayerModal() {
+    setCustomPlayerModalOpen(true);
+    setCustomPlayerName(searchQ.trim());
+    setCustomPlayerTeam("");
+    setCustomPlayerError("");
+  }
+
+  function closeCustomPlayerModal() {
+    setCustomPlayerModalOpen(false);
+    setCustomPlayerName("");
+    setCustomPlayerTeam("");
+    setCustomPlayerError("");
+  }
+
+  function submitCustomPlayer() {
+    const normalizedName = String(customPlayerName || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const normalizedTeam = String(customPlayerTeam || "")
+      .trim()
+      .toUpperCase();
+
+    if (!normalizedName) {
+      setCustomPlayerError("Enter the player's full name.");
+      return;
+    }
+
+    if (!MLB_TEAM_CODE_SET.has(normalizedTeam)) {
+      setCustomPlayerError(
+        `Player Team must be a valid MLB code like ${MLB_TEAM_CODES.slice(0, 5).join(", ")}.`,
+      );
+      return;
+    }
+
+    const createdPlayer = onAddCustomPlayer?.({
+      name: normalizedName,
+      team: normalizedTeam,
+    });
+
+    if (!createdPlayer) {
+      setCustomPlayerError(
+        "That player could not be added right now. Try again.",
+      );
+      return;
+    }
+
+    clearHoverPreview();
+    setSearchQ(createdPlayer.name);
+    setPosFilter("ALL");
+    setCustomPlayerError("");
+    setCustomPlayerModalOpen(false);
+    requestValuation();
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // handleFilledCellClick — opens the remove confirmation modal.
   // ─────────────────────────────────────────────────────────────────────────
@@ -710,7 +788,6 @@ export default function DraftBoard({
       setActiveCellSearch(null);
       return;
     }
-    setPosFilter(pos !== "BN" ? pos : "ALL");
     setActiveCellSearch({ teamId, slotIdx, pos });
     window.setTimeout(() => searchRef.current?.focus(), 0);
   }
@@ -734,10 +811,9 @@ export default function DraftBoard({
         favoritesOnly,
         favorites,
         notes,
-        slotPos: activeCellSearch?.pos || null,
+        slotPos: null,
       }),
     [
-      activeCellSearch?.pos,
       favorites,
       favoritesOnly,
       notes,
@@ -798,6 +874,8 @@ export default function DraftBoard({
     numericSalePrice > selectedSaleTeamMaxBid
       ? `${selectedSaleTeam.name} can bid at most $${selectedSaleTeamMaxBid} to ensure they can fill all their remaining slots.`
       : "";
+  const saleHasPlacementOptions =
+    uniqueSlotPositions.length > 0 || availableOverridePositions.length > 0;
   const hoverPreviewLayout = useMemo(() => {
     if (!hoverPreviewPlayer || !hoverPreviewAnchorRect || !rightPanelRef.current) {
       return null;
@@ -1463,14 +1541,13 @@ export default function DraftBoard({
 
               <div className="scout-results-meta">
                 <span>{scoutResults.length} available</span>
-                {activeCellSearch && <span>slot locked</span>}
               </div>
 
               <input
                 ref={searchRef}
                 className="search-input scout-search-input"
                 placeholder={
-                  activeCellSearch
+                  false
                     ? `Search ${activeCellSearch.pos} fits for ${activeContextTeam?.name ?? "this slot"}`
                     : posFilter !== "ALL"
                       ? `Search ${posFilter} players…`
@@ -1523,11 +1600,20 @@ export default function DraftBoard({
                 ))}
                 {scoutResults.length === 0 && (
                   <div className="cp-empty scout-empty-state">
-                    {searchQ
-                      ? `No available players match "${searchQ}".`
-                      : activeCellSearch
-                        ? `No ${activeCellSearch.pos} players are currently available.`
-                        : "No available players match the current filters."}
+                    <div className="scout-empty-copy">
+                      {searchQ
+                        ? `No available players match "${searchQ}".`
+                        : false
+                          ? `No ${activeCellSearch.pos} players are currently available.`
+                          : "No available players match the current filters."}
+                    </div>
+                    <button
+                      type="button"
+                      className="scout-empty-action"
+                      onClick={openCustomPlayerModal}
+                    >
+                      Override With A Custom Player
+                    </button>
                   </div>
                 )}
               </div>
@@ -1597,8 +1683,88 @@ export default function DraftBoard({
       ════════════════════════════════════════════════════════════════════ */}
       {hoveredFilledCellTooltip}
 
+      {customPlayerModalOpen && (
+        <div className="modal-overlay" onClick={closeCustomPlayerModal}>
+          <div
+            className="modal custom-player-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>ADD CUSTOM PLAYER</h3>
+            <div className="modal-hint">
+              No players found? Add a custom player to this draft and place
+              them with a position override when you record the sale.
+            </div>
+
+            <div className="form-group">
+              <label>PLAYER FULL NAME</label>
+              <input
+                type="text"
+                value={customPlayerName}
+                onChange={(e) => {
+                  setCustomPlayerName(e.target.value);
+                  if (customPlayerError) setCustomPlayerError("");
+                }}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitCustomPlayer();
+                  }
+                }}
+                placeholder="Juan Soto"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>PLAYER TEAM</label>
+              <input
+                type="text"
+                value={customPlayerTeam}
+                onChange={(e) => {
+                  setCustomPlayerTeam(e.target.value.toUpperCase());
+                  if (customPlayerError) setCustomPlayerError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    submitCustomPlayer();
+                  }
+                }}
+                placeholder="NYY"
+                spellCheck={false}
+                maxLength={3}
+              />
+            </div>
+
+            <div className="modal-hint">
+              Use one of the MLB team codes already used by the player library,
+              like NYY, NYM, LAA, LAD, BOS, or ATL.
+            </div>
+
+            {customPlayerError && (
+              <div className="modal-hint modal-error" role="alert">
+                {customPlayerError}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button className="modal-cancel" onClick={closeCustomPlayerModal}>
+                Cancel
+              </button>
+              <button className="modal-confirm" onClick={submitCustomPlayer}>
+                Add Custom Player
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {saleModal && (
-        <div className="modal-overlay" onClick={closeSaleModal}>
+        <div
+          className="modal-overlay"
+          onMouseDown={handleModalBackdropMouseDown}
+          onClick={handleSaleModalBackdropClick}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>RECORD AUCTION SALE</h3>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -1631,7 +1797,7 @@ export default function DraftBoard({
             {/* into the grid at that exact column position.                     */}
             <div className="form-group">
               <label>DRAFT INTO SLOT</label>
-              {uniqueSlotPositions.length > 0 ? (
+              {saleHasPlacementOptions ? (
                 <div className="slot-picker">
                   {uniqueSlotPositions.map(({ slotIdx, pos }) => (
                     <button
@@ -1697,16 +1863,27 @@ export default function DraftBoard({
                   {league.teams.find((t) => t.id === saleTeam)?.name}
                 </div>
               )}
+              {uniqueSlotPositions.length === 0 &&
+                availableOverridePositions.length > 0 && (
+                  <div className="modal-hint" style={{ marginTop: 8 }}>
+                    This player has no default eligibility yet. Choose a
+                    position override above to open a valid roster slot.
+                  </div>
+                )}
             </div>
 
             {/* Bid amount */}
             <div className="form-group">
               <label>WINNING BID ($)</label>
               <input
-                type="number"
+                type="text"
                 value={salePrice}
-                min={1}
-                onChange={(e) => setSalePrice(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onChange={(e) =>
+                  setSalePrice(e.target.value.replace(/[^\d]/g, ""))
+                }
+                onDoubleClick={(e) => e.currentTarget.select()}
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") confirmSale();

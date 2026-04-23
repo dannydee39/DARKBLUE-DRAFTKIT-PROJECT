@@ -8,13 +8,13 @@
 import { POSITION_COLORS } from "../constants.js";
 
 const DEFAULT_SLOT_SEQUENCE = [
-  "C", "C", "1B", "2B", "CI", "2B", "SS", "MI",
+  "C", "C", "1B", "3B", "CI", "2B", "SS", "MI",
   "OF", "OF", "OF", "OF", "OF", "UTIL",
   "P", "P", "P", "P", "P", "P", "P", "P", "P",
 ];
 
 const ROSTER_FALLBACK_ORDER = [
-  "C", "1B", "2B", "CI", "3B", "SS", "MI",
+  "C", "1B", "3B", "CI", "2B", "SS", "MI",
   "OF", "UTIL", "SP", "RP", "P", "BN", "TAXI",
 ];
 

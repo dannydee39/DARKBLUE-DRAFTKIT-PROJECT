@@ -40,6 +40,7 @@ import {
   DRAFTKIT_API_BASE,
   DEFAULT_ROSTER,
   DEFAULT_SCORING,
+  MLB_TEAM_CODES,
 } from "./constants.js";
 import {
   buildDraftState,
@@ -76,6 +77,8 @@ import {
 const MAX_HISTORY_SNAPSHOTS = 30;
 const VALUATION_REQUEST_TIMEOUT_MS = 7000;
 const CLOUD_SAVE_DEBOUNCE_MS = 900;
+const CUSTOM_PLAYER_BLANK_PHOTO = "__blank__";
+const MLB_TEAM_CODE_SET = new Set(MLB_TEAM_CODES);
 
 const DEFAULT_LEAGUE = {
   name: "",
@@ -93,7 +96,7 @@ const DEFAULT_LEAGUE = {
 // ─────────────────────────────────────────────────────────────────────────────
 // SAMPLE_PICKS — hardcoded debug picks for fillSampleDraft().
 // slotIndex based on default roster order:
-//   [C=0, C=1, 1B=2, 2B=3, CI=4, 2B=5, SS=6, MI=7, OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
+//   [C=0, C=1, 1B=2, 3B=3, CI=4, 2B=5, SS=6, MI=7, OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
 // ─────────────────────────────────────────────────────────────────────────────
 const SAMPLE_PICKS = [
   {
@@ -1021,6 +1024,56 @@ export default function App() {
     return slotAcceptsPlayer({ pos: positions }, normalizedSlot);
   }
 
+  function addCustomPlayer({ name, team }) {
+    const normalizedName = String(name || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const normalizedTeam = String(team || "")
+      .trim()
+      .toUpperCase();
+
+    if (!normalizedName || !MLB_TEAM_CODE_SET.has(normalizedTeam)) {
+      setBoardNotice({
+        tone: "warning",
+        message:
+          "Custom players need a full name and a valid MLB team code.",
+      });
+      return null;
+    }
+
+    const existingTeamPlayer = players.find(
+      (player) => player.team === normalizedTeam && player.league,
+    );
+    const customPlayer = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: normalizedName,
+      team: normalizedTeam,
+      league:
+        existingTeamPlayer?.league ||
+        (league.pool === "AL" || league.pool === "NL" ? league.pool : "MLB"),
+      pos: [],
+      tier: "Custom",
+      baseValue: 0,
+      fpts: null,
+      photoUrl: CUSTOM_PLAYER_BLANK_PHOTO,
+      note: "",
+      custom: true,
+      drafted: false,
+      draftedBy: null,
+      draftPrice: null,
+      draftedAt: null,
+      taxi: false,
+    };
+
+    setPlayers((prev) => [customPlayer, ...prev]);
+    setSelectedPlayer(customPlayer);
+    setBoardNotice({
+      tone: "success",
+      message: `${normalizedName} was added to the player pool as a custom player.`,
+    });
+    return customPlayer;
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // recordSale — commits an auction sale for a player.
   //
@@ -1169,6 +1222,7 @@ export default function App() {
         p.id === player.id
           ? {
               ...p,
+              pos: effectivePlayer.pos,
               drafted: true,
               draftedBy: teamId,
               draftPrice: numericPrice,
@@ -1195,7 +1249,7 @@ export default function App() {
   // with fully accumulated changes.
   //
   // Picks use the default roster slot order:
-  //   [C=0, C=1, 1B=2, 2B=3, CI=4, 2B=5, SS=6, MI=7,
+  //   [C=0, C=1, 1B=2, 3B=3, CI=4, 2B=5, SS=6, MI=7,
   //    OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
   // ─────────────────────────────────────────────────────────────────────────
   function fillSampleDraft() {
@@ -1695,6 +1749,7 @@ export default function App() {
             canUndo={undoStack.length > 0}
             canRedo={redoStack.length > 0}
             boardNotice={boardNotice}
+            onAddCustomPlayer={addCustomPlayer}
           />
         )}
 

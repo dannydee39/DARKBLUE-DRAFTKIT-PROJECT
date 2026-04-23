@@ -77,9 +77,9 @@ function buildDraftContext(draftState = {}) {
     roster_config = {
       C: 2,
       "1B": 1,
-      "2B": 2,
+      "2B": 1,
       CI: 1,
-      "3B": 0,
+      "3B": 1,
       SS: 1,
       MI: 1,
       OF: 5,

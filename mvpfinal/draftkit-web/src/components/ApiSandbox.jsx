@@ -39,7 +39,7 @@ export default function ApiSandbox({ league, apiStatus }) {
         { id: 1, budget_remaining: 248, roster: [["Garrett Crochet", "BOS"]] },
       ],
       roster_config: {
-        C: 2, "1B": 1, "2B": 2, CI: 1, "3B": 0,
+        C: 2, "1B": 1, "2B": 1, CI: 1, "3B": 1,
         SS: 1, MI: 1, OF: 5, SP: 0, RP: 0,
         P: 9, UTIL: 1, BN: 0, TAXI: 0,
       },

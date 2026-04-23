@@ -34,6 +34,41 @@ export const VALUATION_SITE_URL = (
 // These drive filter buttons, column headers, and position badge rendering.
 export const POSITIONS = ["C", "1B", "2B", "3B", "SS", "OF", "SP", "RP"];
 
+// MLB_TEAM_CODES: canonical team abbreviations used by the bundled player data.
+// Custom-player entry validates team input against this list.
+export const MLB_TEAM_CODES = [
+  "ATH",
+  "ATL",
+  "AZ",
+  "BAL",
+  "BOS",
+  "CHC",
+  "CIN",
+  "CLE",
+  "COL",
+  "CWS",
+  "DET",
+  "HOU",
+  "KC",
+  "LAA",
+  "LAD",
+  "MIA",
+  "MIL",
+  "MIN",
+  "NYM",
+  "NYY",
+  "PHI",
+  "PIT",
+  "SD",
+  "SEA",
+  "SF",
+  "STL",
+  "TB",
+  "TEX",
+  "TOR",
+  "WSH",
+];
+
 // TIERS: the three performance tiers assigned by the generate-players.js script.
 // Elite = top 20 by FPTS, Starter = 21-75, Bench = 76+.
 export const TIERS = ["Elite", "Starter", "Bench"];
@@ -47,9 +82,9 @@ export const TIERS = ["Elite", "Starter", "Bench"];
 export const DEFAULT_ROSTER = {
   C: 2,
   "1B": 1,
-  "2B": 2,
+  "2B": 1,
   CI: 1,
-  "3B": 0,
+  "3B": 1,
   SS: 1,
   MI: 1,
   OF: 5,

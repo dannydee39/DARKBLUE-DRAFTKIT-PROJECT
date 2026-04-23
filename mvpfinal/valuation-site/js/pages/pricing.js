@@ -46,7 +46,7 @@ DB.pages.pricing = function (container) {
           '<div class="pricing-faq-grid">' +
             _faqCard(
               'What counts as a request?',
-              'Any successful call to <code>/v1/players</code> or <code>/v1/valuate</code>. ' +
+              'Any successful call to <code>/v1/players</code> or one full-state call to <code>/v1/valuate</code>. ' +
               '<code>/health</code> is free and never metered.'
             ) +
             _faqCard(

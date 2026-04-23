@@ -9,7 +9,7 @@
     "build:players": "node scripts/generate-players.js",
     "validate:players": "node scripts/validate-player-pool.js",
     "test:api": "node scripts/test-api.js",
-    "test:api:fixtures": "node scripts/export-sample-api-data.js"
+    "test:api:fixtures": "node scripts/test-api-fixtures.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

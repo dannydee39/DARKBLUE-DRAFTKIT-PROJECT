@@ -14,7 +14,6 @@ function buildDraftState(overrides = {}) {
       { id: 2, budget_remaining: 233, roster: ["Francisco Lindor"] },
       { id: 3, budget_remaining: 260, roster: [] },
     ],
-    nominated_player: "Juan Soto",
     roster_config: { C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
     ...overrides,
   };
@@ -91,20 +90,6 @@ async function runGeneralRegressionSuite() {
     });
     assert.equal(missingState.response.status, 400, "POST /v1/valuate without draft_state should return 400");
 
-    const missingPlayer = await jsonFetch(`${baseUrl}/v1/valuate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
-      body: JSON.stringify({ draft_state: buildDraftState({ nominated_player: "" }) }),
-    });
-    assert.equal(missingPlayer.response.status, 400, "POST /v1/valuate without nominated_player should return 400");
-
-    const unknownPlayer = await jsonFetch(`${baseUrl}/v1/valuate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
-      body: JSON.stringify({ draft_state: buildDraftState({ nominated_player: "Definitely Not Real" }) }),
-    });
-    assert.equal(unknownPlayer.response.status, 404, "Unknown player should return 404");
-
     const invalidKey = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-License-Key": "DB-INVALID-KEY" },
@@ -118,25 +103,34 @@ async function runGeneralRegressionSuite() {
       body: JSON.stringify({ draft_state: buildDraftState() }),
     });
     assert.equal(valuate.response.status, 200, "POST /v1/valuate should return 200");
-    assert.ok(typeof valuate.body.true_dollar_value === "number", "valuation should include true_dollar_value");
-    assert.ok(typeof valuate.body.max_bid_recommendation === "number", "valuation should include max_bid_recommendation");
-    assert.ok(valuate.body.market_context?.label, "valuation should include market_context label");
-    assert.ok(valuate.body.player_tier, "valuation should include player_tier");
+    assert.ok(typeof valuate.body.count === "number", "valuation batch should include player count");
+    assert.ok(typeof valuate.body.valuations === "object", "valuation batch should include a valuation dictionary");
+    assert.ok(
+      typeof valuate.body.valuations?.["Juan Soto"]?.true_dollar_value === "number",
+      "valuation dictionary should expose Juan Soto TDV",
+    );
+    assert.ok(
+      typeof valuate.body.valuations?.["Juan Soto"]?.max_bid_recommendation === "number",
+      "valuation dictionary should expose Juan Soto max bid",
+    );
+    assert.ok(valuate.body.market_context?.label, "valuation batch should include market_context label");
 
     const hitterValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
-      body: JSON.stringify({ draft_state: buildDraftState({ nominated_player: hitter.name }) }),
+      body: JSON.stringify({ draft_state: buildDraftState() }),
     });
     assert.equal(hitterValuation.response.status, 200, "hitter valuation should return 200");
-    assert.ok(hitterValuation.body.stats?.positions?.length > 0, "hitter valuation should expose positions");
+    assert.ok(
+      hitterValuation.body.valuations?.[hitter.name]?.stats?.positions?.length > 0,
+      "hitter valuation batch should expose hitter positions",
+    );
 
     const pitcherValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
       body: JSON.stringify({
         draft_state: buildDraftState({
-          nominated_player: pitcher.name,
           teams: [
             { id: 1, budget_remaining: 190, roster: [pitcher.name] },
             { id: 2, budget_remaining: 170, roster: ["Juan Soto", "Shohei Ohtani"] },
@@ -146,7 +140,10 @@ async function runGeneralRegressionSuite() {
       }),
     });
     assert.equal(pitcherValuation.response.status, 200, "pitcher valuation should return 200");
-    assert.ok(typeof pitcherValuation.body.true_dollar_value === "number", "pitcher valuation should include numeric tdv");
+    assert.ok(
+      typeof pitcherValuation.body.valuations?.[pitcher.name]?.true_dollar_value === "number",
+      "pitcher valuation batch should include numeric tdv",
+    );
   });
 }
 

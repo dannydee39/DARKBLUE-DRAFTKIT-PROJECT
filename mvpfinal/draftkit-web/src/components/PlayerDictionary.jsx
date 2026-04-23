@@ -36,6 +36,7 @@ export default function PlayerDictionary({
   saveNote,
   toggleFavorite,
   valuationCache, // shared valuation cache from App
+  valuationLoading,
   requestValuation, // (player) => void
   draftStateKey, // changes on every pick/undo to trigger re-fetches
 }) {
@@ -57,7 +58,7 @@ export default function PlayerDictionary({
   // Request valuation for the selected player whenever it changes or draft
   // state shifts (new pick/undo invalidates all cached values).
   useEffect(() => {
-    if (selectedPlayer) requestValuation(selectedPlayer);
+    if (selectedPlayer) requestValuation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer?.id, draftStateKey]);
 
@@ -118,6 +119,13 @@ export default function PlayerDictionary({
     if (!byTier[p.tier]) byTier[p.tier] = [];
     byTier[p.tier].push(p);
   });
+
+  function getDisplayedValuation(player) {
+    if (!player) return null;
+    const cached = valuationCache[player.id];
+    if (cached) return cached;
+    return valuationLoading ? "loading" : null;
+  }
 
   return (
     <div className="dict-layout">
@@ -253,7 +261,7 @@ export default function PlayerDictionary({
         {selectedPlayer ? (
           <PlayerCard
             player={selectedPlayer}
-            valuation={valuationCache[selectedPlayer?.id] ?? null}
+            valuation={getDisplayedValuation(selectedPlayer)}
             notes={notes}
             favorites={favorites}
             saveNote={saveNote}

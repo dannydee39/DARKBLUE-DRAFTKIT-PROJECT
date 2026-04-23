@@ -28,16 +28,31 @@ DB.pages.license = function (container) {
     '    "draft_state": {\n' +
     '      "total_teams": 12,\n' +
     '      "budget_per_team": 260,\n' +
-    '      "nominated_player": "Shohei Ohtani"\n' +
+    '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
+    '      "teams": [\n' +
+    '        { "id": 1, "budget_remaining": 248, "roster": ["Freddie Freeman"] },\n' +
+    '        { "id": 2, "budget_remaining": 214, "roster": ["Ronald Acuna Jr."] }\n' +
+    '      ],\n' +
+    '      "roster_config": {\n' +
+    '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +
+    '        "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2\n' +
+    '      }\n' +
     '    }\n' +
     "  }'";
 
   var QUICKSTART_RESPONSE = JSON.stringify(
     {
-      player: 'Shohei Ohtani',
-      max_bid_recommendation: 69,
-      true_dollar_value: 74.8,
-      scarcity_tier: 'HIGH',
+      count: 1821,
+      market_inflation: 1.08,
+      market_context: { label: 'Hot', delta_percent: 8.0 },
+      valuations: {
+        'Shohei Ohtani': {
+          player: 'Shohei Ohtani',
+          max_bid_recommendation: 69,
+          true_dollar_value: 74.8,
+          scarcity_tier: 'HIGH',
+        },
+      },
     },
     null,
     2,
@@ -51,8 +66,8 @@ DB.pages.license = function (container) {
             '<p class="license-kicker">Dark Blue MLB Valuation API</p>' +
             '<h1>A licensed valuation engine for auction drafts.</h1>' +
             '<p class="license-lead">' +
-              'One license, one key, three endpoints. Load the player pool, ' +
-              'value every nomination, keep the key server-side.' +
+              'One license, one key, three endpoints. Load the player pool once, ' +
+              'send full draft state to one valuation endpoint, keep the key server-side.' +
             '</p>' +
             '<div class="license-hero-actions">' +
               '<a class="btn btn-primary" href="#pricing">See Pricing</a>' +
@@ -67,8 +82,8 @@ DB.pages.license = function (container) {
 
         '<section class="license-section" id="lic-quickstart">' +
           '<div class="license-section-label">Quick Start</div>' +
-          '<h2>One request, one response.</h2>' +
-          '<p>Copy the test key, hit <code>/v1/valuate</code>, inspect the payload. ' +
+          '<h2>One request, one valuation dictionary.</h2>' +
+          '<p>Copy the test key, hit <code>/v1/valuate</code> with the current draft state, inspect the returned player dictionary. ' +
           'Once it works, move the key behind your backend and call it from there.</p>' +
           '<div class="license-key-block">' +
             '<div class="license-key-row">' +
@@ -88,18 +103,18 @@ DB.pages.license = function (container) {
           '<h2>Draft Kit uses this engine — it is not this engine.</h2>' +
           '<div class="license-bridge">' +
             '<div class="license-bridge-card">' +
-              '<div class="license-bridge-kicker">DB Draft Kit</div>' +
-              '<h3>Commissioner app</h3>' +
-              '<p>Login, cloud drafts, saved state, draft-room UI.</p>' +
-              '<div class="license-bridge-meta"><code>' + DRAFTKIT_APP + '</code></div>' +
-            '</div>' +
+            '<div class="license-bridge-kicker">DB Draft Kit</div>' +
+            '<h3>Commissioner app</h3>' +
+            '<p>Login, cloud drafts, saved state, draft-room UI, and locally cached valuation results.</p>' +
+            '<div class="license-bridge-meta"><code>' + DRAFTKIT_APP + '</code></div>' +
+          '</div>' +
             '<div class="license-bridge-arrow">via<br /><code>draftkit-api</code></div>' +
             '<div class="license-bridge-card license-bridge-card-accent">' +
-              '<div class="license-bridge-kicker">Dark Blue Valuation API</div>' +
-              '<h3>Licensed engine</h3>' +
-              '<p>MLB data, valuation math, <code>X-License-Key</code> auth.</p>' +
-              '<div class="license-bridge-meta"><code>' + PRODUCT_SITE + '</code></div>' +
-            '</div>' +
+            '<div class="license-bridge-kicker">Dark Blue Valuation API</div>' +
+            '<h3>Licensed engine</h3>' +
+            '<p>MLB data, batch valuation math, and <code>X-License-Key</code> auth.</p>' +
+            '<div class="license-bridge-meta"><code>' + PRODUCT_SITE + '</code></div>' +
+          '</div>' +
           '</div>' +
         '</section>' +
 

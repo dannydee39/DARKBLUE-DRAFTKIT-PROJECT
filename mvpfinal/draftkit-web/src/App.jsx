@@ -41,7 +41,7 @@ import {
   DEFAULT_ROSTER,
   DEFAULT_SCORING,
 } from "./constants.js";
-import { buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
+import { buildDraftState, buildRosterPositions, calcMaxBid } from "./utils/helpers.js";
 import {
   createCloudDraft,
   deleteCloudDraft,
@@ -70,7 +70,6 @@ import {
 
 const MAX_HISTORY_SNAPSHOTS = 30;
 const VALUATION_REQUEST_TIMEOUT_MS = 7000;
-const VALUATION_ERROR_RETRY_MS = 10000;
 const CLOUD_SAVE_DEBOUNCE_MS = 900;
 
 const DEFAULT_LEAGUE = {
@@ -191,14 +190,14 @@ export default function App() {
   const [favorites, setFavorites] = useState({});
 
   // ── Shared valuation cache ────────────────────────────────────────────────
-  // Single source of truth for API valuation results, shared across
-  // DraftBoard and PlayerDictionary so both panels always show live values.
-  // Values: undefined (not fetched) | "loading" | API response object.
+  // Single source of truth for the latest full valuation dictionary returned by
+  // POST /v1/valuate. Keys are player IDs so the UI can read fast without
+  // searching by name on every render.
   const [valuationCache, setValuationCache] = useState({});
-  const valuationCacheRef = useRef({}); // mirrors valuationCache; used in requestValuation
-  // to avoid stale-closure reads of the state variable
-  const inFlightRef = useRef(new Set()); // player IDs with active requests
-  const loadingStartedRef = useRef({}); // playerId -> request start timestamp
+  const [valuationLoading, setValuationLoading] = useState(false);
+  const [valuationError, setValuationError] = useState("");
+  const valuationCacheRef = useRef({});
+  const valuationRequestRef = useRef({ key: null, inFlight: false });
   const cacheVersionRef = useRef(0); // incremented on cache invalidation
 
   // Keep the ref in sync with state so requestValuation always reads fresh values
@@ -486,25 +485,21 @@ export default function App() {
   // This forces fresh API calls after every pick or undo so inflation/scarcity
   // math in the API stays accurate.
   // ─────────────────────────────────────────────────────────────────────────
-  // Include budget_remaining so that partial picks (same count, diff spend)
-  // still invalidate the cache and trigger fresh valuations.
+  // Include exact roster names and budgets so any meaningful draft-state change
+  // forces a fresh all-player valuation pass.
   const draftStateKey = league.teams
-    .map((t) => `${t.roster.length}:${t.budget_remaining}`)
-    .join(",");
+    .map((team) => {
+      const rosterNames = (team.roster || [])
+        .map((entry) => entry?.name || entry)
+        .sort()
+        .join("|");
+      return `${team.id}:${team.budget_remaining}:${rosterNames}`;
+    })
+    .join(";");
   useEffect(() => {
     cacheVersionRef.current += 1;
-    inFlightRef.current.clear();
-    loadingStartedRef.current = {};
-    // BUG FIX: clear the ref SYNCHRONOUSLY here, not just via the
-    // valuationCache state→useEffect chain. The pre-fetch in DraftBoard
-    // reads from valuationCacheRef directly to avoid stale closures.
-    // Without this sync clear, the ref still holds old entries when the
-    // pre-fetch fires (React effects run top-down after each render, so
-    // the ref-sync effect below hasn't run yet), and requestValuation
-    // sees cache hits that don't exist — silently skipping re-fetches
-    // after every pick. Values then appear frozen until a manual click.
-    valuationCacheRef.current = {};
-    setValuationCache({});
+    valuationRequestRef.current = { key: null, inFlight: false };
+    setValuationError("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftStateKey]);
 
@@ -528,47 +523,16 @@ export default function App() {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // requestValuation — shared valuation fetcher for all components.
-  //
-  // Features:
-  //  • De-duplication: skips if an identical request is already in-flight
-  //  • Cache hit: skips if a fresh (non-loading) result already exists
-  //  • Stale-response guard: discards responses from before the last cache reset
-  //
-  // @param {Object} player - Player object to valuate
+  // requestValuation — refreshes the full valuation dictionary for the current
+  // draft state. The Draft Kit then reads per-player values locally from
+  // valuationCache instead of making on-demand hover/click requests.
   // ─────────────────────────────────────────────────────────────────────────
-  async function requestValuation(player) {
-    if (!player) return;
-    // Read from ref (not state) to avoid stale closure — state variable would
-    // still reference the old cache object after a cache-clear triggered by a pick.
-    const cached = valuationCacheRef.current[player.id];
-    if (cached && cached !== "loading" && !cached?.error) return;
-    if (
-      cached?.error &&
-      Date.now() - (cached.timestamp || 0) < VALUATION_ERROR_RETRY_MS
-    ) {
-      return;
-    }
-    if (
-      cached === "loading" &&
-      Date.now() - (loadingStartedRef.current[player.id] || 0) <
-        VALUATION_REQUEST_TIMEOUT_MS
-    ) {
-      return;
-    }
-    if (apiStatus !== "online") {
-      setValuationCache((prev) => ({
-        ...prev,
-        [player.id]: {
-          error: true,
-          message: "Live valuation is offline. Showing the base value instead.",
-          timestamp: Date.now(),
-        },
-      }));
-      return;
-    }
-    // Request already in-flight for this player
-    if (inFlightRef.current.has(player.id)) return;
+  async function requestValuation() {
+    if (apiStatus !== "online" || players.length === 0) return;
+
+    const requestKey = `${cacheVersionRef.current}|${draftStateKey}|${players.length}`;
+    if (valuationRequestRef.current.inFlight) return;
+    if (valuationRequestRef.current.key === requestKey) return;
 
     const version = cacheVersionRef.current;
     const controller = new AbortController();
@@ -576,24 +540,15 @@ export default function App() {
       () => controller.abort(),
       VALUATION_REQUEST_TIMEOUT_MS,
     );
-    inFlightRef.current.add(player.id);
-    loadingStartedRef.current[player.id] = Date.now();
-    setValuationCache((prev) => ({ ...prev, [player.id]: "loading" }));
+
+    valuationRequestRef.current = {
+      key: requestKey,
+      inFlight: true,
+    };
+    setValuationLoading(true);
+    setValuationError("");
+
     try {
-      const draftState = {
-        total_teams: league.owners,
-        budget_per_team: league.budget,
-        scoring_categories: Object.entries(league.scoring)
-          .filter(([, v]) => v)
-          .map(([k]) => k),
-        teams: league.teams.map((t) => ({
-          id: t.id,
-          budget_remaining: t.budget_remaining,
-          roster: t.roster.map((r) => r.name),
-        })),
-        nominated_player: player.name,
-        roster_config: league.roster,
-      };
       const r = await fetch(`${DRAFTKIT_API_BASE}/v1/valuate`, {
         method: "POST",
         headers: {
@@ -601,49 +556,59 @@ export default function App() {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          draft_state: draftState,
+          draft_state: buildDraftState(league),
         }),
       });
       const data = await r.json();
-      // Discard stale response if the draft state changed while we were waiting
-      if (cacheVersionRef.current === version) {
-        if (!r.ok || data?.error || data?.max_bid_recommendation == null) {
-          setValuationCache((prev) => ({
-            ...prev,
-            [player.id]: {
-              error: true,
-              message:
-                data?.message ||
-                data?.error ||
-                "Live valuation was unavailable. Showing the base value instead.",
-              timestamp: Date.now(),
-            },
-          }));
-        } else {
-          setValuationCache((prev) => ({ ...prev, [player.id]: data }));
+
+      if (cacheVersionRef.current !== version) return;
+
+      if (!r.ok || data?.error || typeof data?.valuations !== "object") {
+        valuationRequestRef.current = { key: null, inFlight: false };
+        setValuationError(
+          data?.message ||
+            data?.error ||
+            "Live valuation was unavailable. Showing the last known values instead.",
+        );
+        return;
+      }
+
+      const valuationsById = {};
+      players.forEach((player) => {
+        const match = data.valuations?.[player.name];
+        if (match) {
+          valuationsById[player.id] = match;
         }
-      }
+      });
+
+      valuationCacheRef.current = valuationsById;
+      setValuationCache(valuationsById);
     } catch (error) {
-      if (cacheVersionRef.current === version) {
-        setValuationCache((prev) => ({
-          ...prev,
-          [player.id]: {
-            error: true,
-            message:
-              error?.name === "AbortError"
-                ? "Live valuation timed out. Showing the base value instead."
-                : error?.message ||
-                  "Live valuation was unavailable. Showing the base value instead.",
-            timestamp: Date.now(),
-          },
-        }));
-      }
+      if (cacheVersionRef.current !== version) return;
+      valuationRequestRef.current = { key: null, inFlight: false };
+      setValuationError(
+        error?.name === "AbortError"
+          ? "Live valuation timed out. Showing the last known values instead."
+          : error?.message ||
+              "Live valuation was unavailable. Showing the last known values instead.",
+      );
     } finally {
       window.clearTimeout(timeoutId);
-      inFlightRef.current.delete(player.id);
-      delete loadingStartedRef.current[player.id];
+      if (cacheVersionRef.current === version) {
+        valuationRequestRef.current = {
+          key: requestKey,
+          inFlight: false,
+        };
+        setValuationLoading(false);
+      }
     }
   }
+
+  useEffect(() => {
+    if (screen !== "main" || players.length === 0) return;
+    requestValuation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDraftId, apiStatus, draftStateKey, league.pool, players.length, screen]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // fetchPlayers — GET /v1/players with the configured league pool filter.
@@ -654,6 +619,11 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   async function fetchPlayers(leagueData) {
     try {
+      valuationRequestRef.current = { key: null, inFlight: false };
+      valuationCacheRef.current = {};
+      setValuationCache({});
+      setValuationError("");
+      setValuationLoading(false);
       // Map pool setting to API query parameter
       const poolParam =
         leagueData?.pool === "AL"
@@ -1712,6 +1682,7 @@ export default function App() {
             totalSlots={totalSlots}
             maxBid={maxBid}
             valuationCache={valuationCache}
+            valuationLoading={valuationLoading}
             requestValuation={requestValuation}
             draftStateKey={draftStateKey}
             canUndo={undoStack.length > 0}
@@ -1731,6 +1702,7 @@ export default function App() {
             saveNote={saveNote}
             toggleFavorite={toggleFavorite}
             valuationCache={valuationCache}
+            valuationLoading={valuationLoading}
             requestValuation={requestValuation}
             draftStateKey={draftStateKey}
           />

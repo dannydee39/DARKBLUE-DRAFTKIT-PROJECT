@@ -126,7 +126,7 @@ API info page — no authentication required. Returns endpoint listing and docs 
 
 **Auth required** (`X-License-Key` header)
 
-Calculates the true dollar value (TDV) and recommended maximum bid for a nominated player, given the current live draft state.
+Calculates a valuation dictionary for the full player pool, given the current live draft state.
 
 **Request body:**
 ```json
@@ -148,7 +148,6 @@ Calculates the true dollar value (TDV) and recommended maximum bid for a nominat
         "roster": ["Freddie Freeman"]
       }
     ],
-    "nominated_player": "Juan Soto",
     "roster_config": {
       "C": 1,
       "1B": 1,
@@ -177,27 +176,48 @@ Calculates the true dollar value (TDV) and recommended maximum bid for a nominat
 | `draft_state.teams[].id` | number | Yes | Team identifier |
 | `draft_state.teams[].budget_remaining` | number | Yes | Current remaining budget |
 | `draft_state.teams[].roster` | string[] | Yes | Array of **player name strings** already drafted |
-| `draft_state.nominated_player` | string | **Yes** | Name of the player being valued (partial match supported) |
 | `draft_state.roster_config` | object | No | Slot counts per position |
 
 **Successful response (HTTP 200):**
 ```json
 {
-  "player": "Juan Soto",
-  "true_dollar_value": 47,
-  "max_bid_recommendation": 43,
+  "count": 1821,
+  "drafted_count": 3,
+  "undrafted_count": 1818,
+  "generated_at": "2026-04-23T19:45:00.000Z",
   "market_inflation": 1.045,
-  "scarcity_tier": "Starter",
-  "position_scarcity": {
-    "OF": "HIGH"
+  "market_context": {
+    "label": "Neutral",
+    "delta_percent": 4.5
   },
-  "draftability_score": 0.94,
-  "reasoning": "OF scarce — high demand in pool. Market inflation +4.5%. Tier: Starter. TDV: $47.",
-  "stats": {
-    "tier": "Starter",
-    "positions": ["OF"],
-    "team": "NYM",
-    "league": "NL"
+  "valuations": {
+    "Juan Soto": {
+      "player": "Juan Soto",
+      "player_id": 3,
+      "player_tier": "Elite",
+      "base_value": 56,
+      "true_dollar_value": 58,
+      "max_bid_recommendation": 53,
+      "market_inflation": 1.045,
+      "market_context": {
+        "label": "Neutral",
+        "delta_percent": 4.5
+      },
+      "scarcity_tier": "HIGH",
+      "position_scarcity": {
+        "OF": "HIGH"
+      },
+      "draftability_score": 1.04,
+      "value_delta": 2,
+      "is_drafted": false,
+      "reasoning": "OF scarce — high demand in pool. Market inflation +4.5%. Player tier: Elite. Scarcity: HIGH. TDV: $58.",
+      "stats": {
+        "tier": "Elite",
+        "positions": ["OF"],
+        "team": "NYM",
+        "league": "NL"
+      }
+    }
   }
 }
 ```
@@ -206,26 +226,23 @@ Calculates the true dollar value (TDV) and recommended maximum bid for a nominat
 
 | Field | Type | Description |
 |---|---|---|
-| `player` | string | Matched player name from database |
-| `true_dollar_value` | number | Calculated auction dollar value ($1–$80) |
-| `max_bid_recommendation` | number | Recommended max bid (92% of TDV) |
-| `market_inflation` | number | Inflation factor (1.0 = no inflation, >1.0 = inflated market) |
-| `scarcity_tier` | string | Player tier: "Elite", "Starter", or "Bench" |
-| `position_scarcity` | object | Map of position → scarcity level ("CRITICAL", "HIGH", "MEDIUM", "LOW") |
-| `draftability_score` | number | 0.0–1.0 score indicating current market value vs. base value |
-| `reasoning` | string | Human-readable explanation of the valuation |
-| `stats.tier` | string | Player's pre-assigned tier |
-| `stats.positions` | string[] | Player's eligible positions |
-| `stats.team` | string | MLB team abbreviation |
-| `stats.league` | string | "NL" or "AL" |
+| `count` | number | Total number of players valued in the response |
+| `drafted_count` | number | Number of players marked as already drafted from the supplied draft state |
+| `undrafted_count` | number | Number of undrafted players remaining in the pool |
+| `generated_at` | string | ISO timestamp for when the valuation pass was produced |
+| `market_inflation` | number | Shared inflation factor for the current draft state |
+| `market_context` | object | Human-readable market label and delta percent |
+| `valuations` | object | Dictionary keyed by canonical player name |
+| `valuations[<name>].true_dollar_value` | number | Live auction value for that player under the supplied draft state |
+| `valuations[<name>].max_bid_recommendation` | number | Recommended max bid (92% of TDV) |
+| `valuations[<name>].position_scarcity` | object | Map of position → scarcity level |
+| `valuations[<name>].reasoning` | string | Human-readable explanation of the valuation |
+| `valuations[<name>].stats` | object | Tier, positions, team, and league metadata for that player |
 
 **Error responses:**
 
 ```json
-{ "error": "Player not found", "player": "Joe Nobody", "message": "Could not find player \"Joe Nobody\" in database." }
-```
-```json
-{ "error": "Bad Request", "message": "draft_state.nominated_player is required." }
+{ "error": "Bad Request", "message": "Missing draft_state in request body." }
 ```
 
 ---
@@ -387,9 +404,8 @@ The generator fetches and blends official MLB data, normalizes player identity a
 
 | HTTP Code | Error | Description |
 |---|---|---|
-| 400 | Bad Request | `draft_state` missing or `nominated_player` not provided |
+| 400 | Bad Request | `draft_state` missing |
 | 401 | Unauthorized | Missing or invalid `X-License-Key` header |
-| 404 | Player not found | Player name not found in database |
 | 429 | Too Many Requests | Rate limit exceeded (120/min) |
 | 500 | Internal Server Error | Unexpected error in valuation calculation |
 

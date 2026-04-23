@@ -180,7 +180,7 @@ DB.pages.account = function (container) {
             '<ol class="account-checklist">' +
               '<li><strong>Confirm reachability.</strong> Verify <code>/health</code> once from your backend or integration host.</li>' +
               '<li><strong>Load the player pool.</strong> Use <code>/v1/players</code> before the draft starts so your UI has rankings and tiers ready.</li>' +
-              '<li><strong>Value every nomination.</strong> Send your full draft state to <code>/v1/valuate</code> whenever a player is on the block.</li>' +
+              '<li><strong>Refresh the valuation dictionary.</strong> Send your full draft state to <code>/v1/valuate</code> whenever the draft changes and cache the returned player values locally.</li>' +
               '<li><strong>Keep the key server-side.</strong> Draft Kit follows this pattern through <code>draftkit-api</code>, and your own app should too.</li>' +
             '</ol>' +
             '<div class="account-note-stack">' +
@@ -385,7 +385,6 @@ function _runLiveChecks(container, key) {
           { id: 1, budget_remaining: 248, roster: ['Freddie Freeman'] },
           { id: 2, budget_remaining: 214, roster: ['Ronald Acuna Jr.'] },
         ],
-        nominated_player: 'Shohei Ohtani',
         roster_config: {
           C: 1, '1B': 1, '2B': 1, '3B': 1, SS: 1,
           OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2,
@@ -396,17 +395,18 @@ function _runLiveChecks(container, key) {
     .then(function (response) { return response.json().then(function (body) { return { ok: response.ok, body: body }; }); })
     .then(function (result) {
       var body = result.body || {};
-      valuateOk = !!(result.ok && body.player);
+      var sample = body.valuations && body.valuations['Shohei Ohtani'];
+      valuateOk = !!(result.ok && sample);
       _setLiveStatus(valuateEl, valuateOk, valuateOk ? 'Response received' : 'Unavailable');
       if (liveCard) {
         liveCard.innerHTML =
           '<div class="account-live-card-label">Latest valuation response</div>' +
           '<div class="account-live-card-value">' +
-            (valuateOk ? (_esc(body.player) + ' · $' + _number(body.max_bid_recommendation || 0)) : 'Could not load live valuation') +
+            (valuateOk ? ('Shohei Ohtani · $' + _number(sample.max_bid_recommendation || 0)) : 'Could not load live valuation') +
           '</div>' +
           '<p>' +
             (valuateOk
-              ? ('True value $' + _number(body.true_dollar_value || 0) + ' · ' + _esc(body.market_context && body.market_context.label ? body.market_context.label : 'Market context ready') + ' · ' + _esc(body.reasoning || 'Live valuation response loaded successfully.'))
+              ? ('True value $' + _number(sample.true_dollar_value || 0) + ' · ' + _esc(body.market_context && body.market_context.label ? body.market_context.label : 'Market context ready') + ' · ' + _esc(sample.reasoning || 'Batch valuation dictionary loaded successfully.'))
               : 'The API did not return a live valuation during this page load. Recheck the endpoint guide and try again.'
             ) +
           '</p>';

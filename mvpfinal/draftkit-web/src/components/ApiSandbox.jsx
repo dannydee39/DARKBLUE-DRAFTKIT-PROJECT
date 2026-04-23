@@ -38,7 +38,6 @@ export default function ApiSandbox({ league, apiStatus }) {
       teams: [
         { id: 1, budget_remaining: 248, roster: ["Garrett Crochet"] },
       ],
-      nominated_player: "Gerrit Cole",
       roster_config: {
         C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1,
         OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2,
@@ -105,11 +104,9 @@ export default function ApiSandbox({ league, apiStatus }) {
     <div className="sandbox-layout">
       <h2 className="sandbox-title">API TESTING SANDBOX</h2>
       <p className="dict-sub">
-        Edit the JSON payload and send it to the valuation API. Modify{" "}
-        <code style={{ color: "var(--green)", fontFamily: "var(--mono)" }}>
-          nominated_player
-        </code>{" "}
-        to test different valuations.
+        Edit the JSON payload and send it to the valuation API. The endpoint
+        now returns a valuation dictionary for the full player pool based on
+        the current draft state.
       </p>
 
       {/* ── Endpoint info bar ─────────────────────────────────────────────── */}
@@ -221,23 +218,20 @@ export default function ApiSandbox({ league, apiStatus }) {
                 {response.status} {response.ok ? "OK" : "ERROR"}
               </span>
               {elapsed != null && <span> · {elapsed}ms</span>}
-              {response.data?.max_bid_recommendation && (
+              {response.data?.valuations && (
                 <span>
-                  {" "}· Max Bid:{" "}
+                  {" "}· Players Valued:{" "}
                   <strong style={{ color: "var(--green)" }}>
-                    ${response.data.max_bid_recommendation}
+                    {Object.keys(response.data.valuations).length}
                   </strong>
-                  {response.data.true_dollar_value && (
-                    <> · TDV: ${response.data.true_dollar_value}</>
-                  )}
                   {response.data.market_inflation && (
                     <>
                       {" "}· Inflation: +
                       {((response.data.market_inflation - 1) * 100).toFixed(1)}%
                     </>
                   )}
-                  {response.data.scarcity_tier && (
-                    <> · Tier: {response.data.scarcity_tier}</>
+                  {response.data.market_context?.label && (
+                    <> · Market: {response.data.market_context.label}</>
                   )}
                 </span>
               )}

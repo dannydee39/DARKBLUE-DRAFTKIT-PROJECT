@@ -57,7 +57,13 @@ export function buildDraftState(league) {
     scoring_categories: Object.entries(league.scoring)
       .filter(([, v]) => v)   // only enabled categories
       .map(([k]) => k),
-    teams: league.teams,
+    teams: (league.teams || []).map((team) => ({
+      id: team.id,
+      budget_remaining: team.budget_remaining,
+      roster: (team.roster || []).map((entry) =>
+        typeof entry === "string" ? entry : entry?.name || entry?.player || "",
+      ),
+    })),
     roster_config: league.roster,
   };
 }

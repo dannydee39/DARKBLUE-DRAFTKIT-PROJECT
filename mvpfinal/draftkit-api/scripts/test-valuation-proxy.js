@@ -79,7 +79,6 @@ async function main() {
               { id: 2, budget_remaining: 233, roster: ["Francisco Lindor"] },
               { id: 3, budget_remaining: 260, roster: [] },
             ],
-            nominated_player: "Juan Soto",
             roster_config: { C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
           },
         }),
@@ -87,12 +86,12 @@ async function main() {
 
       assert.equal(valuation.response.status, 200, "proxy /v1/valuate should succeed");
       assert.ok(
-        typeof valuation.body?.max_bid_recommendation === "number",
-        "proxy valuation should return a numeric max bid",
+        typeof valuation.body?.valuations?.["Juan Soto"]?.max_bid_recommendation === "number",
+        "proxy valuation should return a numeric max bid inside the valuation dictionary",
       );
       assert.ok(
-        typeof valuation.body?.true_dollar_value === "number",
-        "proxy valuation should return a numeric true dollar value",
+        typeof valuation.body?.valuations?.["Juan Soto"]?.true_dollar_value === "number",
+        "proxy valuation should return a numeric true dollar value inside the valuation dictionary",
       );
     });
   });

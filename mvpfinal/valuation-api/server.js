@@ -530,7 +530,6 @@ const EXAMPLES = {
         { id: 11, budget_remaining: 260, roster: [] },
         { id: 12, budget_remaining: 260, roster: [] }
       ],
-      nominated_player: "Juan Soto",
       roster_config: { C:1, "1B":1, "2B":1, "3B":1, SS:1, OF:3, SP:2, RP:2, UTIL:1, BN:2 }
     }
   },
@@ -554,7 +553,6 @@ const EXAMPLES = {
         { id: 11, budget_remaining: 205, roster: [] },
         { id: 12, budget_remaining: 240, roster: [] }
       ],
-      nominated_player: "William Contreras",
       roster_config: { C:1, "1B":1, "2B":1, "3B":1, SS:1, OF:3, SP:2, RP:2, UTIL:1, BN:2 }
     }
   },
@@ -578,7 +576,6 @@ const EXAMPLES = {
         { id: 11, budget_remaining: 70,  roster: ["Starling Marte"] },
         { id: 12, budget_remaining: 10,  roster: ["Max Muncy","Tommy Edman","Cody Bellinger","Dansby Swanson","MJ Melendez"] }
       ],
-      nominated_player: "William Contreras",
       roster_config: { C:1, "1B":1, "2B":1, "3B":1, SS:1, OF:3, SP:2, RP:2, UTIL:1, BN:2 }
     }
   },
@@ -602,7 +599,6 @@ const EXAMPLES = {
         { id: 11, budget_remaining: 260, roster: [] },
         { id: 12, budget_remaining: 250, roster: [] }
       ],
-      nominated_player: "Shohei Ohtani",
       roster_config: { C:1, "1B":1, "2B":1, "3B":1, SS:1, OF:3, SP:2, RP:2, UTIL:1, BN:2 }
     }
   }

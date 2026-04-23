@@ -112,7 +112,8 @@ export default function DraftBoard({
   rosterPositions, // flat ordered array e.g. ["C","1B","2B","3B","SS","OF","OF","OF","SP"...]
   totalSlots,
   maxBid,
-  valuationCache, // shared valuation cache from App { [playerId]: "loading" | apiResponse }
+  valuationCache,
+  valuationLoading,
   requestValuation, // (player) => void  — requests a valuation and stores it in the cache
   draftStateKey, // compact string that changes on every pick/undo (cache version key)
   canUndo = false,
@@ -275,7 +276,7 @@ export default function DraftBoard({
   // draftStateKey re-triggers this whenever a player is added/removed,
   // so the API inflation & scarcity math stays accurate without a manual re-click.
   useEffect(() => {
-    if (selectedPlayer) requestValuation(selectedPlayer);
+    if (selectedPlayer) requestValuation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlayer?.id, draftStateKey]);
 
@@ -438,7 +439,7 @@ export default function DraftBoard({
     if (!player) return;
     setHoverPreviewPlayer(null);
     setSelectedPlayer(player);
-    requestValuation(player);
+    requestValuation();
   }
 
   function openPlayerCard(player) {
@@ -464,10 +465,7 @@ export default function DraftBoard({
     }
     hoverPreviewTimeoutRef.current = window.setTimeout(() => {
       setHoverPreviewPlayer(player);
-      const cachedValuation = valuationCache?.[player.id];
-      if (!cachedValuation) {
-        requestValuation(player);
-      }
+      if (!valuationCache?.[player.id]) requestValuation();
     }, 140);
   }
 
@@ -479,14 +477,17 @@ export default function DraftBoard({
   // ─────────────────────────────────────────────────────────────────────────
   function getRecommendedBid(player) {
     const cached = valuationCache?.[player?.id];
-    if (
-      cached &&
-      cached !== "loading" &&
-      cached.max_bid_recommendation != null
-    ) {
+    if (cached && cached.max_bid_recommendation != null) {
       return cached.max_bid_recommendation;
     }
     return player?.baseValue ?? "";
+  }
+
+  function getDisplayedValuation(player) {
+    if (!player) return null;
+    const cached = valuationCache?.[player.id];
+    if (cached) return cached;
+    return valuationLoading ? "loading" : null;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -498,7 +499,7 @@ export default function DraftBoard({
     // its suggested bid as soon as the API responds (even after it opens).
     setIsPinnedExpanded(false);
     clearHoverPreview();
-    requestValuation(player);
+    requestValuation();
     const team = league.teams[currentOwnerIdx];
     const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
     setSaleModal(player);
@@ -520,7 +521,7 @@ export default function DraftBoard({
   function openSaleModalForCell(player, teamId, slotIdx) {
     setIsPinnedExpanded(false);
     clearHoverPreview();
-    requestValuation(player); // same as openSaleModal — trigger early so bid updates live
+    requestValuation();
     // Switch the active owner to the team being filled
     const ti = league.teams.findIndex((t) => t.id === teamId);
     if (ti >= 0) setCurrentOwnerIdx(ti);
@@ -540,12 +541,7 @@ export default function DraftBoard({
   useEffect(() => {
     if (!saleModal) return;
     const cached = valuationCache?.[saleModal.id];
-    if (
-      !cached ||
-      cached === "loading" ||
-      cached.max_bid_recommendation == null
-    )
-      return;
+    if (!cached || cached.max_bid_recommendation == null) return;
     setSalePrice((prev) => {
       const prevNum = Number(prev);
       // Only auto-fill if the field still holds the baseValue default (hasn't been manually edited)
@@ -690,7 +686,7 @@ export default function DraftBoard({
     if (targets.length === 0) return undefined;
 
     const timeoutId = window.setTimeout(() => {
-      targets.forEach((player) => requestValuation(player));
+      requestValuation();
     }, 180);
 
     return () => window.clearTimeout(timeoutId);
@@ -1436,7 +1432,7 @@ export default function DraftBoard({
                     noteText={notes?.[p.id] || p.note}
                     isFavorite={Boolean(favorites?.[p.id])}
                     recValue={valuationCache[p.id]?.max_bid_recommendation}
-                    recLoading={valuationCache[p.id] === "loading"}
+                    recLoading={valuationLoading && !valuationCache[p.id]}
                     actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
                     onSelect={() => handleSelectPlayer(p)}
                     onOpenCard={() => openPlayerCard(p)}
@@ -1491,7 +1487,7 @@ export default function DraftBoard({
                   noteText={notes?.[p.id] || p.note}
                   isFavorite={Boolean(favorites?.[p.id])}
                   recValue={valuationCache[p.id]?.max_bid_recommendation}
-                  recLoading={valuationCache[p.id] === "loading"}
+                  recLoading={valuationLoading && !valuationCache[p.id]}
                   onSelect={() => handleSelectPlayer(p)}
                   onOpenCard={() => openPlayerCard(p)}
                   onRecord={() =>
@@ -1549,7 +1545,7 @@ export default function DraftBoard({
 
             <PlayerCard
               player={selectedPlayer}
-              valuation={valuationCache[selectedPlayer?.id] ?? null}
+              valuation={getDisplayedValuation(selectedPlayer)}
               notes={notes}
               favorites={favorites}
               saveNote={saveNote}
@@ -1589,7 +1585,7 @@ export default function DraftBoard({
             </div>
             <PlayerCard
               player={hoverPreviewPlayer}
-              valuation={valuationCache[hoverPreviewPlayer?.id] ?? null}
+              valuation={getDisplayedValuation(hoverPreviewPlayer)}
               notes={notes}
               favorites={favorites}
               saveNote={saveNote}
@@ -1722,7 +1718,6 @@ export default function DraftBoard({
 
             {/* API / base value hint */}
             {valuationCache[saleModal?.id] &&
-            valuationCache[saleModal?.id] !== "loading" &&
             !valuationCache[saleModal?.id]?.error ? (
               <div></div> // Horrible practice dead code
             ) : valuationCache[saleModal?.id]?.error ? (

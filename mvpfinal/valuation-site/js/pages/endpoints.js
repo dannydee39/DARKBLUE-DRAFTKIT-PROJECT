@@ -52,19 +52,26 @@ DB.pages.endpoints = function (container) {
   }, null, 2);
 
   var VALUATE_RESPONSE = JSON.stringify({
-    player:                 'Shohei Ohtani',
-    player_tier:            'Elite',
-    base_value:             63.1,
-    max_bid_recommendation: 69,
-    true_dollar_value:      74.8,
+    count:                  1821,
+    drafted_count:          2,
+    undrafted_count:        1819,
     market_inflation:       1.08,
     market_context:         { label: 'Hot', delta_percent: 8.0 },
-    scarcity_tier:          'HIGH',
-    position_scarcity:      { DH: 'HIGH', '1B': 'HIGH' },
-    draftability_score:     1.0,
-    value_delta:            12,
-    reasoning:              'DH scarce — high demand in pool. Market inflation +8.0%. Player tier: Elite. Scarcity: HIGH. TDV: $75.',
-    stats:                  { tier: 'Elite', positions: ['DH', '1B'], team: 'LAD', league: 'NL' },
+    valuations: {
+      'Shohei Ohtani': {
+        player:                 'Shohei Ohtani',
+        player_tier:            'Elite',
+        base_value:             63.1,
+        max_bid_recommendation: 69,
+        true_dollar_value:      74.8,
+        scarcity_tier:          'HIGH',
+        position_scarcity:      { DH: 'HIGH', '1B': 'HIGH' },
+        draftability_score:     1.0,
+        value_delta:            12,
+        reasoning:              'DH scarce — high demand in pool. Market inflation +8.0%. Player tier: Elite. Scarcity: HIGH. TDV: $75.',
+        stats:                  { tier: 'Elite', positions: ['DH', '1B'], team: 'LAD', league: 'NL' },
+      },
+    },
   }, null, 2);
 
   /* ── cURL examples ───────────────────────────────────────────────────────── */
@@ -88,7 +95,6 @@ DB.pages.endpoints = function (container) {
     '        { "id": 1, "budget_remaining": 248, "roster": ["Freddie Freeman"] },\n' +
     '        { "id": 2, "budget_remaining": 195, "roster": ["Ronald Acuna Jr."] }\n' +
     '      ],\n' +
-    '      "nominated_player": "Shohei Ohtani",\n' +
     '      "roster_config": {\n' +
     '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +
     '        "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2\n' +
@@ -106,7 +112,6 @@ DB.pages.endpoints = function (container) {
       teams: [
         { id: 1, budget_remaining: 248, roster: ['Freddie Freeman'] },
       ],
-      nominated_player: 'Shohei Ohtani',
       roster_config: { C: 1, '1B': 1, '2B': 1, '3B': 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
     },
   }, null, 2);
@@ -129,7 +134,7 @@ DB.pages.endpoints = function (container) {
         '<section class="ep-flow-strip">' +
           '<div class="ep-flow-card">' +
             '<div class="ep-flow-label">Quickstart</div>' +
-            '<p>Use <code>/v1/players</code> before the draft and <code>/v1/valuate</code> on every nomination.</p>' +
+            '<p>Use <code>/v1/players</code> before the draft and <code>/v1/valuate</code> whenever the draft state changes.</p>' +
           '</div>' +
           '<div class="ep-flow-card">' +
             '<div class="ep-flow-label">Auth</div>' +
@@ -208,17 +213,16 @@ DB.pages.endpoints = function (container) {
           '</div>' +
           '<div class="ep-card-body">' +
             '<p class="ep-desc">' +
-              'The core endpoint. Send your full draft state and the nominated player; ' +
-              'receive a max bid recommendation backed by live SGP math, position scarcity, ' +
-              'and market inflation.' +
+              'The core endpoint. Send your full draft state once; receive a full valuation dictionary ' +
+              'for the player pool, backed by live SGP math, position scarcity, and market inflation.' +
             '</p>' +
             '<div class="ep-callout">' +
               'This endpoint is <strong>stateless</strong>. Send the complete, current ' +
               'draft state on every request. Nothing is stored server-side between calls.' +
             '</div>' +
             '<div class="ep-why">' +
-              '<strong>Why it matters:</strong> This is what runs during the draft. Every time a ' +
-              'player is nominated, your UI calls this endpoint and shows the recommendation in real time.' +
+              '<strong>Why it matters:</strong> This is what runs during the draft. Every time the draft state changes, ' +
+              'your backend refreshes the valuation dictionary and your UI reads player prices from that local cache.' +
             '</div>' +
 
             '<div class="ep-params">' +
@@ -238,9 +242,6 @@ DB.pages.endpoints = function (container) {
                   '<tr><td><code>teams</code></td><td>object[]</td>' +
                     '<td><span class="ep-req">required</span></td>' +
                     '<td>Each: <code>id</code>, <code>budget_remaining</code>, <code>roster</code> (player names).</td></tr>' +
-                  '<tr><td><code>nominated_player</code></td><td>string</td>' +
-                    '<td><span class="ep-req">required</span></td>' +
-                    '<td>Player name to valuate. Case-insensitive matching.</td></tr>' +
                   '<tr><td><code>roster_config</code></td><td>object</td>' +
                     '<td>optional</td>' +
                     '<td>Slot counts per position. Defaults to standard 12-team layout.</td></tr>' +
@@ -258,7 +259,6 @@ DB.pages.endpoints = function (container) {
                 '<tbody>' +
                   '<tr><td><code>400</code></td><td>Missing or malformed body fields.</td></tr>' +
                   '<tr><td><code>401</code></td><td>Missing or invalid <code>X-License-Key</code>.</td></tr>' +
-                  '<tr><td><code>404</code></td><td>Nominated player not found in pool.</td></tr>' +
                   '<tr><td><code>429</code></td><td>Rate limit exceeded. Check <code>Retry-After</code> header.</td></tr>' +
                   '<tr><td><code>500</code></td><td>Internal error. Retry with backoff.</td></tr>' +
                 '</tbody>' +
@@ -271,7 +271,7 @@ DB.pages.endpoints = function (container) {
         '<section class="ep-tryit" id="ep-tryit">' +
           '<div class="ep-tryit-head">' +
             '<h2>Try It</h2>' +
-            '<p>Send a live <code>POST /v1/valuate</code> request using the live test key.</p>' +
+            '<p>Send a live <code>POST /v1/valuate</code> request using the live test key and inspect the returned valuation dictionary.</p>' +
           '</div>' +
           '<div class="ep-tryit-note">' +
             'The API must be running at <code>' + BASE + '</code>. ' +

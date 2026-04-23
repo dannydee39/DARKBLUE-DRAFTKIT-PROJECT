@@ -7,7 +7,7 @@
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(6, 10, 24, 0.76);
+  background: rgba(7, 18, 30, 0.76);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
@@ -31,7 +31,7 @@ body.db-modal-open {
   max-height: calc(100vh - 2 * var(--space-5));
   overflow-y: auto;
   background:
-    radial-gradient(circle at top right, rgba(79, 124, 255, 0.16), transparent 38%),
+    radial-gradient(circle at top right, rgba(195, 141, 103, 0.18), transparent 38%),
     linear-gradient(180deg, var(--surface-1), var(--surface-0));
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);

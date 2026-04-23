@@ -88,12 +88,12 @@ DB.pages.endpoints = function (container) {
     '  -H "X-License-Key: ' + KEY + '" \\\n' +
     '  -d \'{\n' +
     '    "draft_state": {\n' +
-    '      "total_teams": 12,\n' +
-    '      "budget_per_team": 260,\n' +
-    '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
-    '      "teams": [\n' +
-    '        { "id": 1, "budget_remaining": 248, "roster": ["Freddie Freeman"] },\n' +
-    '        { "id": 2, "budget_remaining": 195, "roster": ["Ronald Acuna Jr."] }\n' +
+      '      "total_teams": 12,\n' +
+      '      "budget_per_team": 260,\n' +
+      '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
+      '      "teams": [\n' +
+    '        { "id": 1, "budget_remaining": 248, "roster": [["Freddie Freeman", "LAD"]] },\n' +
+    '        { "id": 2, "budget_remaining": 195, "roster": [["Ronald Acuna Jr.", "ATL"]] }\n' +
     '      ],\n' +
     '      "roster_config": {\n' +
     '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +
@@ -110,7 +110,7 @@ DB.pages.endpoints = function (container) {
       budget_per_team:    260,
       scoring_categories: ['HR', 'RBI', 'AVG', 'SB', 'ERA', 'SO', 'WHIP'],
       teams: [
-        { id: 1, budget_remaining: 248, roster: ['Freddie Freeman'] },
+        { id: 1, budget_remaining: 248, roster: [["Freddie Freeman", "LAD"]] },
       ],
       roster_config: { C: 1, '1B': 1, '2B': 1, '3B': 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
     },
@@ -241,7 +241,7 @@ DB.pages.endpoints = function (container) {
                     '<td>Active categories. Supported: HR, RBI, AVG, SB, R, H, OBP, BB, TB, XBH, W, SV, ERA, WHIP, SO, HLD, K/9, BB/9, QS.</td></tr>' +
                   '<tr><td><code>teams</code></td><td>object[]</td>' +
                     '<td><span class="ep-req">required</span></td>' +
-                    '<td>Each: <code>id</code>, <code>budget_remaining</code>, <code>roster</code> (player names).</td></tr>' +
+                    '<td>Each: <code>id</code>, <code>budget_remaining</code>, <code>roster</code> as <code>[player_name, mlb_team]</code> tuples.</td></tr>' +
                   '<tr><td><code>roster_config</code></td><td>object</td>' +
                     '<td>optional</td>' +
                     '<td>Slot counts per position. Defaults to standard 12-team layout.</td></tr>' +

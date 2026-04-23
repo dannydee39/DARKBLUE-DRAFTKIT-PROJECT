@@ -278,7 +278,7 @@ function createApp(options = {}) {
       <div class="overview-card">
         <div class="oc-method">POST</div>
         <div class="oc-path">/v1/valuate</div>
-        <div class="oc-desc">Submit current draft state + nominated player. Returns max bid, true dollar value, and scarcity tier.</div>
+        <div class="oc-desc">Submit the full draft state with roster tuples as [player_name, mlb_team]. Returns a full valuation dictionary.</div>
         <div class="oc-auth">Requires X-License-Key header</div>
       </div>
     </div>
@@ -373,7 +373,7 @@ function createApp(options = {}) {
           <pre class="curl-code">curl -X POST \\
   -H "Content-Type: application/json" \\
   -H "X-License-Key: DB-2026-DEMO-0001" \\
-  -d '{"license_key":"DB-2026-DEMO-0001","draft_state":{...}}' \\
+  -d '{"draft_state":{"teams":[{"id":1,"budget_remaining":248,"roster":[["Garrett Crochet","BOS"]]}]}}' \\
   ${window.location.origin}/v1/valuate</pre>
         </div>
 
@@ -381,10 +381,10 @@ function createApp(options = {}) {
         <div class="example-row">
           <span class="example-label">EXAMPLE PAYLOADS:</span>
           <select class="ctrl-select" id="example-picker" onchange="loadExample(this.value)">
-            <option value="early">Early draft (Juan Soto nom.)</option>
+            <option value="early">Early draft (opening room)</option>
             <option value="mid">Mid draft (balanced budgets)</option>
             <option value="late">Late draft — scarce C</option>
-            <option value="ohtani">Ohtani nomination</option>
+            <option value="ohtani">Ohtani market check</option>
           </select>
         </div>
 
@@ -540,13 +540,13 @@ const EXAMPLES = {
       budget_per_team: 260,
       scoring_categories: ["R","HR","RBI","SB","AVG","W","SV","ERA","WHIP","SO"],
       teams: [
-        { id: 1, budget_remaining: 180, roster: ["Juan Soto","Corbin Carroll"] },
-        { id: 2, budget_remaining: 165, roster: ["Freddie Freeman","Kyle Tucker"] },
-        { id: 3, budget_remaining: 210, roster: ["Francisco Lindor"] },
-        { id: 4, budget_remaining: 195, roster: ["Nolan Arenado"] },
+        { id: 1, budget_remaining: 180, roster: [["Juan Soto","NYM"],["Corbin Carroll","AZ"]] },
+        { id: 2, budget_remaining: 165, roster: [["Freddie Freeman","LAD"],["Kyle Tucker","CHC"]] },
+        { id: 3, budget_remaining: 210, roster: [["Francisco Lindor","NYM"]] },
+        { id: 4, budget_remaining: 195, roster: [["Nolan Arenado","STL"]] },
         { id: 5, budget_remaining: 230, roster: [] },
-        { id: 6, budget_remaining: 220, roster: ["Logan Webb"] },
-        { id: 7, budget_remaining: 175, roster: ["Elly De La Cruz"] },
+        { id: 6, budget_remaining: 220, roster: [["Logan Webb","SF"]] },
+        { id: 7, budget_remaining: 175, roster: [["Elly De La Cruz","CIN"]] },
         { id: 8, budget_remaining: 200, roster: [] },
         { id: 9, budget_remaining: 215, roster: [] },
         { id: 10, budget_remaining: 190, roster: [] },
@@ -563,18 +563,18 @@ const EXAMPLES = {
       budget_per_team: 260,
       scoring_categories: ["R","HR","RBI","SB","AVG","W","SV","ERA","WHIP","SO"],
       teams: [
-        { id: 1,  budget_remaining: 45,  roster: ["Juan Soto","Corbin Carroll","Freddie Freeman","Logan Webb","Francisco Lindor","Kyle Tucker"] },
-        { id: 2,  budget_remaining: 30,  roster: ["Nolan Arenado","Elly De La Cruz","Paul Goldschmidt","Ryan McMahon"] },
-        { id: 3,  budget_remaining: 60,  roster: ["Spencer Strider","Sandy Alcantara","Blake Snell"] },
-        { id: 4,  budget_remaining: 20,  roster: ["Christian Yelich","Jake Cronenworth","Trea Turner"] },
-        { id: 5,  budget_remaining: 15,  roster: ["Ozzie Albies","Jeff McNeil","Ketel Marte"] },
-        { id: 6,  budget_remaining: 80,  roster: ["Julio Rodriguez","Riley Greene"] },
-        { id: 7,  budget_remaining: 25,  roster: ["Pete Alonso","CJ Abrams","Xander Bogaerts"] },
-        { id: 8,  budget_remaining: 35,  roster: ["Jose Ramirez","Manny Machado"] },
-        { id: 9,  budget_remaining: 55,  roster: ["Michael Harris II","Bryan Reynolds"] },
-        { id: 10, budget_remaining: 40,  roster: ["Marcus Stroman","Kevin Gausman"] },
-        { id: 11, budget_remaining: 70,  roster: ["Starling Marte"] },
-        { id: 12, budget_remaining: 10,  roster: ["Max Muncy","Tommy Edman","Cody Bellinger","Dansby Swanson","MJ Melendez"] }
+        { id: 1,  budget_remaining: 45,  roster: [["Juan Soto","NYM"],["Corbin Carroll","AZ"],["Freddie Freeman","LAD"],["Logan Webb","SF"],["Francisco Lindor","NYM"],["Kyle Tucker","CHC"]] },
+        { id: 2,  budget_remaining: 30,  roster: [["Nolan Arenado","STL"],["Elly De La Cruz","CIN"],["Paul Goldschmidt","NYY"],["Ryan McMahon","COL"]] },
+        { id: 3,  budget_remaining: 60,  roster: [["Spencer Strider","ATL"],["Sandy Alcantara","MIA"],["Blake Snell","LAD"]] },
+        { id: 4,  budget_remaining: 20,  roster: [["Christian Yelich","MIL"],["Jake Cronenworth","SD"],["Trea Turner","PHI"]] },
+        { id: 5,  budget_remaining: 15,  roster: [["Ozzie Albies","ATL"],["Jeff McNeil","NYM"],["Ketel Marte","AZ"]] },
+        { id: 6,  budget_remaining: 80,  roster: [["Julio Rodríguez","SEA"],["Riley Greene","DET"]] },
+        { id: 7,  budget_remaining: 25,  roster: [["Pete Alonso","NYM"],["CJ Abrams","WSH"],["Xander Bogaerts","SD"]] },
+        { id: 8,  budget_remaining: 35,  roster: [["José Ramírez","CLE"],["Manny Machado","SD"]] },
+        { id: 9,  budget_remaining: 55,  roster: [["Michael Harris II","ATL"],["Bryan Reynolds","PIT"]] },
+        { id: 10, budget_remaining: 40,  roster: [["Marcus Stroman","NYY"],["Kevin Gausman","TOR"]] },
+        { id: 11, budget_remaining: 70,  roster: [["Starling Marte","NYM"]] },
+        { id: 12, budget_remaining: 10,  roster: [["Max Muncy","LAD"],["Tommy Edman","LAD"],["Cody Bellinger","NYY"],["Dansby Swanson","CHC"],["MJ Melendez","KC"]] }
       ],
       roster_config: { C:1, "1B":1, "2B":1, "3B":1, SS:1, OF:3, SP:2, RP:2, UTIL:1, BN:2 }
     }
@@ -586,12 +586,12 @@ const EXAMPLES = {
       budget_per_team: 260,
       scoring_categories: ["R","HR","RBI","SB","AVG","W","SV","ERA","WHIP","SO"],
       teams: [
-        { id: 1,  budget_remaining: 200, roster: ["Juan Soto"] },
+        { id: 1,  budget_remaining: 200, roster: [["Juan Soto","NYM"]] },
         { id: 2,  budget_remaining: 220, roster: [] },
         { id: 3,  budget_remaining: 235, roster: [] },
         { id: 4,  budget_remaining: 250, roster: [] },
         { id: 5,  budget_remaining: 240, roster: [] },
-        { id: 6,  budget_remaining: 215, roster: ["Logan Webb"] },
+        { id: 6,  budget_remaining: 215, roster: [["Logan Webb","SF"]] },
         { id: 7,  budget_remaining: 260, roster: [] },
         { id: 8,  budget_remaining: 255, roster: [] },
         { id: 9,  budget_remaining: 245, roster: [] },

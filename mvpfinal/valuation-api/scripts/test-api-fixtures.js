@@ -5,6 +5,14 @@ const playerPool = require("../data/players.json");
 const API_KEY = "DB-2026-DEMO-0001";
 const TOP_NAMES = playerPool.slice(0, 180).map((player) => player.name);
 
+function rosterTuple(playerName, teamId) {
+  const player = playerPool.find((entry) => entry.name === playerName);
+  if (!player) {
+    throw new Error(`Could not find player "${playerName}" in fixture dataset.`);
+  }
+  return [player.name, player.team];
+}
+
 function buildTeams(draftedCount) {
   const teams = Array.from({ length: 12 }, (_, index) => ({
     id: index + 1,
@@ -14,7 +22,7 @@ function buildTeams(draftedCount) {
 
   for (let i = 0; i < draftedCount; i += 1) {
     const team = teams[i % teams.length];
-    team.roster.push(TOP_NAMES[i]);
+    team.roster.push(rosterTuple(TOP_NAMES[i], team.id));
     team.budget_remaining = Math.max(1, team.budget_remaining - Math.max(1, Math.round(42 - i * 0.28)));
   }
 

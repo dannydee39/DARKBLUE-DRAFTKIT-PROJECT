@@ -485,12 +485,12 @@ export default function App() {
   // This forces fresh API calls after every pick or undo so inflation/scarcity
   // math in the API stays accurate.
   // ─────────────────────────────────────────────────────────────────────────
-  // Include exact roster names and budgets so any meaningful draft-state change
+  // Include exact roster identifiers and budgets so any meaningful draft-state change
   // forces a fresh all-player valuation pass.
   const draftStateKey = league.teams
     .map((team) => {
       const rosterNames = (team.roster || [])
-        .map((entry) => entry?.name || entry)
+        .map((entry) => entry?.playerId ?? entry?.name ?? entry)
         .sort()
         .join("|");
       return `${team.id}:${team.budget_remaining}:${rosterNames}`;
@@ -556,7 +556,7 @@ export default function App() {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          draft_state: buildDraftState(league),
+          draft_state: buildDraftState(league, players),
         }),
       });
       const data = await r.json();

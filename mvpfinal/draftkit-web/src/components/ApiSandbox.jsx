@@ -36,7 +36,7 @@ export default function ApiSandbox({ league, apiStatus }) {
       budget_per_team: league?.budget || 260,
       scoring_categories: ["HR", "RBI", "AVG", "SB", "ERA", "SO", "WHIP"],
       teams: [
-        { id: 1, budget_remaining: 248, roster: ["Garrett Crochet"] },
+        { id: 1, budget_remaining: 248, roster: [["Garrett Crochet", "BOS"]] },
       ],
       roster_config: {
         C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1,
@@ -106,7 +106,8 @@ export default function ApiSandbox({ league, apiStatus }) {
       <p className="dict-sub">
         Edit the JSON payload and send it to the valuation API. The endpoint
         now returns a valuation dictionary for the full player pool based on
-        the current draft state.
+        the current draft state. Each `roster` entry is a
+        `[player_name, mlb_team]` tuple.
       </p>
 
       {/* ── Endpoint info bar ─────────────────────────────────────────────── */}

@@ -382,8 +382,8 @@ function _runLiveChecks(container, key) {
         budget_per_team: 260,
         scoring_categories: ['HR', 'RBI', 'AVG', 'SB', 'ERA', 'SO', 'WHIP'],
         teams: [
-          { id: 1, budget_remaining: 248, roster: ['Freddie Freeman'] },
-          { id: 2, budget_remaining: 214, roster: ['Ronald Acuna Jr.'] },
+          { id: 1, budget_remaining: 248, roster: [['Freddie Freeman', 'LAD']] },
+          { id: 2, budget_remaining: 214, roster: [['Ronald Acuna Jr.', 'ATL']] },
         ],
         roster_config: {
           C: 1, '1B': 1, '2B': 1, '3B': 1, SS: 1,

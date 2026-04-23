@@ -52,13 +52,11 @@ export default function KeeperSetup({ league, setLeague, players }) {
     const teamId = +form.ownerId;
     const cost   = +form.cost;
     const name   = form.playerName.trim();
-
-    // Try to find the player in the API pool to get their positions.
-    // If not found we fall back to ["?"] — the keeper still gets added
-    // but will show a placeholder position indicator in the roster grid.
     const matchedPlayer = players.find(
       (p) => p.name.toLowerCase() === name.toLowerCase()
     );
+
+    if (!matchedPlayer) return;
 
     // Update the visual keeper-history panel (separate from league state)
     setKeepersByTeam((prev) => ({
@@ -80,9 +78,10 @@ export default function KeeperSetup({ league, setLeague, players }) {
           roster: [
             ...t.roster,
             {
+              playerId: matchedPlayer.id,
               name,
               price: cost,
-              pos: matchedPlayer?.pos || ["?"],
+              pos: matchedPlayer.pos,
               isKeeper: true, // flag so the draft grid can show a keeper badge
             },
           ],
@@ -182,7 +181,13 @@ export default function KeeperSetup({ league, setLeague, players }) {
           <button
             className="init-btn"
             onClick={addKeeper}
-            disabled={!form.playerName.trim() || !form.cost}
+            disabled={
+              !form.playerName.trim() ||
+              !form.cost ||
+              !players.some(
+                (p) => p.name.toLowerCase() === form.playerName.trim().toLowerCase()
+              )
+            }
           >
             Add Keeper
           </button>

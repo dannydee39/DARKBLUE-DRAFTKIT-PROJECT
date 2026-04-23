@@ -1,12 +1,26 @@
 const players = require("../data/players.json");
 
 const PLAYER_TIER_ORDER = { Elite: 0, Starter: 1, Bench: 2 };
+const PLAYER_BY_ID = new Map(players.map((player) => [player.id, player]));
 const POSITION_DEFAULT = {
   multiplier: 1.0,
   level: "LOW",
   remainingSlots: 0,
   undraftedAtPos: 0,
 };
+
+function normalizeNameKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeTeamKey(value) {
+  return String(value || "").trim().toUpperCase();
+}
 
 function calculateValuation(draftState) {
   const batch = calculateValuations(draftState);
@@ -45,7 +59,7 @@ function calculateValuations(draftState) {
 
   return {
     count: players.length,
-    drafted_count: context.draftedNames.size,
+    drafted_count: context.draftedPlayerIds.size,
     undrafted_count: context.undrafted.length,
     generated_at: new Date().toISOString(),
     market_inflation: parseFloat(context.inflationFactor.toFixed(3)),
@@ -76,22 +90,21 @@ function buildDraftContext(draftState = {}) {
 
   const normalizedTeams = teams.map((team) => ({
     ...team,
-    roster: (team.roster || []).map((entry) => {
-      const rawName =
-        typeof entry === "string"
-          ? entry
-          : entry?.name || entry?.player || entry?.player_name || "";
-      const matched = findPlayer(rawName);
-      return matched?.name || rawName;
-    }),
+    roster: (team.roster || [])
+      .map((entry) => normalizeRosterEntry(entry, team.id))
+      .filter(Boolean),
   }));
 
+  const draftedPlayerIds = new Set();
   const draftedNames = new Set();
   normalizedTeams.forEach((team) => {
-    (team.roster || []).forEach((name) => draftedNames.add(name));
+    (team.roster || []).forEach((entry) => {
+      if (entry.playerId != null) draftedPlayerIds.add(entry.playerId);
+      if (entry.playerName) draftedNames.add(entry.playerName);
+    });
   });
 
-  const undrafted = players.filter((player) => !draftedNames.has(player.name));
+  const undrafted = players.filter((player) => !draftedPlayerIds.has(player.id));
   const totalRosterSlots = Object.values(roster_config).reduce(
     (sum, count) => sum + Number(count || 0),
     0,
@@ -131,6 +144,7 @@ function buildDraftContext(draftState = {}) {
     scoringCategories: scoring_categories,
     rosterConfig: roster_config,
     teams: normalizedTeams,
+    draftedPlayerIds,
     draftedNames,
     undrafted,
     inflationFactor,
@@ -151,8 +165,8 @@ function analyzePositionScarcity(undrafted, teams, totalTeams, rosterConfig) {
     const totalSlotsNeeded = totalTeams * slotsPerTeam;
 
     const slotsFilled = teams.reduce((sum, team) => {
-      const filledAtPos = (team.roster || []).filter((name) => {
-        const rosteredPlayer = findPlayer(name);
+      const filledAtPos = (team.roster || []).filter((entry) => {
+        const rosteredPlayer = entry?.playerId != null ? findPlayerById(entry.playerId) : null;
         return rosteredPlayer && rosteredPlayer.pos.includes(position);
       }).length;
       return sum + filledAtPos;
@@ -226,7 +240,7 @@ function valuatePlayer(player, context) {
     position_scarcity: positionDetails,
     draftability_score: draftabilityScore,
     value_delta: valueDelta,
-    is_drafted: context.draftedNames.has(player.name),
+    is_drafted: context.draftedPlayerIds.has(player.id),
     reasoning: buildReasoning(
       player,
       player.tier,
@@ -244,19 +258,111 @@ function valuatePlayer(player, context) {
   };
 }
 
-function findPlayer(name) {
+function normalizeRosterEntry(entry, fallbackTeamId) {
+  if (Array.isArray(entry)) {
+    if (typeof entry[0] === "string" && typeof entry[1] === "string") {
+      const matched = findPlayer(entry[0], entry[1]);
+      if (!matched) return null;
+      return {
+        playerId: matched.id,
+        teamId: fallbackTeamId,
+        playerName: matched.name,
+        playerTeam: matched.team,
+      };
+    }
+
+    const playerId = Number(entry[0]);
+    const matched = findPlayerById(playerId);
+    if (!Number.isFinite(playerId) || !matched) {
+      return null;
+    }
+
+    return {
+      playerId,
+      teamId: fallbackTeamId,
+      playerName: matched?.name || null,
+      playerTeam: matched?.team || null,
+    };
+  }
+
+  if (entry && typeof entry === "object") {
+    const candidateId = Number(entry.playerId ?? entry.player_id ?? entry.id);
+    if (Number.isFinite(candidateId)) {
+      const matched = findPlayerById(candidateId);
+      if (!matched) return null;
+      return {
+        playerId: candidateId,
+        teamId: fallbackTeamId,
+        playerName: matched?.name || entry.name || entry.player || entry.player_name || null,
+        playerTeam: matched?.team || entry.team || entry.player_team || entry.team_abbr || null,
+      };
+    }
+
+    const matched = findPlayer(
+      entry.name || entry.player || entry.player_name || "",
+      entry.team || entry.player_team || entry.team_abbr || "",
+    );
+    if (matched) {
+      return {
+        playerId: matched.id,
+        teamId: fallbackTeamId,
+        playerName: matched.name,
+        playerTeam: matched.team,
+      };
+    }
+  }
+
+  const rawName =
+    typeof entry === "string"
+      ? entry
+      : entry?.name || entry?.player || entry?.player_name || "";
+  const matched = findPlayer(rawName);
+  if (!matched) {
+    return null;
+  }
+
+  return {
+    playerId: matched.id,
+    teamId: fallbackTeamId,
+    playerName: matched.name,
+    playerTeam: matched.team,
+  };
+}
+
+function findPlayerById(id) {
+  return PLAYER_BY_ID.get(Number(id)) || null;
+}
+
+function findPlayer(name, team) {
   if (!name) return null;
-  const q = String(name).toLowerCase().trim();
-  const exact = players.find((player) => player.name.toLowerCase() === q);
+  const q = normalizeNameKey(name);
+  const normalizedTeam = normalizeTeamKey(team);
+  const teamMatches = (player) =>
+    !normalizedTeam || normalizeTeamKey(player.team) === normalizedTeam;
+
+  const exact = players.find(
+    (player) => teamMatches(player) && normalizeNameKey(player.name) === q,
+  );
   if (exact) return exact;
 
   const aliasMatches = players.filter((player) =>
-    (player.aliases || []).some((alias) => String(alias).toLowerCase() === q),
+    teamMatches(player) &&
+    (player.aliases || []).some((alias) => normalizeNameKey(alias) === q),
   );
   if (aliasMatches.length === 1) return aliasMatches[0];
   if (aliasMatches.length > 1) return null;
 
-  return players.find((player) => player.name.toLowerCase().includes(q)) || null;
+  const partialMatches = players.filter(
+    (player) => teamMatches(player) && normalizeNameKey(player.name).includes(q),
+  );
+  if (partialMatches.length === 1) return partialMatches[0];
+  if (partialMatches.length > 1 && normalizedTeam) return null;
+
+  if (normalizedTeam) {
+    return null;
+  }
+
+  return players.find((player) => normalizeNameKey(player.name).includes(q)) || null;
 }
 
 function getPlayers({ league, pos, tier, available_only, drafted_names }) {
@@ -358,5 +464,6 @@ module.exports = {
   calculateValuations,
   getPlayers,
   findPlayer,
+  findPlayerById,
   groupPlayersByTier,
 };

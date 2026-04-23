@@ -23,6 +23,8 @@ The API is primarily designed for the Dark Blue Draft Kit, but it is intentional
 
 That means a customer does **not** need to copy the Draft Kit frontend or our internal file layout. They only need to transform their CSV, spreadsheet, or app state into the `draft_state` payload expected by `/v1/valuate`.
 
+Roster entries in that payload are expressed as JSON tuples: `[player_name, mlb_team]`.
+
 In practice, the contract is:
 
 ```text
@@ -140,12 +142,12 @@ Calculates a valuation dictionary for the full player pool, given the current li
       {
         "id": 1,
         "budget_remaining": 248,
-        "roster": ["Garrett Crochet", "Paul Goldschmidt"]
+        "roster": [["Garrett Crochet", "BOS"], ["Paul Goldschmidt", "NYY"]]
       },
       {
         "id": 2,
         "budget_remaining": 215,
-        "roster": ["Freddie Freeman"]
+        "roster": [["Freddie Freeman", "LAD"]]
       }
     ],
     "roster_config": {
@@ -175,7 +177,7 @@ Calculates a valuation dictionary for the full player pool, given the current li
 | `draft_state.teams` | array | No | Team objects with budget and roster. If omitted, assumes no picks made yet. |
 | `draft_state.teams[].id` | number | Yes | Team identifier |
 | `draft_state.teams[].budget_remaining` | number | Yes | Current remaining budget |
-| `draft_state.teams[].roster` | string[] | Yes | Array of **player name strings** already drafted |
+| `draft_state.teams[].roster` | string[][] | Yes | Array of `[player_name, mlb_team]` tuples for already drafted players |
 | `draft_state.roster_config` | object | No | Slot counts per position |
 
 **Successful response (HTTP 200):**
@@ -309,11 +311,11 @@ X-License-Key: DB-2026-DEMO-0001
 
 The valuation engine uses an **explainable heuristic model**:
 
-### Step 1 — Find the Player
-Find the player in the normalized player database using exact name first, then alias support for disambiguated duplicate-name players, then a partial-name fallback.
+### Step 1 — Resolve Drafted Players
+Resolve drafted players from the supplied `[player_name, mlb_team]` tuples. The backend uses both strings to identify the matching player record.
 
 ### Step 2 — Build the Undrafted Pool
-Filter out all players already appearing in `draft_state.teams[].roster`.
+Filter out all players whose `(name, team)` pair appears in `draft_state.teams[].roster`.
 
 ### Step 3 — Start From Precomputed Base Value
 Each player already has a `baseValue` calculated from projected fantasy output and points above replacement during the data-generation step. Live valuation starts from that baseline instead of recomputing the entire player pool from scratch on every request.

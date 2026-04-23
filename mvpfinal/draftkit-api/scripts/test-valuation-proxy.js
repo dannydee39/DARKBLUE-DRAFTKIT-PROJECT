@@ -2,6 +2,15 @@ const assert = require("assert/strict");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const playerPool = require("../../valuation-api/data/players.json");
+
+function rosterTuple(playerName) {
+  const player = playerPool.find((entry) => entry.name === playerName);
+  if (!player) {
+    throw new Error(`Could not find player "${playerName}" in proxy test dataset.`);
+  }
+  return [player.name, player.team];
+}
 
 async function withServer(app, run) {
   const server = await new Promise((resolve) => {
@@ -75,8 +84,8 @@ async function main() {
             budget_per_team: 260,
             scoring_categories: ["R", "HR", "RBI", "SB", "AVG", "W", "SV", "ERA", "WHIP", "SO"],
             teams: [
-              { id: 1, budget_remaining: 248, roster: ["Freddie Freeman", "Logan Webb"] },
-              { id: 2, budget_remaining: 233, roster: ["Francisco Lindor"] },
+              { id: 1, budget_remaining: 248, roster: [rosterTuple("Freddie Freeman"), rosterTuple("Logan Webb")] },
+              { id: 2, budget_remaining: 233, roster: [rosterTuple("Francisco Lindor")] },
               { id: 3, budget_remaining: 260, roster: [] },
             ],
             roster_config: { C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },

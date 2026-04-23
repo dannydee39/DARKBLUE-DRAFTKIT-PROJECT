@@ -4,14 +4,22 @@ const playerPool = require("../data/players.json");
 
 const API_KEY = "DB-2026-DEMO-0001";
 
+function rosterTuple(playerName) {
+  const player = playerPool.find((entry) => entry.name === playerName);
+  if (!player) {
+    throw new Error(`Could not find player "${playerName}" in test dataset.`);
+  }
+  return [player.name, player.team];
+}
+
 function buildDraftState(overrides = {}) {
   return {
     total_teams: 12,
     budget_per_team: 260,
     scoring_categories: ["R", "HR", "RBI", "SB", "AVG", "W", "SV", "ERA", "WHIP", "SO"],
     teams: [
-      { id: 1, budget_remaining: 248, roster: ["Freddie Freeman", "Logan Webb"] },
-      { id: 2, budget_remaining: 233, roster: ["Francisco Lindor"] },
+      { id: 1, budget_remaining: 248, roster: [rosterTuple("Freddie Freeman"), rosterTuple("Logan Webb")] },
+      { id: 2, budget_remaining: 233, roster: [rosterTuple("Francisco Lindor")] },
       { id: 3, budget_remaining: 260, roster: [] },
     ],
     roster_config: { C: 1, "1B": 1, "2B": 1, "3B": 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
@@ -132,9 +140,9 @@ async function runGeneralRegressionSuite() {
       body: JSON.stringify({
         draft_state: buildDraftState({
           teams: [
-            { id: 1, budget_remaining: 190, roster: [pitcher.name] },
-            { id: 2, budget_remaining: 170, roster: ["Juan Soto", "Shohei Ohtani"] },
-            { id: 3, budget_remaining: 140, roster: ["Tarik Skubal", "Paul Skenes"] },
+            { id: 1, budget_remaining: 190, roster: [rosterTuple(pitcher.name)] },
+            { id: 2, budget_remaining: 170, roster: [rosterTuple("Juan Soto"), rosterTuple("Shohei Ohtani")] },
+            { id: 3, budget_remaining: 140, roster: [rosterTuple("Tarik Skubal"), rosterTuple("Paul Skenes")] },
           ],
         }),
       }),

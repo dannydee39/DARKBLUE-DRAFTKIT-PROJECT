@@ -7,6 +7,30 @@
 
 import { POSITION_COLORS } from "../constants.js";
 
+function normalizePlayerKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function buildPlayerIndexes(players = []) {
+  const playerById = new Map();
+  const playerByName = new Map();
+
+  (players || []).forEach((player) => {
+    playerById.set(player.id, player);
+    playerByName.set(normalizePlayerKey(player.name), player);
+    (player.aliases || []).forEach((alias) => {
+      playerByName.set(normalizePlayerKey(alias), player);
+    });
+  });
+
+  return { playerById, playerByName };
+}
+
 // ── posColor ──────────────────────────────────────────────────────────────────
 /**
  * Returns the hex color string for a given position code.
@@ -48,9 +72,12 @@ export function buildRosterPositions(roster) {
  * format. Used when POSTing to POST /v1/valuate.
  *
  * @param {Object} league - Full league state from App component
+ * @param {Object[]} players - Current player pool used to resolve legacy name-only roster entries
  * @returns {Object} draft_state payload ready to send to the valuation API
  */
-export function buildDraftState(league) {
+export function buildDraftState(league, players = []) {
+  const { playerById, playerByName } = buildPlayerIndexes(players);
+
   return {
     total_teams: league.owners,
     budget_per_team: league.budget,
@@ -60,9 +87,35 @@ export function buildDraftState(league) {
     teams: (league.teams || []).map((team) => ({
       id: team.id,
       budget_remaining: team.budget_remaining,
-      roster: (team.roster || []).map((entry) =>
-        typeof entry === "string" ? entry : entry?.name || entry?.player || "",
-      ),
+      roster: (team.roster || [])
+        .map((entry) => {
+          if (Array.isArray(entry) && entry.length >= 2) {
+            if (typeof entry[0] === "string" && typeof entry[1] === "string") {
+              return [entry[0], entry[1]];
+            }
+
+            const legacyPlayerId = Number(entry[0]);
+            const matchedPlayer = playerById.get(legacyPlayerId);
+            return matchedPlayer ? [matchedPlayer.name, matchedPlayer.team] : null;
+          }
+
+          const fallbackName =
+            typeof entry === "string" ? entry : entry?.name || entry?.player || "";
+          const matchedPlayer =
+            playerById.get(Number(entry?.playerId)) ||
+            playerByName.get(normalizePlayerKey(fallbackName));
+
+          if (matchedPlayer) {
+            return [matchedPlayer.name, matchedPlayer.team];
+          }
+
+          if (fallbackName && typeof entry?.team === "string") {
+            return [fallbackName, entry.team];
+          }
+
+          return fallbackName ? fallbackName : null;
+        })
+        .filter(Boolean),
     })),
     roster_config: league.roster,
   };

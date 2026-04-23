@@ -15,7 +15,7 @@ const { calculateValuations } = require("../services/valuation");
  *     "total_teams": 12,
  *     "budget_per_team": 260,
  *     "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],
- *     "teams": [{ "id": 1, "budget_remaining": 248, "roster": ["Garrett Crochet"] }],
+ *     "teams": [{ "id": 1, "budget_remaining": 248, "roster": [["Garrett Crochet", "BOS"]] }],
  *     "roster_config": { "C":1, "1B":1, "2B":1, "3B":1, "SS":1, "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2 }
  *   }
  * }

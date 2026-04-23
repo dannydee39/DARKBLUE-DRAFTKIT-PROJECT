@@ -30,8 +30,8 @@ DB.pages.license = function (container) {
     '      "budget_per_team": 260,\n' +
     '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
     '      "teams": [\n' +
-    '        { "id": 1, "budget_remaining": 248, "roster": ["Freddie Freeman"] },\n' +
-    '        { "id": 2, "budget_remaining": 214, "roster": ["Ronald Acuna Jr."] }\n' +
+    '        { "id": 1, "budget_remaining": 248, "roster": [["Freddie Freeman", "LAD"]] },\n' +
+    '        { "id": 2, "budget_remaining": 214, "roster": [["Ronald Acuna Jr.", "ATL"]] }\n' +
     '      ],\n' +
     '      "roster_config": {\n' +
     '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +

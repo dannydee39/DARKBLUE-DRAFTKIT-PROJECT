@@ -1,43 +1,87 @@
 /**
- * license.js — License tab renderer.
+ * license.js — Public buyer-journey page for the licensed valuation product.
  *
- * Sections:
- *   1. Header          — one-liner about the API
- *   2. Authentication  — X-License-Key header, demo key, copy button
- *   3. What you get    — response fields from /v1/valuate
- *   4. Integration     — 3-step quick start
- *   5. Plans           — Demo vs DraftKit License (small, subordinate)
+ * Focus:
+ *   1. What the product is
+ *   2. What the license unlocks
+ *   3. How to start quickly
+ *   4. How Draft Kit relates to the separate licensed API
  */
 
 window.DB = window.DB || {};
-DB.pages  = DB.pages || {};
+DB.pages = DB.pages || {};
 
 DB.pages.license = function (container) {
-
-  var KEY     = DB.DEMO_KEY;
+  var KEY = DB.DEMO_KEY;
   var DISPLAY = DB.API_DISPLAY;
+  var PRODUCT_SITE = DB.PRODUCT_SITE;
+  var DRAFTKIT_APP = DB.DRAFTKIT_APP;
+  var DRAFTKIT_API = DB.DRAFTKIT_API;
+
+  var QUICKSTART_CURL =
+    'curl -X POST ' + DISPLAY + '/v1/valuate \\\n' +
+    '  -H "Content-Type: application/json" \\\n' +
+    '  -H "X-License-Key: ' + KEY + '" \\\n' +
+    "  -d '{\n" +
+    '    "draft_state": {\n' +
+    '      "total_teams": 12,\n' +
+    '      "budget_per_team": 260,\n' +
+    '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
+    '      "teams": [\n' +
+    '        { "id": 1, "budget_remaining": 248, "roster": ["Freddie Freeman"] }\n' +
+    '      ],\n' +
+    '      "nominated_player": "Shohei Ohtani",\n' +
+    '      "roster_config": {\n' +
+    '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +
+    '        "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2\n' +
+    '      }\n' +
+    '    }\n' +
+    "  }'";
+
+  var QUICKSTART_RESPONSE = JSON.stringify(
+    {
+      player: 'Shohei Ohtani',
+      max_bid_recommendation: 69,
+      true_dollar_value: 74.8,
+      market_context: { label: 'Hot', delta_percent: 8.0 },
+      scarcity_tier: 'HIGH',
+      reasoning:
+        'DH scarce. Market inflation +8.0%. Player tier: Elite. Scarcity: HIGH. TDV: $75.',
+    },
+    null,
+    2,
+  );
 
   container.innerHTML =
     '<div class="page-license">' +
       '<div class="license-container">' +
-
-        /* ── Header ──────────────────────────────────────────────────────── */
-        '<header class="license-header">' +
-          '<p class="license-kicker">Dark Blue MLB Valuation API</p>' +
-          '<h1>License & integrate in minutes.</h1>' +
-          '<p class="license-lead">' +
-            'One API key, three endpoints, real-time auction draft intelligence ' +
-            'for fantasy baseball products.' +
-          '</p>' +
+        '<header class="license-header license-hero">' +
+          '<div class="license-hero-copy">' +
+            '<p class="license-kicker">Dark Blue MLB Valuation API</p>' +
+            '<h1>Buy the valuation engine, not another generic docs page.</h1>' +
+            '<p class="license-lead">' +
+              'This product gives fantasy baseball builders a licensed player pool, live auction ' +
+              'valuation endpoint, and a buyer flow that stays simple: one key, one backend, ' +
+              'three endpoints.' +
+            '</p>' +
+            '<div class="license-hero-actions">' +
+              '<a class="btn btn-primary" href="#account">View Buyer Account</a>' +
+              '<a class="btn btn-secondary" href="#endpoints">Open Endpoint Guide</a>' +
+            '</div>' +
+          '</div>' +
+          '<div class="license-hero-grid">' +
+            _signalCard('Plan', 'DraftKit License', '$99 / season for a live valuation license.') +
+            _signalCard('Auth', 'X-License-Key', 'No OAuth flow. Send one header on each request.') +
+            _signalCard('Runtime', 'Server-side first', 'Keep the key in your backend, not in the browser.') +
+          '</div>' +
         '</header>' +
 
-        /* ── Authentication ──────────────────────────────────────────────── */
         '<section class="license-section" id="lic-auth">' +
           '<div class="license-section-label">Authentication</div>' +
           '<h2>Every request needs one header.</h2>' +
-          '<p>Include <code>X-License-Key</code> on every call except ' +
-          '<code>/health</code>. That\u2019s it \u2014 no OAuth, no tokens, no sessions.</p>' +
-
+          '<p>Include <code>X-License-Key</code> on every request except <code>/health</code>. ' +
+          'Use the live test key to confirm the contract, then rotate into a dedicated buyer key ' +
+          'for the full production path.</p>' +
           '<div class="license-key-block">' +
             '<div class="license-key-row">' +
               '<span class="license-key-label">Header</span>' +
@@ -46,158 +90,182 @@ DB.pages.license = function (container) {
             '<div class="license-key-row">' +
               '<span class="license-key-label">Demo Key</span>' +
               '<code class="license-key-mono license-key-value">' + KEY + '</code>' +
-              '<button class="license-copy-btn" id="lic-copy-key">Copy</button>' +
+              '<button class="license-copy-btn license-copy-trigger" data-copy="' + _attr(KEY) + '">Copy</button>' +
             '</div>' +
           '</div>' +
-
           '<div class="license-key-notes">' +
-            '<div class="license-note">' +
-              '<strong>Demo key</strong> \u2014 shared across all evaluators. ' +
-              'Use it to verify the response shape, test authentication, and wire ' +
-              'up the main endpoints before class review.' +
-            '</div>' +
-            '<div class="license-note">' +
-              '<strong>Licensed key</strong> \u2014 dedicated, one per buyer. ' +
-              'Use it when moving from demo/testing into real DraftKit integration.' +
-            '</div>' +
-            '<div class="license-note">' +
-              '<strong>Rate limiting</strong> \u2014 the current API server applies ' +
-              'a flat limit of 120 requests per minute per IP. Keep retries modest and ' +
-              'watch for <code>429</code> responses.' +
-            '</div>' +
+            '<div class="license-note"><strong>Live test key</strong> lets a buyer validate the response shape immediately before wiring in a dedicated production key.</div>' +
+            '<div class="license-note"><strong>Dedicated license key</strong> follows the same contract and is the normal path for long-running production traffic.</div>' +
+            '<div class="license-note"><strong>Current rate limit</strong> is 120 requests per minute per IP. Handle <code>429</code> responses with modest retry logic.</div>' +
           '</div>' +
         '</section>' +
 
-        /* ── What You Get ────────────────────────────────────────────────── */
-        '<section class="license-section" id="lic-response">' +
-          '<div class="license-section-label">Response</div>' +
-          '<h2>What the API returns.</h2>' +
-          '<p>Call <code>POST /v1/valuate</code> with your current draft state. ' +
-          'The response gives your UI everything it needs:</p>' +
-
-          '<div class="license-fields">' +
-            _field('max_bid_recommendation', 'integer',
-              'The number to bid. Includes an 8% safety margin \u2014 never go above this.') +
-            _field('true_dollar_value', 'float',
-              'Raw calculated value before the safety margin. Good for comparison views.') +
-            _field('reasoning', 'string',
-              'One human-readable sentence combining tier, scarcity, and inflation context.') +
-            _field('position_scarcity', 'object',
-              'Position, multiplier (1.00\u20131.45), tier (CRITICAL/HIGH/MEDIUM/LOW), open slots, eligible players.') +
-            _field('inflation_factor', 'float',
-              'Whether the room is spending hot or cold relative to expected pace.') +
-            _field('base_value', 'float',
-              'SGP base value before scarcity and inflation adjustments.') +
+        '<section class="license-section" id="lic-buyer-flow">' +
+          '<div class="license-section-label">Buyer Journey</div>' +
+          '<h2>What the license actually unlocks.</h2>' +
+          '<p>The product is intentionally narrow. It gives a draft app or backend service the three pieces it needs to feel live during an auction.</p>' +
+          '<div class="license-journey-grid">' +
+            _journeyCard('01', 'Load the player pool', 'Call <code>/v1/players</code> once before the draft starts to populate search, tiers, and board context.') +
+            _journeyCard('02', 'Value each nomination', 'Send the full draft state to <code>/v1/valuate</code> and receive a bid recommendation plus reasoning.') +
+            _journeyCard('03', 'Keep the key server-side', 'Route browser traffic through your backend so the license key stays in infrastructure you control.') +
           '</div>' +
-
-          '<p class="license-aside">' +
-            '<code>GET /v1/players</code> returns the full player pool with tiers, ' +
-            'ranks, projected stats, and base values \u2014 everything the board needs before ' +
-            'the first nomination.' +
-          '</p>' +
+          '<div class="license-unlock-grid">' +
+            _unlockCard('Real response shape', 'Buyers get the same response contract the Draft Kit uses: recommendation, true value, scarcity, inflation, and reasoning.') +
+            _unlockCard('Stateless integration', 'Nothing is stored between calls. Send the full current draft state each time and the API returns a decision immediately.') +
+            _unlockCard('Separate product boundary', 'Draft Kit remains its own full-stack app. The licensed API remains its own buyer-facing product and domain.') +
+          '</div>' +
         '</section>' +
 
-        /* ── Integration ─────────────────────────────────────────────────── */
-        '<section class="license-section" id="lic-integrate">' +
+        '<section class="license-section" id="lic-quickstart">' +
           '<div class="license-section-label">Quick Start</div>' +
-          '<h2>Three steps to live valuations.</h2>' +
-
-          '<ol class="license-steps">' +
-            '<li>' +
-              '<div class="license-step-num">1</div>' +
-              '<div class="license-step-copy">' +
-                '<strong>Set the header.</strong>' +
-                '<p>Add <code>X-License-Key: ' + KEY + '</code> to every request. ' +
-                'The header is the same for all three endpoints.</p>' +
+          '<h2>Start with one clean request.</h2>' +
+          '<p>A buyer should be able to understand the integration in under a minute: copy the key, hit the endpoint, inspect the response, then open the Account tab for the customer dashboard.</p>' +
+          '<div class="license-quickstart-grid">' +
+            '<div>' +
+              '<ol class="license-steps">' +
+                '<li><div class="license-step-num">1</div><div class="license-step-copy"><strong>Copy the key.</strong><p>Use the live test key for onboarding and integration checks. Dedicated buyer keys follow the same header shape.</p></div></li>' +
+                '<li><div class="license-step-num">2</div><div class="license-step-copy"><strong>Send one request.</strong><p>Start with <code>POST ' + DISPLAY + '/v1/valuate</code> so you can see the real decision payload immediately.</p></div></li>' +
+                '<li><div class="license-step-num">3</div><div class="license-step-copy"><strong>Move the key behind your backend.</strong><p>Your UI should talk to your server, and your server should talk to the licensed API.</p></div></li>' +
+              '</ol>' +
+              '<div class="license-callout">' +
+                '<strong>Draft Kit relationship:</strong> the browser for <code>' + DRAFTKIT_APP + '</code> calls <code>' + DRAFTKIT_API + '</code>. ' +
+                '<code>draftkit-api</code> then proxies to <code>' + DISPLAY + '</code> using the server-managed license key. ' +
+                'That is the clean production pattern for any customer app as well.' +
               '</div>' +
-            '</li>' +
-            '<li>' +
-              '<div class="license-step-num">2</div>' +
-              '<div class="license-step-copy">' +
-                '<strong>Load the player pool.</strong>' +
-                '<p>Call <code>GET ' + DISPLAY + '/v1/players</code> at startup. ' +
-                'Use the response to populate your draft board, search, and tier views.</p>' +
-              '</div>' +
-            '</li>' +
-            '<li>' +
-              '<div class="license-step-num">3</div>' +
-              '<div class="license-step-copy">' +
-                '<strong>Valuate on nomination.</strong>' +
-                '<p>Call <code>POST ' + DISPLAY + '/v1/valuate</code> with the full draft ' +
-                'state each time a player is nominated. The response tells your UI exactly ' +
-                'what to bid and why.</p>' +
-              '</div>' +
-            '</li>' +
-          '</ol>' +
+            '</div>' +
+            '<div class="license-quickstart-code">' +
+              _codeBlock('cURL', QUICKSTART_CURL) +
+              _codeBlock('Response · 200 OK', QUICKSTART_RESPONSE) +
+            '</div>' +
+          '</div>' +
         '</section>' +
 
-        /* ── Plans ───────────────────────────────────────────────────────── */
         '<section class="license-section license-plans-section" id="lic-plans">' +
           '<div class="license-section-label">Plans</div>' +
-          '<h2>Two tiers. No surprises.</h2>' +
-
+          '<h2>Two tiers. Clear handoff.</h2>' +
           '<div class="license-plans">' +
-            '<div class="license-plan">' +
-              '<div class="license-plan-header">' +
-                '<span class="license-plan-name">Demo</span>' +
-                '<span class="license-plan-price">Free</span>' +
-              '</div>' +
-              '<ul>' +
-                '<li>Shared key: <code>' + KEY + '</code></li>' +
-                '<li>Shared evaluation key</li>' +
-                '<li>All three endpoints</li>' +
-                '<li>Full response shape</li>' +
-              '</ul>' +
+            _planCard('Test Access', 'Free', [
+              'Live test key: <code>' + KEY + '</code>',
+              'All three endpoints',
+              'Use for response-shape validation',
+              'Best for onboarding, wiring, and endpoint testing',
+            ], '<a class="btn btn-secondary btn-sm" href="#endpoints">Read Endpoints</a>') +
+            _planCard('DraftKit License', '$99 <span class="license-plan-unit">/ season</span>', [
+              'Dedicated key per buyer',
+              'Same core API contract',
+              'Server-side production use',
+              'Buyer dashboard in the Account tab',
+            ], '<a class="btn btn-primary btn-sm" href="#account">Open Account View</a>', true) +
+          '</div>' +
+        '</section>' +
+
+        '<section class="license-section license-bridge-section" id="lic-relationship">' +
+          '<div class="license-section-label">Product Relationship</div>' +
+          '<h2>Draft Kit is not the licensed API product.</h2>' +
+          '<div class="license-bridge">' +
+            '<div class="license-bridge-card">' +
+              '<div class="license-bridge-kicker">DB Draft Kit</div>' +
+              '<h3>Commissioner-facing app</h3>' +
+              '<p>Owns user login, cloud drafts, saved state, and the draft-room UI.</p>' +
+              '<div class="license-bridge-meta"><code>' + DRAFTKIT_APP + '</code></div>' +
             '</div>' +
-            '<div class="license-plan license-plan-featured">' +
-              '<div class="license-plan-header">' +
-                '<span class="license-plan-name">DraftKit License</span>' +
-                '<span class="license-plan-price">$99 <span class="license-plan-unit">/ season</span></span>' +
-              '</div>' +
-              '<ul>' +
-                '<li>Dedicated key per buyer</li>' +
-                '<li>Same core API contract</li>' +
-                '<li>All three endpoints</li>' +
-                '<li>Production use in DraftKit</li>' +
-              '</ul>' +
+            '<div class="license-bridge-arrow">via<br /><code>draftkit-api</code></div>' +
+            '<div class="license-bridge-card license-bridge-card-accent">' +
+              '<div class="license-bridge-kicker">Dark Blue MLB Valuation API</div>' +
+              '<h3>Separate licensed product</h3>' +
+              '<p>Owns MLB player data, valuation math, <code>X-License-Key</code> auth, and buyer-facing docs.</p>' +
+              '<div class="license-bridge-meta"><code>' + PRODUCT_SITE + '</code></div>' +
             '</div>' +
           '</div>' +
         '</section>' +
 
-        /* ── Footer ──────────────────────────────────────────────────────── */
         '<footer class="license-footer">' +
           '<span>API Base: <code>' + DISPLAY + '</code></span>' +
+          '<span>Buyer Site: <code>' + PRODUCT_SITE + '</code></span>' +
+          '<span>Draft Kit App: <code>' + DRAFTKIT_APP + '</code></span>' +
         '</footer>' +
-
       '</div>' +
     '</div>';
 
-  /* ── Bind copy button ──────────────────────────────────────────────────── */
-  var copyBtn = document.getElementById('lic-copy-key');
-  if (copyBtn) {
-    copyBtn.addEventListener('click', function () {
-      if (!navigator.clipboard) return;
-      navigator.clipboard.writeText(KEY).then(function () {
-        copyBtn.textContent = 'Copied';
-        copyBtn.classList.add('copied');
-        setTimeout(function () {
-          copyBtn.textContent = 'Copy';
-          copyBtn.classList.remove('copied');
-        }, 2000);
+  container.querySelectorAll('.license-copy-trigger').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      if (!text || !navigator.clipboard) return;
+      navigator.clipboard.writeText(text).then(function () {
+        var original = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        window.setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove('copied');
+        }, 1800);
       }).catch(function () {});
     });
+  });
+
+  function _signalCard(label, value, copy) {
+    return (
+      '<article class="license-signal-card">' +
+        '<div class="license-signal-label">' + label + '</div>' +
+        '<div class="license-signal-value">' + value + '</div>' +
+        '<p class="license-signal-copy">' + copy + '</p>' +
+      '</article>'
+    );
   }
 
-  /* ── Helper: render a response field row ───────────────────────────────── */
-  function _field(name, type, desc) {
+  function _journeyCard(step, title, body) {
     return (
-      '<div class="license-field">' +
-        '<div class="license-field-head">' +
-          '<code>' + name + '</code>' +
-          '<span class="license-field-type">' + type + '</span>' +
+      '<article class="license-journey-card">' +
+        '<div class="license-journey-step">' + step + '</div>' +
+        '<h3>' + title + '</h3>' +
+        '<p>' + body + '</p>' +
+      '</article>'
+    );
+  }
+
+  function _unlockCard(title, body) {
+    return (
+      '<article class="license-unlock-card">' +
+        '<h3>' + title + '</h3>' +
+        '<p>' + body + '</p>' +
+      '</article>'
+    );
+  }
+
+  function _planCard(name, price, items, cta, featured) {
+    return (
+      '<div class="license-plan' + (featured ? ' license-plan-featured' : '') + '">' +
+        '<div class="license-plan-header">' +
+          '<span class="license-plan-name">' + name + '</span>' +
+          '<span class="license-plan-price">' + price + '</span>' +
         '</div>' +
-        '<p>' + desc + '</p>' +
+        '<ul>' + items.map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul>' +
+        '<div class="license-plan-cta">' + cta + '</div>' +
       '</div>'
     );
+  }
+
+  function _codeBlock(label, code) {
+    return (
+      '<div class="code-block">' +
+        '<div class="code-block-header">' +
+          '<span class="code-block-lang">' + label + '</span>' +
+          '<button class="license-copy-btn license-copy-trigger" data-copy="' + _attr(code) + '">Copy</button>' +
+        '</div>' +
+        '<pre class="code-pre">' + _esc(code) + '</pre>' +
+      '</div>'
+    );
+  }
+
+  function _esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function _attr(str) {
+    return _esc(str).replace(/'/g, '&#39;');
   }
 };

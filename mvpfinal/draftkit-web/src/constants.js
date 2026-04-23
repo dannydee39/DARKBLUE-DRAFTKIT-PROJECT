@@ -22,6 +22,13 @@ export const VALUATION_DISPLAY_URL = (
   import.meta.env.VITE_VALUATION_API_BASE || "https://darkblueapi.anythingavenue.com"
 ).trim();
 
+// VALUATION_SITE_URL: buyer-facing site for the separate licensed valuation
+// product. Use this in UI copy whenever Draft Kit needs to route users toward
+// the licensing product or its endpoint/account docs.
+export const VALUATION_SITE_URL = (
+  import.meta.env.VITE_VALUATION_SITE_URL || "https://darkbluevalue.anythingavenue.com"
+).trim();
+
 // ── Player Pool ────────────────────────────────────────────────────────────────
 // POSITIONS: all valid player-facing position codes used throughout the app.
 // These drive filter buttons, column headers, and position badge rendering.

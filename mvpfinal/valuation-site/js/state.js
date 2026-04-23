@@ -1,8 +1,8 @@
 /**
  * state.js — Global state and API constants.
  *
- * Minimal namespace. No auth, no session persistence — the site is a
- * static licensing + endpoint reference with no login flow.
+ * Minimal namespace. No real auth, no session persistence — the site is a
+ * static licensing + endpoint reference plus a buyer-account preview shell.
  */
 
 window.DB = window.DB || {};
@@ -15,6 +15,9 @@ DB.API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0
 
 DB.API_DISPLAY = 'https://darkblueapi.anythingavenue.com';
 DB.DEMO_KEY    = 'DB-2026-DEMO-0001';
+DB.PRODUCT_SITE = 'https://darkbluevalue.anythingavenue.com';
+DB.DRAFTKIT_APP = 'https://draft.anythingavenue.com';
+DB.DRAFTKIT_API = 'https://draftapi.anythingavenue.com';
 
 /* ── App state ─────────────────────────────────────────────────────────────── */
 

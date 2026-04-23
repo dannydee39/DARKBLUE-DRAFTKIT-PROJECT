@@ -1,8 +1,7 @@
 /**
  * nav.js — Top navigation bar.
  *
- * Brand + two tab links (License, Endpoints) + license key display.
- * No auth state — the site has no login flow.
+ * Brand + public tabs (License, Endpoints, Account) + license status display.
  */
 
 window.DB = window.DB || {};
@@ -12,11 +11,13 @@ DB.nav = (function () {
   var TABS = [
     ['license',   'License'],
     ['endpoints', 'Endpoints'],
+    ['account',   'Account'],
   ];
 
   function render() {
     var header = document.getElementById('site-nav');
     if (!header) return;
+    var maskedKey = DB.DEMO_KEY.slice(0, 7) + '••••' + DB.DEMO_KEY.slice(-4);
 
     var tabsHtml = TABS.map(function (t) {
       var cls = DB.state.page === t[0] ? 'active' : '';
@@ -47,8 +48,8 @@ DB.nav = (function () {
 
           '<div class="nav-tools">' +
             '<div class="nav-license">' +
-              '<span class="nav-license-label">X-License-Key</span>' +
-              '<code class="nav-license-value">' + DB.DEMO_KEY + '</code>' +
+              '<span class="nav-license-label">License Status</span>' +
+              '<code class="nav-license-value">Active · ' + maskedKey + '</code>' +
             '</div>' +
           '</div>' +
 

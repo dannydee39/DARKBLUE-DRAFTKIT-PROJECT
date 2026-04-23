@@ -126,6 +126,21 @@ DB.pages.endpoints = function (container) {
           '</p>' +
         '</header>' +
 
+        '<section class="ep-flow-strip">' +
+          '<div class="ep-flow-card">' +
+            '<div class="ep-flow-label">Quickstart</div>' +
+            '<p>Use <code>/v1/players</code> before the draft and <code>/v1/valuate</code> on every nomination.</p>' +
+          '</div>' +
+          '<div class="ep-flow-card">' +
+            '<div class="ep-flow-label">Auth</div>' +
+            '<p>Every protected request uses one header: <code>X-License-Key: ' + KEY + '</code>.</p>' +
+          '</div>' +
+          '<div class="ep-flow-card">' +
+            '<div class="ep-flow-label">Draft Kit</div>' +
+            '<p>The browser talks to <code>draftkit-api</code>. That backend proxies to this licensed API.</p>' +
+          '</div>' +
+        '</section>' +
+
         /* ── GET /health ─────────────────────────────────────────────────── */
         '<article class="ep-card" id="ep-health">' +
           '<div class="ep-card-head">' +
@@ -256,7 +271,7 @@ DB.pages.endpoints = function (container) {
         '<section class="ep-tryit" id="ep-tryit">' +
           '<div class="ep-tryit-head">' +
             '<h2>Try It</h2>' +
-            '<p>Send a live <code>POST /v1/valuate</code> request using the demo key.</p>' +
+            '<p>Send a live <code>POST /v1/valuate</code> request using the live test key.</p>' +
           '</div>' +
           '<div class="ep-tryit-note">' +
             'The API must be running at <code>' + BASE + '</code>. ' +

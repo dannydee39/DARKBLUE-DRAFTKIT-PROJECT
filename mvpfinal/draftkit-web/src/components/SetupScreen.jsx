@@ -277,7 +277,7 @@ export default function SetupScreen({
           </button>
           <p className="setup-hint">
             {user
-              ? "Drafts created while signed in sync to your VPS-backed cloud library."
+              ? "Drafts created while signed in sync to your cloud library automatically."
               : "Each guest draft is saved locally in this browser until you sign in."}
           </p>
         </div>
@@ -296,13 +296,13 @@ export default function SetupScreen({
                 {user
                   ? `Cloud sync enabled for ${user.displayName || user.email}`
                   : authReady
-                    ? "Sign in to save drafts on the VPS"
+                    ? "Sign in to save drafts to your account"
                     : "Checking cloud account status…"}
               </div>
               <div className="setup-cloud-copy">
                 {user
-                  ? "Saved drafts now persist to your Draft Kit account and follow you across devices."
-                  : "Guest mode still works locally, but account login unlocks cloud-backed draft storage and profile sync."}
+                  ? "Saved drafts now stay with your Draft Kit account and reopen across devices."
+                  : "Guest mode still works locally, but account login unlocks cloud draft storage and account-based sync."}
               </div>
             </div>
             <button

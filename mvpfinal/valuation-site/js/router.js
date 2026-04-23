@@ -1,7 +1,7 @@
 /**
  * router.js — Hash-based SPA router.
  *
- * Two tabs: #license (default) and #endpoints.
+ * Public tabs: #license (default), #endpoints, and #account.
  * No auth guards — the site is public.
  */
 

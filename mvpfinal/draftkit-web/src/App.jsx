@@ -1503,6 +1503,10 @@ export default function App() {
         <AuthModal
           open={showAuthModal}
           user={user}
+          drafts={savedDrafts}
+          activeDraftId={activeDraftId}
+          storageMode={storageMode}
+          cloudSyncMessage={cloudSyncMessage}
           busy={authBusy}
           error={authError}
           onClose={() => setShowAuthModal(false)}
@@ -1616,7 +1620,7 @@ export default function App() {
           <button
             type="button"
             className="nav-avatar-btn"
-            title={user ? "Open account" : "Login or sign up"}
+            title={user ? "Open your Draft Kit account and cloud library" : "Open Draft Kit login and cloud library"}
             onClick={() => {
               setAuthError("");
               setShowAuthModal(true);
@@ -1627,8 +1631,15 @@ export default function App() {
                 user?.email?.[0]?.toUpperCase() ||
                 "👤"}
             </span>
-            <span className="nav-avatar-label">
-              {user ? user.displayName || user.email : "Account"}
+            <span className="nav-avatar-copy">
+              <span className="nav-avatar-label">
+                {user ? user.displayName || user.email : "Account"}
+              </span>
+              <span className="nav-avatar-sub">
+                {user
+                  ? "Cloud library active"
+                  : "Sign in + cloud library"}
+              </span>
             </span>
           </button>
         </div>
@@ -1762,6 +1773,10 @@ export default function App() {
       <AuthModal
         open={showAuthModal}
         user={user}
+        drafts={savedDrafts}
+        activeDraftId={activeDraftId}
+        storageMode={storageMode}
+        cloudSyncMessage={cloudSyncMessage}
         busy={authBusy}
         error={authError}
         onClose={() => setShowAuthModal(false)}

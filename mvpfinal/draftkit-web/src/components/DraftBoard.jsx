@@ -682,7 +682,11 @@ export default function DraftBoard({
   );
 
   useEffect(() => {
-    const targets = scoutResults.slice(0, searchQ || activeCellSearch ? 4 : 2);
+    // Prefetch valuations for every row the user can currently see (scout list shows
+    // up to 10, recommendations show 4). Without this, the displayed max bid is the
+    // stale baseValue until the user hovers and the live valuation resolves — the
+    // number then changes under the cursor.
+    const targets = scoutResults.slice(0, 10);
     if (targets.length === 0) return undefined;
 
     const timeoutId = window.setTimeout(() => {
@@ -1432,6 +1436,7 @@ export default function DraftBoard({
                     noteText={notes?.[p.id] || p.note}
                     isFavorite={Boolean(favorites?.[p.id])}
                     recValue={valuationCache[p.id]?.max_bid_recommendation}
+                    recLoading={valuationCache[p.id] === "loading"}
                     actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
                     onSelect={() => handleSelectPlayer(p)}
                     onOpenCard={() => openPlayerCard(p)}
@@ -1486,6 +1491,7 @@ export default function DraftBoard({
                   noteText={notes?.[p.id] || p.note}
                   isFavorite={Boolean(favorites?.[p.id])}
                   recValue={valuationCache[p.id]?.max_bid_recommendation}
+                  recLoading={valuationCache[p.id] === "loading"}
                   onSelect={() => handleSelectPlayer(p)}
                   onOpenCard={() => openPlayerCard(p)}
                   onRecord={() =>
@@ -1817,6 +1823,7 @@ function SearchResult({
   noteText,
   isFavorite,
   recValue,
+  recLoading,
   contextTag,
   actionLabel = "Record Sale",
   onSelect,
@@ -1826,6 +1833,11 @@ function SearchResult({
   onPreviewStart,
   onPreviewEnd,
 }) {
+  // Show the live valuation once we have it; while it's in flight show a
+  // placeholder so the number doesn't flip from baseValue to the API value
+  // the moment the user hovers (which was confusing during the draft).
+  const displayValue =
+    recValue != null ? `$${recValue}` : recLoading ? "$…" : `$${player.baseValue}`;
   return (
     <div
       className="search-result"
@@ -1872,7 +1884,7 @@ function SearchResult({
       >
         ★
       </button>
-      <span className="sr-value">${recValue ?? player.baseValue}</span>
+      <span className="sr-value">{displayValue}</span>
       <div className="sr-actions">
         <button
           type="button"

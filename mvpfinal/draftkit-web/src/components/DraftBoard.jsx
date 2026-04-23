@@ -26,12 +26,12 @@
 // ─────────────────────────────────────────────────────────────────────────────-
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import { posColor, calcMaxBid, getValueClass } from "../utils/helpers.js";
 
 const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
-const SCOUT_RAIL_TAB_STORAGE_KEY = "draftkit-scout-rail-tab";
 
 function normalizePosLabel(value) {
   return String(value || "")
@@ -125,17 +125,10 @@ export default function DraftBoard({
   const [posFilter, setPosFilter] = useState("ALL");
   const [notesOnly, setNotesOnly] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [activeRailTab, setActiveRailTab] = useState(() => {
-    try {
-      return (
-        window.localStorage.getItem(SCOUT_RAIL_TAB_STORAGE_KEY) || "search"
-      );
-    } catch {
-      return "search";
-    }
-  });
   const [isPinnedExpanded, setIsPinnedExpanded] = useState(false);
   const [hoverPreviewPlayer, setHoverPreviewPlayer] = useState(null);
+  const [hoverPreviewAnchorEl, setHoverPreviewAnchorEl] = useState(null);
+  const [hoverPreviewAnchorRect, setHoverPreviewAnchorRect] = useState(null);
 
   // ── Sale modal state ──────────────────────────────────────────────────────
   const [saleModal, setSaleModal] = useState(null); // player obj or null
@@ -153,6 +146,7 @@ export default function DraftBoard({
 
   // ── Grid tooltip hover state ──────────────────────────────────────────────
   const [hoveredCell, setHoveredCell] = useState(null);
+  const [hoveredCellRect, setHoveredCellRect] = useState(null);
   const [hideScoutRailHelp, setHideScoutRailHelp] = useState(() => {
     try {
       return window.localStorage.getItem(SCOUT_RAIL_HELP_STORAGE_KEY) === "1";
@@ -169,6 +163,7 @@ export default function DraftBoard({
   const searchRef = useRef(null);
   const pinnedPopoverRef = useRef(null);
   const pinnedStripRef = useRef(null);
+  const rightPanelRef = useRef(null);
   const previousFocusRef = useRef(null);
   const hoverPreviewTimeoutRef = useRef(null);
   const resizeHandleRef = useRef(null);
@@ -268,6 +263,56 @@ export default function DraftBoard({
     }, []);
   }
 
+  const hoveredFilledCellTooltip =
+    hoveredCell?.entry && hoveredCellRect
+      ? createPortal(
+          <div
+            className="cell-tooltip cell-tooltip-floating"
+            style={{
+              top: Math.max(8, hoveredCellRect.top - 6),
+              left: hoveredCellRect.left + hoveredCellRect.width / 2,
+            }}
+          >
+            <div className="ct-name">{hoveredCell.entry.name}</div>
+            <div className="ct-row">
+              <span className="ct-label">SLOT</span>
+              <span
+                className="ct-val"
+                style={{
+                  color: posColor(
+                    hoveredCell.entry.draftedPos || hoveredCell.pos,
+                  ),
+                }}
+              >
+                {hoveredCell.entry.draftedPos || hoveredCell.pos}
+              </span>
+            </div>
+            <div className="ct-row">
+              <span className="ct-label">PAID</span>
+              <span className="ct-val">${hoveredCell.entry.price}</span>
+            </div>
+            {hoveredCell.matchedPlayer && (
+              <>
+                <div className="ct-row">
+                  <span className="ct-label">VALUE</span>
+                  <span className="ct-val">
+                    ${hoveredCell.matchedPlayer.baseValue}
+                  </span>
+                </div>
+                <div className="ct-row">
+                  <span className="ct-label">FPTS</span>
+                  <span className="ct-val">
+                    {hoveredCell.matchedPlayer.fpts}
+                  </span>
+                </div>
+              </>
+            )}
+            <div className="ct-hint">↩ Click to remove</div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   // ─────────────────────────────────────────────────────────────────────────
   // Effects
   // ─────────────────────────────────────────────────────────────────────────
@@ -291,14 +336,6 @@ export default function DraftBoard({
       // Ignore storage failures in private browsing or restricted environments.
     }
   }, [hideScoutRailHelp]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SCOUT_RAIL_TAB_STORAGE_KEY, activeRailTab);
-    } catch {
-      // Ignore storage failures.
-    }
-  }, [activeRailTab]);
 
   // ── Resize handling for right panel ───────────────────────────────────────
   useEffect(() => {
@@ -336,6 +373,71 @@ export default function DraftBoard({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!hoverPreviewPlayer || !hoverPreviewAnchorEl || !rightPanelRef.current) {
+      setHoverPreviewAnchorRect(null);
+      return undefined;
+    }
+
+    const updateHoverPreviewRect = () => {
+      const nextAnchorRect =
+        hoverPreviewAnchorEl?.getBoundingClientRect?.() || null;
+      if (!nextAnchorRect) {
+        setHoverPreviewAnchorRect(null);
+        return;
+      }
+
+      setHoverPreviewAnchorRect({
+        top: nextAnchorRect.top,
+        right: nextAnchorRect.right,
+        bottom: nextAnchorRect.bottom,
+        left: nextAnchorRect.left,
+        width: nextAnchorRect.width,
+        height: nextAnchorRect.height,
+      });
+    };
+
+    updateHoverPreviewRect();
+    window.addEventListener("resize", updateHoverPreviewRect);
+    window.addEventListener("scroll", updateHoverPreviewRect, true);
+
+    return () => {
+      window.removeEventListener("resize", updateHoverPreviewRect);
+      window.removeEventListener("scroll", updateHoverPreviewRect, true);
+    };
+  }, [hoverPreviewAnchorEl, hoverPreviewPlayer?.id, rightPanelWidth]);
+
+  useEffect(() => {
+    if (!hoveredCell?.anchorEl) {
+      setHoveredCellRect(null);
+      return undefined;
+    }
+
+    const updateHoveredCellRect = () => {
+      const nextRect = hoveredCell.anchorEl?.getBoundingClientRect?.();
+      if (!nextRect) {
+        setHoveredCellRect(null);
+        return;
+      }
+
+      setHoveredCellRect({
+        top: nextRect.top,
+        left: nextRect.left,
+        width: nextRect.width,
+        height: nextRect.height,
+      });
+    };
+
+    updateHoveredCellRect();
+    window.addEventListener("resize", updateHoveredCellRect);
+    window.addEventListener("scroll", updateHoveredCellRect, true);
+
+    return () => {
+      window.removeEventListener("resize", updateHoveredCellRect);
+      window.removeEventListener("scroll", updateHoveredCellRect, true);
+    };
+  }, [hoveredCell]);
 
   useEffect(() => {
     if (!isPinnedExpanded || !selectedPlayer) return undefined;
@@ -455,9 +557,11 @@ export default function DraftBoard({
       hoverPreviewTimeoutRef.current = null;
     }
     setHoverPreviewPlayer(null);
+    setHoverPreviewAnchorEl(null);
+    setHoverPreviewAnchorRect(null);
   }
 
-  function scheduleHoverPreview(player) {
+  function scheduleHoverPreview(player, anchorEl) {
     if (!player || isPinnedExpanded || saleModal || removeModal) return;
     if (selectedPlayer?.id === player.id) return;
     if (hoverPreviewTimeoutRef.current) {
@@ -465,6 +569,7 @@ export default function DraftBoard({
     }
     hoverPreviewTimeoutRef.current = window.setTimeout(() => {
       setHoverPreviewPlayer(player);
+      setHoverPreviewAnchorEl(anchorEl || null);
       if (!valuationCache?.[player.id]) requestValuation();
     }, 140);
   }
@@ -563,6 +668,7 @@ export default function DraftBoard({
   // ─────────────────────────────────────────────────────────────────────────
   function confirmSale() {
     if (!saleModal || !salePrice || saleSlot == null) return;
+    if (saleBudgetError) return;
     // The draftedPos is the position label of the selected slot
     // (could differ from player.pos[0] if going into UTIL or BN)
     const draftedPos = rosterPositions[saleSlot] || "BN";
@@ -631,24 +737,6 @@ export default function DraftBoard({
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // getBestAvailable — top undrafted player eligible for a position slot.
-  // Used in hover tooltips on empty cells.
-  // ─────────────────────────────────────────────────────────────────────────
-  function getBestAvailable(pos) {
-    return (
-      sortPlayersForScout(players, {
-        searchQ: "",
-        posFilter: "ALL",
-        notesOnly: false,
-        favoritesOnly: false,
-        favorites,
-        notes,
-        slotPos: pos,
-      })[0] || null
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
   const scoutResults = useMemo(
     () =>
       sortPlayersForScout(players, {
@@ -670,11 +758,6 @@ export default function DraftBoard({
       posFilter,
       searchQ,
     ],
-  );
-
-  const recommendationRows = useMemo(
-    () => scoutResults.slice(0, 4),
-    [scoutResults],
   );
 
   useEffect(() => {
@@ -708,6 +791,101 @@ export default function DraftBoard({
   const activeContextTeam = activeCellSearch
     ? league.teams.find((team) => team.id === activeCellSearch.teamId) || null
     : null;
+  const selectedSaleTeam =
+    league.teams.find((team) => team.id === saleTeam) || null;
+  const selectedSaleTeamSlotsLeft = selectedSaleTeam
+    ? totalSlots - (selectedSaleTeam.roster?.length || 0)
+    : 0;
+  const selectedSaleTeamMaxBid = selectedSaleTeam
+    ? calcMaxBid(
+        selectedSaleTeam.budget_remaining,
+        selectedSaleTeamSlotsLeft,
+      )
+    : 0;
+  const numericSalePrice = Number(salePrice);
+  const saleBudgetError =
+    salePrice !== "" &&
+    !Number.isNaN(numericSalePrice) &&
+    selectedSaleTeam &&
+    numericSalePrice > selectedSaleTeamMaxBid
+      ? `${selectedSaleTeam.name} can bid at most $${selectedSaleTeamMaxBid} to ensure they can fill all their remaining slots.`
+      : "";
+  const hoverPreviewLayout = useMemo(() => {
+    if (!hoverPreviewPlayer || !hoverPreviewAnchorRect || !rightPanelRef.current) {
+      return null;
+    }
+
+    const rightPanelRect = rightPanelRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const railGap = 16;
+    const safeLeft = 16;
+    const safeRight = Math.max(safeLeft, rightPanelRect.left - railGap);
+    const availableWidth = safeRight - safeLeft;
+
+    if (availableWidth < 180) {
+      return null;
+    }
+
+    let width = Math.min(360, availableWidth);
+    if (availableWidth >= 320) {
+      width = Math.min(360, Math.max(280, Math.floor(availableWidth * 0.42)));
+    }
+
+    const maxHeight = Math.min(520, Math.max(220, viewportHeight - 92));
+    const minTop = 52;
+    const maxTop = Math.max(minTop, viewportHeight - maxHeight - 16);
+    const preferredTop = hoverPreviewAnchorRect.top - 18;
+    const top = Math.max(minTop, Math.min(preferredTop, maxTop));
+    const left = Math.max(
+      safeLeft,
+      Math.min(safeRight - width, viewportWidth - width - 16),
+    );
+
+    return {
+      top,
+      left,
+      width,
+      maxHeight,
+    };
+  }, [hoverPreviewAnchorRect, hoverPreviewPlayer, rightPanelWidth]);
+  const hoverPreviewPopover =
+    hoverPreviewPlayer &&
+    hoverPreviewLayout &&
+    !isPinnedExpanded &&
+    !saleModal &&
+    !removeModal
+      ? createPortal(
+          <div
+            className="pinned-popover preview-popover preview-popover-floating"
+            aria-hidden="true"
+            style={{
+              top: hoverPreviewLayout.top,
+              left: hoverPreviewLayout.left,
+              right: "auto",
+              width: hoverPreviewLayout.width,
+              maxHeight: hoverPreviewLayout.maxHeight,
+            }}
+          >
+            <div className="pinned-popover-topbar preview-topbar">
+              <div className="pinned-popover-label">HOVER PREVIEW</div>
+              <div className="preview-popover-copy">
+                Click row to pin this player
+              </div>
+            </div>
+            <PlayerCard
+              player={hoverPreviewPlayer}
+              valuation={getDisplayedValuation(hoverPreviewPlayer)}
+              notes={notes}
+              favorites={favorites}
+              saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
+              previewMode
+            />
+          </div>,
+          document.body,
+        )
+      : null;
   const showScoutRailHelper =
     !activeCellSearch && !hideScoutRailHelp && !dismissScoutRailHelp;
 
@@ -759,7 +937,7 @@ export default function DraftBoard({
             <h2 className="board-title">DRAFT LEAGUE TEAMS TABLE</h2>
             <span className="board-hint">
               Click an empty cell, and search for a player in the side-bar to
-              add a player to that cell · Click an empty cell to remove
+              add a player to that cell
             </span>
             <div className="board-current-owner">
               Now drafting: <strong>{myTeam?.name}</strong> · $
@@ -958,13 +1136,14 @@ export default function DraftBoard({
                             onClick={(e) =>
                               handleFilledCellClick(entry, team.id, pos, e)
                             }
-                            onMouseEnter={() =>
+                            onMouseEnter={(e) =>
                               setHoveredCell({
                                 teamId: team.id,
                                 slotIdx: si,
                                 entry,
                                 pos,
                                 matchedPlayer,
+                                anchorEl: e.currentTarget,
                               })
                             }
                             onMouseLeave={() => setHoveredCell(null)}
@@ -1011,7 +1190,7 @@ export default function DraftBoard({
                             </div>
 
                             {/* Hover tooltip */}
-                            {isHovered && (
+                            {false && isHovered && (
                               <div className="cell-tooltip">
                                 <div className="ct-name">{entry.name}</div>
                                 <div className="ct-row">
@@ -1052,9 +1231,6 @@ export default function DraftBoard({
                         );
                       } else {
                         // ── EMPTY CELL ─────────────────────────────────────
-                        const bestAvail = isHovered
-                          ? getBestAvailable(pos)
-                          : null;
                         // No players left for this position — tint cell red
                         const posExhausted =
                           pos !== "BN" &&
@@ -1090,84 +1266,6 @@ export default function DraftBoard({
                               <span className="roster-empty">
                                 {isCellSearchActive ? "◉" : "–"}
                               </span>
-
-                              {/* Hover tooltip for empty cell */}
-                              {isHovered && (
-                                <div className="cell-tooltip cell-tooltip-empty">
-                                  <div
-                                    className="ct-name"
-                                    style={{ color: posColor(pos) }}
-                                  >
-                                    {pos} SLOT
-                                  </div>
-                                  {/* Remaining count badge */}
-                                  <div
-                                    className="ct-row"
-                                    style={{ marginBottom: 3 }}
-                                  >
-                                    <span className="ct-label">AVAIL</span>
-                                    <span
-                                      className="ct-val"
-                                      style={{
-                                        color: posExhausted
-                                          ? "var(--red)"
-                                          : (undraftedByPos[pos] ?? 0) < 3
-                                            ? "var(--yellow)"
-                                            : "var(--green)",
-                                      }}
-                                    >
-                                      {pos === "BN" || pos === "UTIL"
-                                        ? players.filter((p) => !p.drafted)
-                                            .length
-                                        : (undraftedByPos[pos] ?? 0)}
-                                    </span>
-                                  </div>
-                                  {bestAvail ? (
-                                    <>
-                                      <div
-                                        className="ct-hint"
-                                        style={{ marginBottom: 3 }}
-                                      >
-                                        Best available:
-                                      </div>
-                                      <div className="ct-row">
-                                        <span
-                                          className="ct-val"
-                                          style={{ color: "var(--white)" }}
-                                        >
-                                          {bestAvail.name}
-                                        </span>
-                                      </div>
-                                      <div className="ct-row">
-                                        <span className="ct-label">VALUE</span>
-                                        <span
-                                          className="ct-val"
-                                          style={{ color: "var(--green)" }}
-                                        >
-                                          $
-                                          {valuationCache[bestAvail.id]
-                                            ?.max_bid_recommendation ??
-                                            bestAvail.baseValue}
-                                        </span>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <div
-                                      className="ct-hint"
-                                      style={{ color: "var(--red)" }}
-                                    >
-                                      No {pos} players left
-                                    </div>
-                                  )}
-                                  <div
-                                    className="ct-hint"
-                                    style={{ marginTop: 4 }}
-                                  >
-                                    ↓ Click to scout this slot in the right
-                                    panel
-                                  </div>
-                                </div>
-                              )}
                             </>
                           </td>
                         );
@@ -1239,6 +1337,7 @@ export default function DraftBoard({
           position: 'relative',
           borderLeft: isResizing ? '3px solid #22c55e' : 'none'
         }}
+        ref={rightPanelRef}
       >
         {/* Resize handle */}
         <div
@@ -1341,26 +1440,7 @@ export default function DraftBoard({
         </div>
 
         <div className="right-panel-body">
-          <div className="panel-section-label">SCOUT RAIL</div>
-          <div className="rail-tabs">
-            <button
-              type="button"
-              className={`rail-tab ${activeRailTab === "search" ? "active" : ""}`}
-              onClick={() => setActiveRailTab("search")}
-            >
-              Search
-            </button>
-            <button
-              type="button"
-              className={`rail-tab ${activeRailTab === "best" ? "active" : ""}`}
-              onClick={() => setActiveRailTab("best")}
-            >
-              Best Available
-            </button>
-          </div>
-
-          {activeRailTab === "search" ? (
-            <div className="scout-panel tabbed-scout-panel">
+          <div className="scout-panel">
 
               <div className="search-label-row scout-label-row">
                 <span className="search-label">PLAYER SEARCH</span>
@@ -1446,7 +1526,7 @@ export default function DraftBoard({
                         : openSaleModal(p)
                     }
                     onToggleFavorite={() => toggleFavorite(p.id)}
-                    onPreviewStart={() => scheduleHoverPreview(p)}
+                    onPreviewStart={(anchorEl) => scheduleHoverPreview(p, anchorEl)}
                     onPreviewEnd={() => {
                       if (hoverPreviewPlayer?.id === p.id) {
                         clearHoverPreview();
@@ -1464,57 +1544,7 @@ export default function DraftBoard({
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
-            <div
-              className="recommendations rail-tab-panel"
-              onMouseLeave={clearHoverPreview}
-            >
-              <div className="rec-header">
-                BEST AVAILABLE{" "}
-                <span className="rec-sub">
-                  {activeCellSearch
-                    ? `${activeCellSearch.pos} Fits`
-                    : posFilter !== "ALL"
-                      ? posFilter
-                      : "Overall"}
-                </span>
-              </div>
-              {recommendationRows.map((p) => (
-                <SearchResult
-                  key={p.id}
-                  player={p}
-                  noteText={notes?.[p.id] || p.note}
-                  isFavorite={Boolean(favorites?.[p.id])}
-                  recValue={valuationCache[p.id]?.max_bid_recommendation}
-                  recLoading={valuationLoading && !valuationCache[p.id]}
-                  onSelect={() => handleSelectPlayer(p)}
-                  onOpenCard={() => openPlayerCard(p)}
-                  onRecord={() =>
-                    activeCellSearch
-                      ? openSaleModalForCell(
-                          p,
-                          activeCellSearch.teamId,
-                          activeCellSearch.slotIdx,
-                        )
-                      : openSaleModal(p)
-                  }
-                  onToggleFavorite={() => toggleFavorite(p.id)}
-                  onPreviewStart={() => scheduleHoverPreview(p)}
-                  onPreviewEnd={() => {
-                    if (hoverPreviewPlayer?.id === p.id) {
-                      clearHoverPreview();
-                    }
-                  }}
-                />
-              ))}
-              {recommendationRows.length === 0 && (
-                <div className="cp-empty scout-empty-state">
-                  No best-available rows for the current view.
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -1572,33 +1602,14 @@ export default function DraftBoard({
         </div>
       )}
 
-      {hoverPreviewPlayer &&
-        !isPinnedExpanded &&
-        !saleModal &&
-        !removeModal && (
-          <div className="pinned-popover preview-popover" aria-hidden="true">
-            <div className="pinned-popover-topbar preview-topbar">
-              <div className="pinned-popover-label">HOVER PREVIEW</div>
-              <div className="preview-popover-copy">
-                Click row to pin this player
-              </div>
-            </div>
-            <PlayerCard
-              player={hoverPreviewPlayer}
-              valuation={getDisplayedValuation(hoverPreviewPlayer)}
-              notes={notes}
-              favorites={favorites}
-              saveNote={saveNote}
-              toggleFavorite={toggleFavorite}
-              previewMode
-            />
-          </div>
-        )}
+      {hoverPreviewPopover}
 
       {/* ════════════════════════════════════════════════════════════════════
           SALE MODAL
           Opened by: "Record Sale" button, search result, or inline cell search
       ════════════════════════════════════════════════════════════════════ */}
+      {hoveredFilledCellTooltip}
+
       {saleModal && (
         <div className="modal-overlay" onClick={closeSaleModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -1716,6 +1727,12 @@ export default function DraftBoard({
               />
             </div>
 
+            {saleBudgetError && (
+              <div className="modal-hint modal-error" role="alert">
+                {saleBudgetError}
+              </div>
+            )}
+
             {/* API / base value hint */}
             {valuationCache[saleModal?.id] &&
             !valuationCache[saleModal?.id]?.error ? (
@@ -1740,12 +1757,14 @@ export default function DraftBoard({
               <button
                 className="modal-confirm"
                 onClick={confirmSale}
-                disabled={!salePrice || saleSlot == null}
-                title={saleSlot == null ? "Select a roster slot above" : ""}
+                disabled={!salePrice || saleSlot == null || Boolean(saleBudgetError)}
+                title={
+                  saleSlot == null
+                    ? "Select a roster slot above"
+                    : saleBudgetError || ""
+                }
               >
-                {saleSlot == null
-                  ? "Select a slot ↑"
-                  : `Confirm Sale — $${salePrice} → ${rosterPositions[saleSlot]}`}
+                Confirm Sale
               </button>
             </div>
           </div>
@@ -1837,8 +1856,8 @@ function SearchResult({
     <div
       className="search-result"
       onClick={onSelect}
-      onMouseEnter={onPreviewStart}
-      onMouseLeave={onPreviewEnd}
+      onMouseEnter={(e) => onPreviewStart?.(e.currentTarget)}
+      onMouseLeave={() => onPreviewEnd?.()}
       title={`Pin ${player.name} in the scouting rail`}
     >
       <PlayerAvatar name={player.name} size={40} photoUrl={player.photoUrl} />

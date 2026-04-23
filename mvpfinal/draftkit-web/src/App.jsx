@@ -1121,10 +1121,16 @@ export default function App() {
       return false;
     }
 
-    if (currentTeam.budget_remaining < numericPrice) {
+    const currentTeamSlotsLeft = totalSlots - currentTeam.roster.length;
+    const currentTeamMaxBid = calcMaxBid(
+      currentTeam.budget_remaining,
+      currentTeamSlotsLeft,
+    );
+
+    if (numericPrice > currentTeamMaxBid) {
       setBoardNotice({
         tone: "warning",
-        message: `${currentTeam.name} only has $${currentTeam.budget_remaining} left, so this sale would overrun the budget.`,
+        message: `${currentTeam.name} can bid at most $${currentTeamMaxBid} and still leave $1 for each remaining open roster spot.`,
       });
       return false;
     }

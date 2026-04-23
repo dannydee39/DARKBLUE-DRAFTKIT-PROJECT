@@ -300,7 +300,9 @@ a {
   overflow-y: hidden;
   flex-shrink: 0;
   scrollbar-width: thin;
+  scrollbar-color: var(--border2) var(--bg);
   scrollbar-gutter: stable;
+  color-scheme: dark;
 }
 .owner-strip-card {
   min-width: 176px;
@@ -337,9 +339,7 @@ a {
     rgba(34, 197, 94, 0.1),
     rgba(34, 197, 94, 0.04)
   );
-  box-shadow:
-    inset 3px 0 0 rgba(34, 197, 94, 0.7),
-    0 0 0 1px rgba(34, 197, 94, 0.08);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.18);
   opacity: 1;
 }
 .owner-strip-top {
@@ -397,6 +397,17 @@ a {
 .owner-strip::-webkit-scrollbar {
   height: 4px;
 }
+.owner-strip::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 2px;
+}
+.owner-strip::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 2px;
+}
+.owner-strip::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+}
 @keyframes pulse {
   0%,
   100% {
@@ -429,7 +440,7 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   padding: 10px 12px;
   gap: 8px;
   min-width: 0;
@@ -1260,12 +1271,6 @@ a {
 .panel-value.green {
   color: var(--green);
 }
-.panel-section-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--white);
-  letter-spacing: 0.08em;
-}
 
 .panel-budget {
   display: flex;
@@ -1844,8 +1849,44 @@ a {
   background: rgba(16, 16, 16, 0.97);
   border-color: rgba(59, 130, 246, 0.2);
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
-  width: min(430px, calc(100vw - var(--draft-right-rail-width) - 96px));
   z-index: 870;
+}
+.preview-popover-floating {
+  right: auto;
+}
+.preview-popover .player-card {
+  padding: 10px;
+  gap: 6px;
+}
+.preview-popover .pc-main {
+  gap: 10px;
+}
+.preview-popover .pc-main .player-avatar {
+  width: 44px !important;
+  height: 44px !important;
+}
+.preview-popover .pc-name {
+  font-size: clamp(13px, 1.1vw, 16px);
+}
+.preview-popover .pc-team-league,
+.preview-popover .pc-section-label,
+.preview-popover .pc-preview-note,
+.preview-popover .pc-news {
+  font-size: 10px;
+}
+.preview-popover .pc-bid-val {
+  font-size: clamp(18px, 1.8vw, 22px);
+}
+.preview-popover .pc-stats {
+  gap: 4px;
+}
+.preview-popover .pc-stat {
+  padding: 5px;
+}
+.preview-popover .pc-news,
+.preview-popover .pc-preview-note {
+  max-height: 4.5em;
+  overflow: hidden;
 }
 
 @keyframes pinnedPopoverIn {
@@ -1910,44 +1951,9 @@ a {
   margin-top: 12px;
 }
 
-.rail-tabs {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.rail-tab {
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  color: var(--muted2);
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-}
-
-.rail-tab.active {
-  color: var(--green);
-  border-color: rgba(34, 197, 94, 0.35);
-  background: rgba(34, 197, 94, 0.08);
-}
-
 .budget-pill {
   width: 100%;
   justify-content: center;
-}
-
-.tabbed-scout-panel,
-.rail-tab-panel {
-  flex: 1;
-  min-height: 0;
-}
-
-.tabbed-scout-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .compact-budget-panel {
@@ -2252,6 +2258,11 @@ a {
   padding: 8px 10px;
   border-radius: var(--radius);
   margin-bottom: 10px;
+}
+.modal-error {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.24);
 }
 .modal-actions {
   display: flex;
@@ -3911,12 +3922,19 @@ a {
   border: 1px solid var(--border2);
   border-radius: var(--radius);
   padding: 7px 9px;
-  z-index: 500;
+  z-index: 9999;
   min-width: 130px;
   max-width: 180px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   pointer-events: none; /* don't block mouse events on the cell */
   white-space: nowrap;
+}
+
+.cell-tooltip-floating {
+  position: fixed;
+  bottom: auto;
+  transform: translate(-50%, -100%);
+  z-index: 2600;
 }
 
 /* Tooltip header — player name or position slot title */

@@ -145,6 +145,7 @@ export default function DraftBoard({
   const [saleTeam, setSaleTeam] = useState(1); // winning team ID
   const [salePrice, setSalePrice] = useState(""); // bid amount
   const [saleSlot, setSaleSlot] = useState(null); // slotIndex to fill
+  const [preferredSaleSlot, setPreferredSaleSlot] = useState(null); // clicked cell slotIndex to preserve when possible
   const [customPosInput, setCustomPosInput] = useState(""); // custom eligibility override
   const [customPlayerModalOpen, setCustomPlayerModalOpen] = useState(false);
   const [customPlayerName, setCustomPlayerName] = useState("");
@@ -209,13 +210,27 @@ export default function DraftBoard({
     ? getValidSlotsForPlayer(extendedSalePlayer, saleTeam)
     : [];
 
-  // Deduplicate slots by position type, keeping first slotIdx for each position
-  const uniqueSlotPositions = validSlotsForModal.reduce((acc, { slotIdx, pos }) => {
-    if (!acc.some((item) => item.pos === pos)) {
-      acc.push({ slotIdx, pos });
-    }
-    return acc;
-  }, []);
+  const slotCountsByPos = useMemo(() => {
+    return rosterPositions.reduce((acc, pos) => {
+      acc[pos] = (acc[pos] || 0) + 1;
+      return acc;
+    }, {});
+  }, [rosterPositions]);
+
+  const slotOrdinalsByIndex = useMemo(() => {
+    const seen = {};
+    return rosterPositions.map((pos) => {
+      seen[pos] = (seen[pos] || 0) + 1;
+      return seen[pos];
+    });
+  }, [rosterPositions]);
+
+  const slotOptionsForModal = validSlotsForModal.map(({ slotIdx, pos }) => ({
+    slotIdx,
+    pos,
+    ordinal: slotOrdinalsByIndex[slotIdx] || 1,
+    total: slotCountsByPos[pos] || 1,
+  }));
 
   // Positions available for override (not already eligible)
   const playerEligiblePositions = new Set(
@@ -532,9 +547,25 @@ export default function DraftBoard({
   useEffect(() => {
     if (!saleModal || !extendedSalePlayer) return;
     const slots = getValidSlotsForPlayer(extendedSalePlayer, saleTeam);
-    setSaleSlot(slots[0]?.slotIdx ?? null);
+    setSaleSlot((currentSaleSlot) => {
+      if (
+        preferredSaleSlot != null &&
+        slots.some((slot) => slot.slotIdx === preferredSaleSlot)
+      ) {
+        return preferredSaleSlot;
+      }
+
+      if (
+        currentSaleSlot != null &&
+        slots.some((slot) => slot.slotIdx === currentSaleSlot)
+      ) {
+        return currentSaleSlot;
+      }
+
+      return slots[0]?.slotIdx ?? null;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customPosInput, saleModal?.id, saleTeam]);
+  }, [customPosInput, preferredSaleSlot, saleModal?.id, saleTeam]);
 
   function handleSelectPlayer(player) {
     if (!player) return;
@@ -609,6 +640,7 @@ export default function DraftBoard({
     setSaleModal(player);
     setSaleTeam(team?.id || 1);
     setSaleSlot(initialSlots[0]?.slotIdx ?? null);
+    setPreferredSaleSlot(null);
     setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
@@ -633,6 +665,7 @@ export default function DraftBoard({
     setSaleModal(player);
     setSaleTeam(teamId);
     setSaleSlot(slotIdx); // pre-select the exact slot that was clicked
+    setPreferredSaleSlot(slotIdx);
     setSalePrice(getRecommendedBid(player));
     setCustomPosInput("");
     setSelectedPlayer(player);
@@ -688,6 +721,7 @@ export default function DraftBoard({
     setSaleModal(null);
     setSalePrice("");
     setSaleSlot(null);
+    setPreferredSaleSlot(null);
     setCustomPosInput("");
   }
 
@@ -875,7 +909,7 @@ export default function DraftBoard({
       ? `${selectedSaleTeam.name} can bid at most $${selectedSaleTeamMaxBid} to ensure they can fill all their remaining slots.`
       : "";
   const saleHasPlacementOptions =
-    uniqueSlotPositions.length > 0 || availableOverridePositions.length > 0;
+    slotOptionsForModal.length > 0 || availableOverridePositions.length > 0;
   const hoverPreviewLayout = useMemo(() => {
     if (!hoverPreviewPlayer || !hoverPreviewAnchorRect || !rightPanelRef.current) {
       return null;
@@ -1799,13 +1833,17 @@ export default function DraftBoard({
               <label>DRAFT INTO SLOT</label>
               {saleHasPlacementOptions ? (
                 <div className="slot-picker">
-                  {uniqueSlotPositions.map(({ slotIdx, pos }) => (
+                  {slotOptionsForModal.map(({ slotIdx, pos, ordinal, total }) => (
                     <button
-                      key={pos}
+                      key={`${pos}-${slotIdx}`}
                       type="button"
                       className={`slot-btn ${saleSlot === slotIdx ? "active" : ""}`}
                       onClick={() => setSaleSlot(slotIdx)}
-                      title={`Slot: ${pos}`}
+                      title={
+                        total > 1
+                          ? `Slot: ${pos} ${ordinal} of ${total}`
+                          : `Slot: ${pos}`
+                      }
                     >
                       <span
                         className="pos-badge"
@@ -1816,6 +1854,9 @@ export default function DraftBoard({
                       >
                         {pos}
                       </span>
+                      {total > 1 && (
+                        <span className="slot-btn-copy">#{ordinal}</span>
+                      )}
                     </button>
                   ))}
                   {availableOverridePositions.length > 0 && (
@@ -1863,7 +1904,7 @@ export default function DraftBoard({
                   {league.teams.find((t) => t.id === saleTeam)?.name}
                 </div>
               )}
-              {uniqueSlotPositions.length === 0 &&
+              {slotOptionsForModal.length === 0 &&
                 availableOverridePositions.length > 0 && (
                   <div className="modal-hint" style={{ marginTop: 8 }}>
                     This player has no default eligibility yet. Choose a

@@ -4167,6 +4167,12 @@ a {
   background: rgba(34, 197, 94, 0.15);
   color: var(--green);
 }
+.slot-btn-copy {
+  font-size: 9px;
+  font-weight: 700;
+  color: inherit;
+  letter-spacing: 0.03em;
+}
 
 /* Inline override position dropdown */
 .pos-override-select {

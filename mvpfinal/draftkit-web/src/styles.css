@@ -736,6 +736,16 @@ a {
   margin-bottom: 4px;
   flex-wrap: wrap;
 }
+.scout-label-row {
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.scout-label-row .board-hint {
+  margin-left: 0;
+  min-width: 0;
+  text-align: left;
+}
 
 .search-label {
   font-size: 12px;
@@ -747,6 +757,8 @@ a {
   font-size: 10px;
   color: var(--muted);
   font-weight: 400;
+  margin-left: 8px;
+  text-align: left;
 }
 
 .pos-filters {
@@ -1289,9 +1301,9 @@ a {
   min-height: 0;
 }
 .scout-label-row {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
 }
 .slot-context-banner {
   display: flex;

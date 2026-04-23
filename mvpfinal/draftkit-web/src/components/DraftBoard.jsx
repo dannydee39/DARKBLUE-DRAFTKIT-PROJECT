@@ -1444,6 +1444,7 @@ export default function DraftBoard({
 
               <div className="search-label-row scout-label-row">
                 <span className="search-label">PLAYER SEARCH</span>
+                <span className="search-hint">Click on a player to pin them</span>
               </div>
 
               <div className="pos-filters scout-filter-row">

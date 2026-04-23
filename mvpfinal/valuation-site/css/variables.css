@@ -1,50 +1,43 @@
 :root {
 
-  /* ── Brand palette (5-stop, muted teal-to-clay) ─────────────────────────── */
-  --palette-navy:      #1A3E60;   /* deep teal-navy — primary brand            */
-  --palette-teal:      #38758C;   /* muted teal — accent / links               */
-  --palette-sage:      #B3B9A7;   /* warm sage — body text on dark             */
-  --palette-sand:      #BEB797;   /* warm sand — soft highlights               */
-  --palette-clay:      #C38D67;   /* terracotta clay — warm CTA                */
-
-  /* ── Surfaces (derived, 3-layer) ────────────────────────────────────────── */
-  --surface-0: #0d2338;          /* page body — a shade below navy           */
-  --surface-1: #1A3E60;          /* panels, cards — primary brand surface    */
-  --surface-2: #27506f;          /* raised: inputs, hovers, emphasis         */
+  /* ── Surfaces (3-layer midnight-indigo hierarchy) ───────────────────────── */
+  --surface-0: #0a1024;          /* page body — deep midnight indigo         */
+  --surface-1: #121a33;          /* panels, cards — primary content surface  */
+  --surface-2: #1c2645;          /* raised: inputs, hovers, emphasis         */
 
   /* Backward-compatible aliases */
   --bg:       var(--surface-0);
   --bg-soft:  var(--surface-1);
   --bg-card:  var(--surface-1);
   --bg-hover: var(--surface-2);
-  --bg-deep:  #091a2b;
+  --bg-deep:  #070b1b;
 
-  /* ── Brand (legacy names kept for existing CSS references) ──────────────── */
-  --brand-navy:       var(--palette-navy);
-  --brand-navy-deep:  #0a1b2b;   /* code-block recessed surface              */
-  --brand-navy-mid:   #27506f;
-  --brand-blue:       var(--palette-teal);
-  --brand-blue-light: #6fa1b3;
-  --brand-teal:       var(--palette-teal);
+  /* ── Brand ──────────────────────────────────────────────────────────────── */
+  --brand-navy:       #1a2854;
+  --brand-navy-deep:  #0c1228;   /* code-block recessed surface              */
+  --brand-navy-mid:   #2a4080;
+  --brand-blue:       #4f7cff;
+  --brand-blue-light: #8ab0ff;
+  --brand-teal:       #22d3ee;   /* cyan highlight for subtle accents        */
 
   /* ── Accent ─────────────────────────────────────────────────────────────── */
-  --accent:       var(--palette-clay);     /* terracotta — primary CTA       */
-  --accent-hover: #b17a54;
-  --accent-soft:  #d6a98c;
-  --accent-dim:   rgba(195, 141, 103, 0.16);
-  --accent-cyan:  var(--palette-teal);
+  --accent:       var(--brand-blue);
+  --accent-hover: #3b66e6;
+  --accent-soft:  var(--brand-blue-light);
+  --accent-dim:   rgba(79, 124, 255, 0.14);
+  --accent-cyan:  var(--brand-teal);
 
-  /* ── Text (light-on-dark — sage/sand for warmth) ────────────────────────── */
-  --text-primary: #eceadf;       /* off-white, leans into sand                */
-  --text-body:    var(--palette-sage);
-  --text-muted:   #8d9487;
-  --text-faint:   #6a7169;
-  --text-inverse: #0d2338;
-  --text-accent:  var(--palette-sand);
+  /* ── Text (light-on-dark — extra leading for readability) ───────────────── */
+  --text-primary: #eaf0ff;
+  --text-body:    #a3b0d0;
+  --text-muted:   #6f7da3;
+  --text-faint:   #4e5a7a;
+  --text-inverse: #0a1024;
+  --text-accent:  var(--accent-soft);
 
   /* ── Borders ────────────────────────────────────────────────────────────── */
-  --border:        rgba(179, 185, 167, 0.10);
-  --border-medium: rgba(179, 185, 167, 0.20);
+  --border:        rgba(160, 190, 255, 0.09);
+  --border-medium: rgba(160, 190, 255, 0.16);
   --border-focus:  var(--accent);
 
   /* ── Semantic ───────────────────────────────────────────────────────────── */
@@ -106,8 +99,8 @@
   --shadow:      0 8px 24px rgba(0, 0, 0, 0.30);
   --shadow-md:   0 12px 36px rgba(0, 0, 0, 0.35);
   --shadow-lg:   0 20px 50px rgba(0, 0, 0, 0.40);
-  --shadow-glow: 0 0 0 2px rgba(195, 141, 103, 0.30);
-  --shadow-blue: 0 12px 28px rgba(56, 117, 140, 0.22);
+  --shadow-glow: 0 0 0 2px rgba(79, 124, 255, 0.28);
+  --shadow-blue: 0 12px 28px rgba(79, 124, 255, 0.18);
 
   /* ── Motion ─────────────────────────────────────────────────────────────── */
   --ease:          cubic-bezier(0.4, 0, 0.2, 1);
@@ -118,6 +111,7 @@
 
   /* ── Layout ─────────────────────────────────────────────────────────────── */
   --nav-height:     52px;
-  --content-width:  1080px;
-  --content-narrow: 720px;
+  --content-width:  100%;        /* stretch to viewport, capped via padding  */
+  --content-narrow: 100%;
+  --content-gutter: clamp(16px, 4vw, 56px);
 }

@@ -27,11 +27,11 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .page-license {
-  padding: var(--space-8) var(--space-6) var(--space-12);
+  padding: var(--space-8) var(--content-gutter) var(--space-12);
 }
 
 .license-container {
-  max-width: 720px;
+  max-width: 100%;
   margin-inline: auto;
 }
 
@@ -611,11 +611,11 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .page-account {
-  padding: var(--space-8) var(--space-6) var(--space-12);
+  padding: var(--space-8) var(--content-gutter) var(--space-12);
 }
 
 .account-container {
-  max-width: 1080px;
+  max-width: 100%;
   margin-inline: auto;
 }
 
@@ -1045,11 +1045,11 @@
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .page-endpoints {
-  padding: var(--space-8) var(--space-6) var(--space-12);
+  padding: var(--space-8) var(--content-gutter) var(--space-12);
 }
 
 .endpoints-container {
-  max-width: 820px;
+  max-width: 100%;
   margin-inline: auto;
 }
 

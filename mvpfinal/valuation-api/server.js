@@ -5,6 +5,8 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const valuateRouter = require("./routes/valuate");
 const playersRouter = require("./routes/players");
+const playerUpdatesRouter = require("./routes/player-updates");
+const mlbDepthChartsRouter = require("./routes/mlb-depth-charts");
 
 function createApp(options = {}) {
   const app = express();
@@ -47,6 +49,8 @@ function createApp(options = {}) {
   // ── ROUTES ──────────────────────────────────────────────────────────────────
   app.use("/v1/valuate", valuateRouter);
   app.use("/v1/players", playersRouter);
+  app.use("/v1/player-updates", playerUpdatesRouter);
+  app.use("/v1/mlb", mlbDepthChartsRouter);
 
   app.get("/health", (req, res) => {
     res.json({

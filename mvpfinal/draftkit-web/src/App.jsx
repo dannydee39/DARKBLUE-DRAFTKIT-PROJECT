@@ -34,6 +34,10 @@ import LeagueSettings from "./components/LeagueSettings.jsx";
 import KeeperSetup from "./components/KeeperSetup.jsx";
 import TaxiSquad from "./components/TaxiSquad.jsx";
 import ApiSandbox from "./components/ApiSandbox.jsx";
+import PlayerUpdateCenter from "./components/PlayerUpdateCenter.jsx";
+import DraftHistory from "./components/DraftHistory.jsx";
+import DepthCharts from "./components/DepthCharts.jsx";
+import RankedTeamBanner from "./components/RankedTeamBanner.jsx";
 
 // ── Shared constants and helpers ──────────────────────────────────────────────
 import {
@@ -73,6 +77,16 @@ import {
   hydratePlayersFromLeague,
   validateLeagueConfig,
 } from "./utils/draftSessions.js";
+import {
+  appendDraftHistoryEvent,
+  buildDraftHistoryRows,
+  getPlayerPrePickValue,
+  makeDraftHistoryEvent,
+} from "./utils/draftHistory.js";
+import {
+  buildMlbDepthCharts,
+  buildOwnerRankings,
+} from "./utils/teamInsights.js";
 
 const MAX_HISTORY_SNAPSHOTS = 30;
 const VALUATION_REQUEST_TIMEOUT_MS = 7000;
@@ -90,6 +104,7 @@ const DEFAULT_LEAGUE = {
   scoring: { ...DEFAULT_SCORING },
   keeperLeague: true,
   commissionerUnlocked: false,
+  draftHistory: [],
   teams: [],
 };
 
@@ -204,9 +219,19 @@ export default function App() {
   const [valuationCache, setValuationCache] = useState({});
   const [valuationLoading, setValuationLoading] = useState(false);
   const [valuationError, setValuationError] = useState("");
+  const [playerUpdates, setPlayerUpdates] = useState([]);
+  const [playerUpdatesLoading, setPlayerUpdatesLoading] = useState(false);
+  const [playerUpdatesError, setPlayerUpdatesError] = useState("");
+  const [playerPushStatus, setPlayerPushStatus] = useState("offline");
+  const [playerUpdateVersion, setPlayerUpdateVersion] = useState(0);
+  const [liveDepthData, setLiveDepthData] = useState(null);
+  const [liveDepthLoading, setLiveDepthLoading] = useState(false);
+  const [liveDepthError, setLiveDepthError] = useState("");
   const valuationCacheRef = useRef({});
   const valuationRequestRef = useRef({ key: null, inFlight: false });
   const cacheVersionRef = useRef(0); // incremented on cache invalidation
+  const playerUpdateSignatureRef = useRef("");
+  const playerUpdateStreamRef = useRef(null);
 
   // Keep the ref in sync with state so requestValuation always reads fresh values
   // even when called from inside a stale closure after a cache-clear.
@@ -220,6 +245,7 @@ export default function App() {
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [boardNotice, setBoardNotice] = useState(null);
+  const [keeperPromptDismissed, setKeeperPromptDismissed] = useState(false);
 
   // ── League configuration object ───────────────────────────────────────────
   // This is the single source of truth for the currently open draft workspace.
@@ -239,6 +265,10 @@ export default function App() {
     const timeoutId = window.setTimeout(() => setBoardNotice(null), 2600);
     return () => window.clearTimeout(timeoutId);
   }, [boardNotice]);
+
+  useEffect(() => {
+    setKeeperPromptDismissed(false);
+  }, [activeDraftId]);
 
   useEffect(() => {
     if (!cloudSyncMessage) return;
@@ -289,6 +319,20 @@ export default function App() {
       snapshot,
     ]);
     setRedoStack([]);
+  }
+
+  function getCachedPrePickValue(player) {
+    return getPlayerPrePickValue(
+      player,
+      valuationCacheRef.current?.[player?.id],
+    );
+  }
+
+  function withDraftHistory(prevLeague, event) {
+    return {
+      ...prevLeague,
+      draftHistory: appendDraftHistoryEvent(prevLeague, event),
+    };
   }
 
   function readLocalDraftLibrary() {
@@ -538,7 +582,7 @@ export default function App() {
   async function requestValuation() {
     if (apiStatus !== "online" || players.length === 0) return;
 
-    const requestKey = `${cacheVersionRef.current}|${draftStateKey}|${players.length}`;
+    const requestKey = `${cacheVersionRef.current}|${draftStateKey}|${players.length}|${playerUpdateVersion}`;
     if (valuationRequestRef.current.inFlight) return;
     if (valuationRequestRef.current.key === requestKey) return;
 
@@ -616,7 +660,15 @@ export default function App() {
     if (screen !== "main" || players.length === 0) return;
     requestValuation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDraftId, apiStatus, draftStateKey, league.pool, players.length, screen]);
+  }, [
+    activeDraftId,
+    apiStatus,
+    draftStateKey,
+    league.pool,
+    playerUpdateVersion,
+    players.length,
+    screen,
+  ]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // fetchPlayers — GET /v1/players with the configured league pool filter.
@@ -642,7 +694,7 @@ export default function App() {
 
       const r = await fetch(`${DRAFTKIT_API_BASE}/v1/players?league=${poolParam}`);
       const data = await r.json();
-      const loaded = data.players || [];
+      const loaded = Array.isArray(data) ? data : data.players || [];
       setPlayers(loaded);
       return loaded;
     } catch {
@@ -1024,6 +1076,681 @@ export default function App() {
     return slotAcceptsPlayer({ pos: positions }, normalizedSlot);
   }
 
+  function mergePlayerUpdatesIntoPool(updates) {
+    const validUpdates = Array.isArray(updates) ? updates : [];
+    const signature = validUpdates.map((update) => update.id).join("|");
+
+    if (signature === playerUpdateSignatureRef.current) return;
+    playerUpdateSignatureRef.current = signature;
+
+    if (validUpdates.length === 0) {
+      setPlayerUpdateVersion((version) => version + 1);
+      return;
+    }
+
+    const latestByPlayerId = new Map();
+    validUpdates.forEach((update) => {
+      const playerId = Number(update.player_id);
+      if (!Number.isFinite(playerId)) return;
+      const current = latestByPlayerId.get(playerId);
+      if (
+        !current ||
+        Date.parse(update.created_at) > Date.parse(current.created_at)
+      ) {
+        latestByPlayerId.set(playerId, update);
+      }
+    });
+
+    function applyUpdateFields(player) {
+      const update = latestByPlayerId.get(Number(player.id));
+      if (!update) return player;
+      return {
+        ...player,
+        risk_level: update.risk_level || update.severity || "LOW",
+        injury_status: update.injury_status || player.injury || null,
+        news_headline: update.headline || null,
+        update_impact_summary: update.impact_summary || null,
+        last_update_at: update.created_at || null,
+        latest_update: update,
+        updates_count: Math.max(Number(player.updates_count || 0), 1),
+      };
+    }
+
+    setPlayers((prev) => prev.map(applyUpdateFields));
+    setSelectedPlayer((prev) => (prev ? applyUpdateFields(prev) : prev));
+    valuationRequestRef.current = { key: null, inFlight: false };
+    valuationCacheRef.current = {};
+    setValuationCache({});
+    setPlayerUpdateVersion((version) => version + 1);
+  }
+
+  async function fetchPlayerUpdates(options = {}) {
+    const silent = Boolean(options.silent);
+    if (apiStatus !== "online") return [];
+
+    if (!silent) {
+      setPlayerUpdatesLoading(true);
+      setPlayerUpdatesError("");
+    }
+
+    try {
+      const response = await fetch(`${DRAFTKIT_API_BASE}/v1/player-updates?limit=10`);
+      const data = await response.json();
+
+      if (!response.ok || !Array.isArray(data?.updates)) {
+        throw new Error(data?.message || "Could not load player updates.");
+      }
+
+      applyPlayerUpdates(data.updates);
+      return data.updates;
+    } catch (error) {
+      if (!silent) {
+        setPlayerUpdatesError(
+          error?.message || "Player updates are unavailable right now.",
+        );
+      }
+      return [];
+    } finally {
+      if (!silent) {
+        setPlayerUpdatesLoading(false);
+      }
+    }
+  }
+
+  async function fetchLiveDepthCharts(options = {}) {
+    const silent = Boolean(options.silent);
+    const refresh = Boolean(options.refresh);
+    if (apiStatus !== "online") return null;
+
+    if (!silent) {
+      setLiveDepthLoading(true);
+      setLiveDepthError("");
+    }
+
+    try {
+      const suffix = refresh ? "?refresh=1" : "";
+      const response = await fetch(
+        `${DRAFTKIT_API_BASE}/v1/mlb/depth-charts${suffix}`,
+      );
+      const data = await response.json();
+
+      if (!response.ok || !Array.isArray(data?.teams)) {
+        throw new Error(data?.message || "Could not load MLB roster depth data.");
+      }
+
+      setLiveDepthData(data);
+      setLiveDepthError(data.warning || "");
+      return data;
+    } catch (error) {
+      if (!silent) {
+        setLiveDepthError(
+          error?.message || "MLB roster depth data is unavailable right now.",
+        );
+      }
+      return null;
+    } finally {
+      if (!silent) {
+        setLiveDepthLoading(false);
+      }
+    }
+  }
+
+  function applyPlayerUpdates(updates, options = {}) {
+    const announce = Boolean(options.announce);
+    const validUpdates = Array.isArray(updates)
+      ? updates.filter((update) => update && update.id)
+      : [];
+    if (validUpdates.length === 0) return;
+
+    setPlayerUpdates((prev) => {
+      const byId = new Map((prev || []).map((update) => [update.id, update]));
+      validUpdates.forEach((update) => {
+        byId.set(update.id, update);
+      });
+
+      return [...byId.values()]
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+        .slice(0, 10);
+    });
+
+    mergePlayerUpdatesIntoPool(validUpdates);
+
+    if (announce) {
+      const pushedUpdate = validUpdates[0];
+      setBoardNotice({
+        tone: "warning",
+        message: `${pushedUpdate.player_name} pushed live to connected draft boards.`,
+      });
+    }
+  }
+
+  async function publishInjuryUpdate() {
+    if (apiStatus !== "online") {
+      setPlayerUpdatesError("Player updates need the Draft Kit API to be online.");
+      return null;
+    }
+    if (!selectedPlayer) {
+      setPlayerUpdatesError("Select a player before publishing an injury update.");
+      return null;
+    }
+
+    setPlayerUpdatesLoading(true);
+    setPlayerUpdatesError("");
+
+    try {
+      const response = await fetch(
+        `${DRAFTKIT_API_BASE}/v1/player-updates`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            player_id: selectedPlayer.id,
+            type: "INJURY",
+            severity: "HIGH",
+            headline: `${selectedPlayer.name} moved to high injury risk`,
+            body: `${selectedPlayer.name} has a high-risk injury flag for draft review.`,
+            source: "Commissioner update",
+            created_by: "Draft Kit commissioner",
+          }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data?.update) {
+        throw new Error(data?.message || "Could not publish the player update.");
+      }
+
+      const updates = Array.isArray(data.updates) ? data.updates : [data.update];
+      applyPlayerUpdates(updates);
+      openPlayerFromUpdate(data.update);
+      setBoardNotice({
+        tone: "warning",
+        message: `${data.update.player_name} injury update published to the draft board.`,
+      });
+      return data.update;
+    } catch (error) {
+      setPlayerUpdatesError(error?.message || "Could not publish the player update.");
+      return null;
+    } finally {
+      setPlayerUpdatesLoading(false);
+    }
+  }
+
+  function openPlayerFromUpdate(update) {
+    const matched = players.find(
+      (player) => Number(player.id) === Number(update?.player_id),
+    );
+    if (!matched) return;
+
+    setActiveTab("board");
+    setSelectedPlayer({
+      ...matched,
+      risk_level: update.risk_level || update.severity || matched.risk_level,
+      injury_status: update.injury_status || matched.injury_status || matched.injury,
+      news_headline: update.headline || matched.news_headline,
+      update_impact_summary:
+        update.impact_summary || matched.update_impact_summary,
+      last_update_at: update.created_at || matched.last_update_at,
+      latest_update: update,
+    });
+  }
+
+  useEffect(() => {
+    if (apiStatus !== "online") {
+      playerUpdateStreamRef.current?.close?.();
+      playerUpdateStreamRef.current = null;
+      setPlayerPushStatus("offline");
+      return undefined;
+    }
+
+    if (screen !== "main") return undefined;
+
+    fetchPlayerUpdates({ silent: true });
+    fetchLiveDepthCharts({ silent: true });
+    setPlayerPushStatus("connecting");
+    setPlayerUpdatesError("");
+
+    const stream = new EventSource(
+      `${DRAFTKIT_API_BASE}/v1/player-updates/stream?limit=10`,
+    );
+    playerUpdateStreamRef.current = stream;
+
+    stream.onopen = () => {
+      setPlayerPushStatus("online");
+      setPlayerUpdatesError("");
+    };
+
+    stream.addEventListener("snapshot", (event) => {
+      try {
+        const payload = JSON.parse(event.data || "{}");
+        if (Array.isArray(payload?.updates)) {
+          applyPlayerUpdates(payload.updates);
+        }
+        setPlayerPushStatus("online");
+      } catch {
+        setPlayerUpdatesError("Could not read the live player update snapshot.");
+      }
+    });
+
+    stream.addEventListener("player-update", (event) => {
+      try {
+        const payload = JSON.parse(event.data || "{}");
+        if (payload?.update) {
+          applyPlayerUpdates([payload.update], { announce: true });
+        }
+        setPlayerPushStatus("online");
+      } catch {
+        setPlayerUpdatesError("Could not read a pushed player update.");
+      }
+    });
+
+    stream.onerror = () => {
+      setPlayerPushStatus("reconnecting");
+    };
+
+    return () => {
+      stream.close();
+      if (playerUpdateStreamRef.current === stream) {
+        playerUpdateStreamRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiStatus, screen]);
+
+  function findAssignmentForPlayer(playerId) {
+    if (playerId == null) return null;
+
+    for (const team of league.teams || []) {
+      const rosterEntry = (team.roster || []).find(
+        (entry) => entry?.playerId === playerId,
+      );
+      if (rosterEntry) {
+        return {
+          type: rosterEntry.isKeeper ? "keeper" : "main roster",
+          team,
+          entry: rosterEntry,
+        };
+      }
+
+      const taxiEntry = (team.taxiSquad || []).find(
+        (entry) => entry?.playerId === playerId,
+      );
+      if (taxiEntry) {
+        return { type: "taxi squad", team, entry: taxiEntry };
+      }
+    }
+
+    return null;
+  }
+
+  function findOpenRosterSlot(team, player) {
+    if (!team || !player) return null;
+
+    const rosterSlots = buildRosterPositions(league.roster);
+    const occupiedSlots = new Set(
+      (team.roster || [])
+        .map((entry) => entry?.slotIndex)
+        .filter((slotIndex) => slotIndex != null),
+    );
+
+    for (let index = 0; index < rosterSlots.length; index += 1) {
+      const slot = rosterSlots[index];
+      if (occupiedSlots.has(index)) continue;
+      if (canPlayerFillSlot(player, slot)) {
+        return { slotIndex: index, draftedPos: slot };
+      }
+    }
+
+    return null;
+  }
+
+  function normalizeKeeperCost(cost) {
+    const numericCost = Number(cost);
+    if (!Number.isInteger(numericCost) || numericCost < 1) {
+      return null;
+    }
+    return numericCost;
+  }
+
+  function validateKeeperContract({ teamId, playerId, cost, replacePlayerId = null }) {
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const player = players.find((entry) => entry.id === playerId);
+    const numericCost = normalizeKeeperCost(cost);
+
+    if (!league.keeperLeague) {
+      return {
+        ok: false,
+        message: "Keeper entries are disabled because this league is not marked as a keeper league.",
+      };
+    }
+
+    if (!team) {
+      return { ok: false, message: "Select a valid owner before adding a keeper." };
+    }
+
+    if (!player) {
+      return {
+        ok: false,
+        message: "Choose a player from the Draft Kit player database before saving a keeper.",
+      };
+    }
+
+    if (numericCost == null) {
+      return {
+        ok: false,
+        message: "Keeper cost must be a whole-dollar value of at least $1.",
+      };
+    }
+
+    const replacingEntry = (team.roster || []).find(
+      (entry) => entry?.isKeeper && entry.playerId === replacePlayerId,
+    );
+    const effectiveBudget =
+      replacePlayerId != null && replacingEntry
+        ? team.budget_remaining + (Number(replacingEntry.price) || 0)
+        : team.budget_remaining;
+    const effectiveRoster =
+      replacePlayerId != null && replacingEntry
+        ? (team.roster || []).filter(
+            (entry) => !(entry?.isKeeper && entry.playerId === replacePlayerId),
+          )
+        : team.roster || [];
+    const activeRosterSlots = buildRosterPositions(league.roster).length;
+    const slotsLeft = activeRosterSlots - effectiveRoster.length;
+    const maxKeeperCost = calcMaxBid(effectiveBudget, slotsLeft);
+
+    if (slotsLeft <= 0) {
+      return {
+        ok: false,
+        message: `${team.name} has no open active roster slots for another keeper.`,
+      };
+    }
+
+    if (numericCost > maxKeeperCost) {
+      return {
+        ok: false,
+        message: `${team.name} can spend at most $${maxKeeperCost} on this keeper and still leave $1 for each remaining active slot.`,
+      };
+    }
+
+    const assignment = findAssignmentForPlayer(player.id);
+    if (assignment && assignment.entry?.playerId !== replacePlayerId) {
+      return {
+        ok: false,
+        message: `${player.name} is already assigned to ${assignment.team.name}'s ${assignment.type}.`,
+      };
+    }
+
+    const slotTarget = findOpenRosterSlot(
+      { ...team, roster: effectiveRoster },
+      player,
+    );
+
+    if (!slotTarget) {
+      return {
+        ok: false,
+        message: `${player.name} does not fit any open active roster slot for ${team.name}.`,
+      };
+    }
+
+    return {
+      ok: true,
+      team,
+      player,
+      cost: numericCost,
+      slotTarget,
+      replacingEntry,
+      effectiveBudget,
+      effectiveRoster,
+    };
+  }
+
+  function addKeeperContract({ teamId, playerId, cost }) {
+    const result = validateKeeperContract({ teamId, playerId, cost });
+    if (!result.ok) {
+      setBoardNotice({ tone: "warning", message: result.message });
+      return false;
+    }
+
+    const actionTime = Date.now();
+    pushUndoSnapshot();
+
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "keeper",
+        player: result.player,
+        team: result.team,
+        rosterSlot: result.slotTarget.draftedPos,
+        price: result.cost,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(result.player),
+        remainingBudgetAfter: result.team.budget_remaining - result.cost,
+        note: "Keeper contract",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((team) => {
+        if (team.id !== result.team.id) return team;
+        return {
+          ...team,
+          budget_remaining: team.budget_remaining - result.cost,
+          roster: [
+            ...(team.roster || []),
+            {
+              playerId: result.player.id,
+              name: result.player.name,
+              price: result.cost,
+              pos: result.player.pos,
+              slotIndex: result.slotTarget.slotIndex,
+              draftedPos: result.slotTarget.draftedPos,
+              draftedAt: actionTime,
+              isKeeper: true,
+            },
+          ],
+        };
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((player) =>
+        player.id === result.player.id
+          ? {
+              ...player,
+              drafted: true,
+              draftedBy: result.team.id,
+              draftPrice: result.cost,
+              draftedAt: actionTime,
+              taxi: false,
+            }
+          : player,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "success",
+      message: `${result.player.name} saved as a $${result.cost} keeper for ${result.team.name}.`,
+    });
+    return true;
+  }
+
+  function updateKeeperContract({ teamId, oldPlayerId, playerId, cost }) {
+    const result = validateKeeperContract({
+      teamId,
+      playerId,
+      cost,
+      replacePlayerId: oldPlayerId,
+    });
+
+    if (!result.ok) {
+      setBoardNotice({ tone: "warning", message: result.message });
+      return false;
+    }
+
+    const actionTime = Date.now();
+    pushUndoSnapshot();
+
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "keeper_update",
+        player: result.player,
+        team: result.team,
+        rosterSlot: result.slotTarget.draftedPos,
+        price: result.cost,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(result.player),
+        remainingBudgetAfter: result.effectiveBudget - result.cost,
+        note: oldPlayerId === result.player.id ? "Keeper cost updated" : "Keeper player replaced",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((team) => {
+        if (team.id !== result.team.id) return team;
+        return {
+          ...team,
+          budget_remaining: result.effectiveBudget - result.cost,
+          roster: [
+            ...result.effectiveRoster,
+            {
+              playerId: result.player.id,
+              name: result.player.name,
+              price: result.cost,
+              pos: result.player.pos,
+              slotIndex: result.slotTarget.slotIndex,
+              draftedPos: result.slotTarget.draftedPos,
+              draftedAt: actionTime,
+              isKeeper: true,
+            },
+          ],
+        };
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((player) => {
+        if (player.id === oldPlayerId && oldPlayerId !== result.player.id) {
+          return {
+            ...player,
+            drafted: false,
+            draftedBy: null,
+            draftPrice: null,
+            draftedAt: null,
+            taxi: false,
+          };
+        }
+
+        if (player.id === result.player.id) {
+          return {
+            ...player,
+            drafted: true,
+            draftedBy: result.team.id,
+            draftPrice: result.cost,
+            draftedAt: actionTime,
+            taxi: false,
+          };
+        }
+
+        return player;
+      }),
+    );
+
+    setBoardNotice({
+      tone: "success",
+      message: `${result.player.name} keeper contract updated for ${result.team.name}.`,
+    });
+    return true;
+  }
+
+  function removeKeeperContract(teamId, playerId) {
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const rosterEntry = team?.roster?.find(
+      (entry) => entry?.isKeeper && entry.playerId === playerId,
+    );
+
+    if (!team || !rosterEntry) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Could not remove that keeper because the roster entry changed.",
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+
+    setLeague((prev) => {
+      const player = players.find((entry) => entry.id === playerId) || {
+        id: playerId,
+        name: rosterEntry.name,
+        pos: rosterEntry.pos,
+      };
+      const event = makeDraftHistoryEvent({
+        type: "keeper_remove",
+        player,
+        team,
+        rosterSlot: rosterEntry.draftedPos,
+        price: rosterEntry.price,
+        timestamp: Date.now(),
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter:
+          team.budget_remaining + (Number(rosterEntry.price) || 0),
+        note: "Keeper removed",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+        if (entry.id !== team.id) return entry;
+        return {
+          ...entry,
+          budget_remaining:
+            entry.budget_remaining + (Number(rosterEntry.price) || 0),
+          roster: (entry.roster || []).filter(
+            (candidate) =>
+              !(candidate?.isKeeper && candidate.playerId === playerId),
+          ),
+        };
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((player) =>
+        player.id === playerId
+          ? {
+              ...player,
+              drafted: false,
+              draftedBy: null,
+              draftPrice: null,
+              draftedAt: null,
+              taxi: false,
+            }
+          : player,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "warning",
+      message: `${rosterEntry.name} was removed from ${team.name}'s keepers.`,
+    });
+    return true;
+  }
+
+  function markNotKeeperLeagueFromBoard() {
+    pushUndoSnapshot();
+    setLeague((prev) => ({
+      ...prev,
+      keeperLeague: false,
+    }));
+    setKeeperPromptDismissed(true);
+    setBoardNotice({
+      tone: "info",
+      message: "Keeper setup skipped. This draft is now marked as a redraft league.",
+    });
+  }
+
   function addCustomPlayer({ name, team }) {
     const normalizedName = String(name || "")
       .replace(/\s+/g, " ")
@@ -1193,9 +1920,25 @@ export default function App() {
     pushUndoSnapshot();
 
     // Update the winning team's budget and roster
-    setLeague((prev) => ({
-      ...prev,
-      teams: prev.teams.map((t) => {
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "auction",
+        player: {
+          ...currentPlayer,
+          name: player.name || currentPlayer.name,
+          pos: effectivePlayer.pos,
+        },
+        team: currentTeam,
+        rosterSlot: draftedPos,
+        price: numericPrice,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(currentPlayer),
+        remainingBudgetAfter: currentTeam.budget_remaining - numericPrice,
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((t) => {
         if (t.id !== teamId) return t;
         return {
           ...t,
@@ -1213,8 +1956,9 @@ export default function App() {
             },
           ],
         };
-      }),
-    }));
+        }),
+      }, event);
+    });
 
     // Mark the player as drafted in the pool
     setPlayers((prev) =>
@@ -1258,6 +2002,7 @@ export default function App() {
 
     // Build accumulated per-team changes: teamId → { budgetDelta, newRoster[] }
     const teamChanges = {};
+    const historyEvents = [];
     // Track which player IDs were drafted so we can update players state at once
     const draftedPlayerIds = new Set();
 
@@ -1280,6 +2025,7 @@ export default function App() {
         teamChanges[team.id] = { budgetDelta: 0, newRoster: [] };
       }
       teamChanges[team.id].budgetDelta -= pick.price;
+      const draftedAt = baseTime + draftedPlayerIds.size;
       teamChanges[team.id].newRoster.push({
         playerId: player.id,
         name: player.name,
@@ -1287,16 +2033,36 @@ export default function App() {
         pos: player.pos,
         slotIndex: pick.slotIndex,
         draftedPos: pick.draftedPos,
-        draftedAt: baseTime + draftedPlayerIds.size,
+        draftedAt,
+      });
+
+      historyEvents.push({
+        event: makeDraftHistoryEvent({
+          type: "auction",
+          player,
+          team,
+          rosterSlot: pick.draftedPos,
+          price: pick.price,
+          timestamp: draftedAt,
+          prePickValue: getCachedPrePickValue(player),
+          remainingBudgetAfter:
+            team.budget_remaining +
+            teamChanges[team.id].budgetDelta,
+          note: "Sample draft pick",
+          source: "sample",
+        }),
+        playerId: player.id,
+        draftedAt,
       });
 
       draftedPlayerIds.add(player.id);
     });
 
     // Apply all team changes in a single setLeague call
-    setLeague((prev) => ({
-      ...prev,
-      teams: prev.teams.map((t) => {
+    setLeague((prev) => {
+      let nextLeague = {
+        ...prev,
+        teams: prev.teams.map((t) => {
         const changes = teamChanges[t.id];
         if (!changes) return t;
         return {
@@ -1304,14 +2070,33 @@ export default function App() {
           budget_remaining: t.budget_remaining + changes.budgetDelta,
           roster: [...t.roster, ...changes.newRoster],
         };
-      }),
-    }));
+        }),
+      };
+
+      historyEvents.forEach(({ event }) => {
+        nextLeague = withDraftHistory(nextLeague, event);
+      });
+
+      return nextLeague;
+    });
 
     // Mark all drafted players in a single setPlayers call
     setPlayers((prev) =>
       prev.map((p) =>
         draftedPlayerIds.has(p.id)
-          ? { ...p, drafted: true, draftedAt: baseTime + p.id }
+          ? {
+              ...p,
+              drafted: true,
+              draftedBy:
+                historyEvents.find((entry) => entry.playerId === p.id)?.event
+                  ?.fantasyOwnerId || null,
+              draftPrice:
+                historyEvents.find((entry) => entry.playerId === p.id)?.event
+                  ?.price || null,
+              draftedAt:
+                historyEvents.find((entry) => entry.playerId === p.id)
+                  ?.draftedAt || baseTime,
+            }
           : p,
       ),
     );
@@ -1359,9 +2144,27 @@ export default function App() {
 
     pushUndoSnapshot();
 
-    setLeague((prev) => ({
-      ...prev,
-      teams: prev.teams.map((t) => {
+    setLeague((prev) => {
+      const player = p || {
+        id: playerId,
+        name: rosterEntry.name,
+        pos: rosterEntry.pos,
+      };
+      const event = makeDraftHistoryEvent({
+        type: "auction_remove",
+        player,
+        team,
+        rosterSlot: rosterEntry.draftedPos || rosterPositions[slotIndex],
+        price: rosterEntry.price,
+        timestamp: Date.now(),
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter: team.budget_remaining + (rosterEntry?.price || 0),
+        note: "Roster entry removed",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((t) => {
         if (t.id !== teamId) return t;
         return {
           ...t,
@@ -1371,11 +2174,12 @@ export default function App() {
               !(
                 r.slotIndex === slotIndex &&
                 (r.playerId === playerId || r.name === rosterEntry.name)
-              ),
+            ),
           ),
         };
-      }),
-    }));
+        }),
+      }, event);
+    });
 
     // Return player to available pool
     if (p) {
@@ -1408,36 +2212,100 @@ export default function App() {
   // @param {number} teamId - Team ID to add the taxi pick to
   // ─────────────────────────────────────────────────────────────────────────
   function addTaxiPick(player, teamId) {
-    pushUndoSnapshot();
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const currentPlayer = players.find((entry) => entry.id === player?.id);
+    const taxiSlots = Math.max(0, Number(league.roster?.TAXI) || 0);
+    const currentTaxiCount = (team?.taxiSquad || []).length;
 
-    setLeague((prev) => ({
-      ...prev,
-      teams: prev.teams.map((t) => {
-        if (t.id !== teamId) return t;
+    if (!team) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Choose a valid active team before adding a taxi pick.",
+      });
+      return false;
+    }
+
+    if (!currentPlayer) {
+      setBoardNotice({
+        tone: "warning",
+        message: "That player is no longer available in the player pool.",
+      });
+      return false;
+    }
+
+    if (taxiSlots <= 0) {
+      setBoardNotice({
+        tone: "warning",
+        message:
+          "This league has no taxi slots configured. Add TAXI slots in League Settings first.",
+      });
+      return false;
+    }
+
+    if (currentTaxiCount >= taxiSlots) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${team.name}'s taxi squad is already full.`,
+      });
+      return false;
+    }
+
+    const assignment = findAssignmentForPlayer(currentPlayer.id);
+    if (assignment || currentPlayer.drafted) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${currentPlayer.name} is already assigned${assignment ? ` to ${assignment.team.name}'s ${assignment.type}` : ""}.`,
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+    const actionTime = Date.now();
+
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "taxi",
+        player: currentPlayer,
+        team,
+        rosterSlot: `TAXI ${currentTaxiCount + 1}`,
+        price: 1,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(currentPlayer),
+        remainingBudgetAfter: team.budget_remaining,
+        note: "Taxi squad",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((t) => {
+        if (t.id !== team.id) return t;
         return {
           ...t,
           taxiSquad: [
             ...(t.taxiSquad || []),
             {
-              playerId: player.id,
-              name: player.name,
+              playerId: currentPlayer.id,
+              name: currentPlayer.name,
               price: 1,
-              pos: player.pos,
+              pos: currentPlayer.pos,
+              draftedAt: actionTime,
             },
           ],
         };
-      }),
-    }));
+        }),
+      }, event);
+    });
 
     // Mark as drafted (taxi) so player doesn't show in the main pool
     setPlayers((prev) =>
       prev.map((p) =>
-        p.id === player.id
+        p.id === currentPlayer.id
           ? {
               ...p,
               drafted: true,
-              draftedBy: teamId,
+              draftedBy: team.id,
               draftPrice: 1,
+              draftedAt: actionTime,
               taxi: true,
             }
           : p,
@@ -1446,8 +2314,82 @@ export default function App() {
 
     setBoardNotice({
       tone: "info",
-      message: `${player.name} added to taxi squad for $1.`,
+      message: `${currentPlayer.name} added to ${team.name}'s taxi squad for $1.`,
     });
+    return true;
+  }
+
+  function removeTaxiPick(teamId, playerId) {
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const taxiEntry = team?.taxiSquad?.find(
+      (entry) => entry?.playerId === playerId,
+    );
+
+    if (!team || !taxiEntry) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Could not remove that taxi pick because the entry changed.",
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+
+    setLeague((prev) => {
+      const player = players.find((entry) => entry.id === playerId) || {
+        id: playerId,
+        name: taxiEntry.name,
+        pos: taxiEntry.pos,
+      };
+      const taxiIndex = (team.taxiSquad || []).findIndex(
+        (entry) => entry?.playerId === playerId,
+      );
+      const event = makeDraftHistoryEvent({
+        type: "taxi_remove",
+        player,
+        team,
+        rosterSlot: `TAXI ${taxiIndex + 1}`,
+        price: taxiEntry.price || 1,
+        timestamp: Date.now(),
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter: team.budget_remaining,
+        note: "Taxi pick removed",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+        if (entry.id !== team.id) return entry;
+        return {
+          ...entry,
+          taxiSquad: (entry.taxiSquad || []).filter(
+            (candidate) => candidate?.playerId !== playerId,
+          ),
+        };
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((player) =>
+        player.id === playerId
+          ? {
+              ...player,
+              drafted: false,
+              draftedBy: null,
+              draftPrice: null,
+              draftedAt: null,
+              taxi: false,
+            }
+          : player,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "warning",
+      message: `${taxiEntry.name} was removed from ${team.name}'s taxi squad.`,
+    });
+    return true;
   }
 
   function redoLastAction() {
@@ -1558,6 +2500,24 @@ export default function App() {
   const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
   const maxBid = calcMaxBid(myTeam?.budget_remaining || 0, slotsLeft);
   const totalRecordedPicks = countDraftEntries(league);
+  const draftHistoryRows = buildDraftHistoryRows(
+    league,
+    players,
+    rosterPositions,
+  );
+  const ownerRankings = buildOwnerRankings(league, players, rosterPositions);
+  const depthCharts = buildMlbDepthCharts(players, league, liveDepthData);
+  const keeperCount = (league.teams || []).reduce(
+    (total, team) =>
+      total + (team.roster || []).filter((entry) => entry?.isKeeper).length,
+    0,
+  );
+  const taxiSlots = Math.max(0, Number(league.roster?.TAXI) || 0);
+  const showKeeperBoardPrompt =
+    activeTab === "board" &&
+    league.keeperLeague &&
+    keeperCount === 0 &&
+    !keeperPromptDismissed;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render: Main draft app
@@ -1585,6 +2545,8 @@ export default function App() {
             // "sandbox" tab intentionally omitted from nav — use setActiveTab("sandbox")
             // programmatically or navigate directly for API diagnostics.
             ["taxi", "Taxi Squad"],
+            ["insights", "Depth + Rankings"],
+            ["history", "Draft History"],
           ].map(([tab, label]) => (
             <button
               key={tab}
@@ -1722,35 +2684,91 @@ export default function App() {
       <div className="main-content">
         {/* Draft Board — the primary screen */}
         {activeTab === "board" && (
-          <DraftBoard
-            league={league}
-            players={players}
-            selectedPlayer={selectedPlayer}
-            setSelectedPlayer={setSelectedPlayer}
-            onSale={recordSale}
-            onUndo={undoLast}
-            onRedo={redoLast}
-            onUndoCell={undoSale}
-            onFillSample={fillSampleDraft}
-            currentOwnerIdx={currentOwnerIdx}
-            setCurrentOwnerIdx={setCurrentOwnerIdx}
-            notes={notes}
-            favorites={favorites}
-            saveNote={saveNote}
-            toggleFavorite={toggleFavorite}
-            apiStatus={apiStatus}
-            rosterPositions={rosterPositions}
-            totalSlots={totalSlots}
-            maxBid={maxBid}
-            valuationCache={valuationCache}
-            valuationLoading={valuationLoading}
-            requestValuation={requestValuation}
-            draftStateKey={draftStateKey}
-            canUndo={undoStack.length > 0}
-            canRedo={redoStack.length > 0}
-            boardNotice={boardNotice}
-            onAddCustomPlayer={addCustomPlayer}
-          />
+          <div className="board-first-run-wrap">
+            {showKeeperBoardPrompt && (
+              <div className="keeper-board-prompt">
+                <div className="keeper-board-copy">
+                  <span className="keeper-board-eyebrow">Keeper league setup</span>
+                  <strong>Keeper contracts are pending.</strong>
+                  <span>
+                    Review the board first, then add keeper contracts before
+                    recording auction picks.
+                  </span>
+                </div>
+                <div className="keeper-board-stats">
+                  <span>{keeperCount} keepers entered</span>
+                  <span>{totalRecordedPicks} board entries</span>
+                  <span>{taxiSlots} taxi slots</span>
+                </div>
+                <div className="keeper-board-actions">
+                  <button
+                    type="button"
+                    className="keeper-board-primary"
+                    onClick={() => setActiveTab("keeper")}
+                  >
+                    Set Up Keepers
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setKeeperPromptDismissed(true)}
+                  >
+                    Skip For Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={markNotKeeperLeagueFromBoard}
+                  >
+                    Not a Keeper League
+                  </button>
+                </div>
+              </div>
+            )}
+            <RankedTeamBanner
+              rankings={ownerRankings}
+              currentOwnerId={myTeam?.id}
+              onOpenRankings={() => setActiveTab("insights")}
+            />
+            <PlayerUpdateCenter
+              updates={playerUpdates}
+              loading={playerUpdatesLoading}
+              error={playerUpdatesError}
+              apiStatus={apiStatus}
+              pushStatus={playerPushStatus}
+              targetPlayer={selectedPlayer}
+              onRefresh={() => fetchPlayerUpdates()}
+              onPublishInjury={publishInjuryUpdate}
+              onOpenPlayer={openPlayerFromUpdate}
+            />
+            <DraftBoard
+              league={league}
+              players={players}
+              selectedPlayer={selectedPlayer}
+              setSelectedPlayer={setSelectedPlayer}
+              onSale={recordSale}
+              onUndo={undoLast}
+              onRedo={redoLast}
+              onUndoCell={undoSale}
+              onFillSample={fillSampleDraft}
+              currentOwnerIdx={currentOwnerIdx}
+              setCurrentOwnerIdx={setCurrentOwnerIdx}
+              notes={notes}
+              favorites={favorites}
+              saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
+              apiStatus={apiStatus}
+              rosterPositions={rosterPositions}
+              totalSlots={totalSlots}
+              maxBid={maxBid}
+              valuationCache={valuationCache}
+              valuationLoading={valuationLoading}
+              requestValuation={requestValuation}
+              draftStateKey={draftStateKey}
+              canUndo={undoStack.length > 0}
+              canRedo={redoStack.length > 0}
+              boardNotice={boardNotice}
+              onAddCustomPlayer={addCustomPlayer}
+            />
+          </div>
         )}
 
         {/* Player Dictionary — browse and search all players */}
@@ -1782,8 +2800,11 @@ export default function App() {
         {activeTab === "keeper" && (
           <KeeperSetup
             league={league}
-            setLeague={setLeague}
             players={players}
+            onAddKeeper={addKeeperContract}
+            onUpdateKeeper={updateKeeperContract}
+            onRemoveKeeper={removeKeeperContract}
+            onReturnToBoard={() => setActiveTab("board")}
           />
         )}
 
@@ -1798,9 +2819,29 @@ export default function App() {
             league={league}
             players={players}
             onTaxiPick={addTaxiPick}
+            onRemoveTaxiPick={removeTaxiPick}
             currentOwnerIdx={currentOwnerIdx}
+            onSetCurrentOwnerIdx={setCurrentOwnerIdx}
             rosterPositions={rosterPositions}
           />
+        )}
+
+        {/* Depth + Rankings — MLB depth charts and fantasy team strength */}
+        {activeTab === "insights" && (
+          <DepthCharts
+            depthCharts={depthCharts}
+            ownerRankings={ownerRankings}
+            selectedPlayer={selectedPlayer}
+            setSelectedPlayer={setSelectedPlayer}
+            liveDepthLoading={liveDepthLoading}
+            liveDepthError={liveDepthError}
+            onRefreshLiveDepth={() => fetchLiveDepthCharts({ refresh: true })}
+          />
+        )}
+
+        {/* Draft History — ordered audit trail and CSV export */}
+        {activeTab === "history" && (
+          <DraftHistory league={league} rows={draftHistoryRows} />
         )}
       </div>
 

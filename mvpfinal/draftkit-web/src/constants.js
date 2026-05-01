@@ -93,7 +93,7 @@ export const DEFAULT_ROSTER = {
   P: 9,
   UTIL: 1,
   BN: 0,
-  TAXI: 0,
+  TAXI: 3,
 };
 
 // ── Default Scoring Categories ────────────────────────────────────────────────

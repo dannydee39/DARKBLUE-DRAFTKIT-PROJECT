@@ -1,8 +1,11 @@
 # Dark Blue Valuation API — Documentation
 
+> Deprecated mirror: this file reflects an older pre-Sprint-4 contract and is no longer the source of truth.
+> Use `mvpfinal/valuation-api/API_DOCS.md` for the active API contract and `mvpfinal/valuation-site/` for the buyer-facing endpoint copy.
+
 **Version:** 1.0.0
 **Base URL (local dev):** `http://localhost:3001`
-**Base URL (production):** `https://draftapi.anythingavenue.com`
+**Base URL (production):** `https://darkblueapi.anythingavenue.com`
 **Demo Key:** `DB-2026-DEMO-0001`
 
 ---

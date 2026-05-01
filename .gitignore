@@ -88,3 +88,4 @@ mvpfinal/draftkit-api/data/draftkit-auth.db
 mvpfinal/draftkit-api/data/draftkit-auth.db-shm
 mvpfinal/draftkit-api/data/draftkit-auth.db-wal
 mvpfinal/valuation-api/artifacts/
+mvpfinal/valuation-api/data/player-updates.json

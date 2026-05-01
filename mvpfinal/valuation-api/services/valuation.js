@@ -1,4 +1,8 @@
 const players = require("../data/players.json");
+const {
+  decoratePlayerWithUpdate,
+  getLatestUpdateForPlayer,
+} = require("./playerUpdates");
 
 const PLAYER_TIER_ORDER = { Elite: 0, Starter: 1, Bench: 2 };
 const PLAYER_BY_ID = new Map(players.map((player) => [player.id, player]));
@@ -211,6 +215,8 @@ function valuatePlayer(player, context) {
   const baseValue = player.baseValue ?? 1;
   const playerPositions = Array.isArray(player.pos) ? player.pos : [];
   const positionDetails = {};
+  const playerUpdate = getLatestUpdateForPlayer(player.id);
+  const riskAdjustment = getRiskAdjustment(playerUpdate);
 
   let selectedScarcity = POSITION_DEFAULT;
   playerPositions.forEach((position) => {
@@ -224,7 +230,8 @@ function valuatePlayer(player, context) {
   const rawTrueDollarValue = Math.round(
     baseValue * selectedScarcity.multiplier * context.inflationFactor,
   );
-  const trueDollarValue = Math.min(Math.max(rawTrueDollarValue, 1), 120);
+  const adjustedTrueDollarValue = Math.round(rawTrueDollarValue * riskAdjustment.multiplier);
+  const trueDollarValue = Math.min(Math.max(adjustedTrueDollarValue, 1), 120);
   const maxBidRecommendation = Math.max(Math.round(trueDollarValue * 0.92), 1);
   const valueDelta = trueDollarValue - baseValue;
   const draftabilityScore = Number(
@@ -245,6 +252,12 @@ function valuatePlayer(player, context) {
     draftability_score: draftabilityScore,
     value_delta: valueDelta,
     is_drafted: context.draftedPlayerIds.has(player.id),
+    player_update: playerUpdate,
+    injury_status: playerUpdate?.injury_status || player.injury || null,
+    risk_level: playerUpdate?.risk_level || "LOW",
+    risk_adjustment: riskAdjustment,
+    news_headline: playerUpdate?.headline || null,
+    last_update_at: playerUpdate?.created_at || null,
     reasoning: buildReasoning(
       player,
       player.tier,
@@ -252,6 +265,8 @@ function valuatePlayer(player, context) {
       positionDetails,
       context.inflationFactor,
       trueDollarValue,
+      playerUpdate,
+      riskAdjustment,
     ),
     stats: {
       tier: player.tier,
@@ -400,7 +415,7 @@ function getPlayers({ league, pos, tier, available_only, drafted_names }) {
     return a.name.localeCompare(b.name);
   });
 
-  return annotateRanks(sorted);
+  return annotateRanks(sorted).map(decoratePlayerWithUpdate);
 }
 
 function annotateRanks(sortedPlayers) {
@@ -443,7 +458,29 @@ function summarizeMarket(inflationFactor) {
   return { label: "Neutral", delta_percent: deltaPercent };
 }
 
-function buildReasoning(player, playerTier, scarcityTier, posMap, inflation, tdv) {
+function getRiskAdjustment(playerUpdate) {
+  if (!playerUpdate) {
+    return { level: "LOW", multiplier: 1, max_bid_delta_percent: 0 };
+  }
+  if (playerUpdate.risk_level === "HIGH") {
+    return { level: "HIGH", multiplier: 0.88, max_bid_delta_percent: -12 };
+  }
+  if (playerUpdate.risk_level === "MEDIUM") {
+    return { level: "MEDIUM", multiplier: 0.94, max_bid_delta_percent: -6 };
+  }
+  return { level: "LOW", multiplier: 1, max_bid_delta_percent: 0 };
+}
+
+function buildReasoning(
+  player,
+  playerTier,
+  scarcityTier,
+  posMap,
+  inflation,
+  tdv,
+  playerUpdate = null,
+  riskAdjustment = { max_bid_delta_percent: 0 },
+) {
   const playerPositions = Array.isArray(player.pos) ? player.pos : [];
   const primaryPosition = playerPositions[0];
   const scarcityLevel = (primaryPosition && posMap[primaryPosition]) || scarcityTier || "LOW";
@@ -458,6 +495,12 @@ function buildReasoning(player, playerTier, scarcityTier, posMap, inflation, tdv
   }
   if (Math.abs(inflation - 1) > 0.02) {
     parts.push(`Market inflation ${inflSign}${inflPct}%.`);
+  }
+  if (playerUpdate) {
+    const adjustment = Number(riskAdjustment.max_bid_delta_percent || 0);
+    const adjustmentText =
+      adjustment < 0 ? ` ${adjustment}% valuation adjustment applied.` : "";
+    parts.push(`${playerUpdate.headline}.${adjustmentText}`);
   }
   parts.push(`Player tier: ${playerTier}. Scarcity: ${scarcityTier}. TDV: $${tdv}.`);
   return parts.join(" ");

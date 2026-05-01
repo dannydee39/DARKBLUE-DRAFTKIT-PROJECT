@@ -30,12 +30,12 @@ DB.pages.license = function (container) {
     '      "budget_per_team": 260,\n' +
     '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
     '      "teams": [\n' +
-    '        { "id": 1, "budget_remaining": 248, "roster": [["Freddie Freeman", "LAD"]] },\n' +
-    '        { "id": 2, "budget_remaining": 214, "roster": [["Ronald Acuna Jr.", "ATL"]] }\n' +
+    '        { "id": 1, "budget_remaining": 248, "roster": [["Garrett Crochet", "BOS"], ["Paul Goldschmidt", "NYY"]] },\n' +
+    '        { "id": 2, "budget_remaining": 215, "roster": [["Freddie Freeman", "LAD"]] }\n' +
     '      ],\n' +
     '      "roster_config": {\n' +
-    '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +
-    '        "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2\n' +
+    '        "C":2, "1B":1, "2B":1, "CI":1, "3B":1, "SS":1,\n' +
+    '        "MI":1, "OF":5, "SP":0, "RP":0, "P":9, "UTIL":1, "BN":0, "TAXI":0\n' +
     '      }\n' +
     '    }\n' +
     "  }'";
@@ -43,14 +43,27 @@ DB.pages.license = function (container) {
   var QUICKSTART_RESPONSE = JSON.stringify(
     {
       count: 1821,
-      market_inflation: 1.08,
-      market_context: { label: 'Hot', delta_percent: 8.0 },
+      drafted_count: 3,
+      undrafted_count: 1818,
+      generated_at: '2026-04-23T19:45:00.000Z',
+      market_inflation: 1.045,
+      market_context: { label: 'Neutral', delta_percent: 4.5 },
       valuations: {
-        'Shohei Ohtani': {
-          player: 'Shohei Ohtani',
-          max_bid_recommendation: 69,
-          true_dollar_value: 74.8,
+        'Juan Soto': {
+          player: 'Juan Soto',
+          player_id: 3,
+          player_tier: 'Elite',
+          base_value: 56,
+          true_dollar_value: 58,
+          max_bid_recommendation: 53,
+          market_inflation: 1.045,
+          market_context: { label: 'Neutral', delta_percent: 4.5 },
           scarcity_tier: 'HIGH',
+          position_scarcity: { OF: 'HIGH' },
+          draftability_score: 1.04,
+          value_delta: 2,
+          is_drafted: false,
+          reasoning: 'OF scarce — high demand in pool. Market inflation +4.5%. Player tier: Elite. Scarcity: HIGH. TDV: $58.',
         },
       },
     },
@@ -83,8 +96,8 @@ DB.pages.license = function (container) {
         '<section class="license-section" id="lic-quickstart">' +
           '<div class="license-section-label">Quick Start</div>' +
           '<h2>One request, one valuation dictionary.</h2>' +
-          '<p>Copy the test key, hit <code>/v1/valuate</code> with the current draft state, inspect the returned player dictionary. ' +
-          'Once it works, move the key behind your backend and call it from there.</p>' +
+          '<p>Copy the test key, hit <code>/v1/valuate</code> with the current draft state, inspect the returned valuation dictionary. ' +
+          'Roster entries are sent as <code>[player_name, mlb_team]</code> tuples. Once it works, move the key behind your backend and call it from there.</p>' +
           '<div class="license-key-block">' +
             '<div class="license-key-row">' +
               '<span class="license-key-label">Demo Key</span>' +

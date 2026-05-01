@@ -130,6 +130,31 @@ export default function PlayerCard({
     valuation && valuation !== "loading" && valuation.position_scarcity
       ? Object.values(valuation.position_scarcity)[0]
       : null;
+  const updateContext =
+    player.latest_update ||
+    (valuation && valuation !== "loading" ? valuation.player_update : null);
+  const riskLevel =
+    player.risk_level ||
+    (valuation && valuation !== "loading" ? valuation.risk_level : null) ||
+    "LOW";
+  const injuryStatus =
+    player.injury_status ||
+    (valuation && valuation !== "loading" ? valuation.injury_status : null) ||
+    player.injury;
+  const updateHeadline =
+    player.news_headline ||
+    updateContext?.headline ||
+    (valuation && valuation !== "loading" ? valuation.news_headline : null);
+  const riskAdjustmentDelta =
+    valuation && valuation !== "loading"
+      ? Number(valuation.risk_adjustment?.max_bid_delta_percent || 0)
+      : 0;
+  const updateImpact =
+    player.update_impact_summary ||
+    updateContext?.impact_summary ||
+    (riskAdjustmentDelta
+      ? `${Math.abs(riskAdjustmentDelta)}% risk adjustment applied.`
+      : null);
 
   const storedNote = notes?.[player.id] ?? player.note ?? "";
   const isDirty = localNote !== storedNote;
@@ -223,9 +248,23 @@ export default function PlayerCard({
         </div>
       )}
 
-      {/* ── Injury Alert ────────────────────────────────────────────────── */}
-      {player.injury && (
-        <div className="pc-injury">⚠ {player.injury}</div>
+      {/* ── Live Update Alert ───────────────────────────────────────────── */}
+      {(injuryStatus || updateHeadline) && (
+        <div className={`pc-risk-panel risk-${String(riskLevel).toLowerCase()}`}>
+          <div className="pc-risk-top">
+            <span className="pc-risk-label">LIVE UPDATE</span>
+            <span className="pc-risk-level">{riskLevel} RISK</span>
+          </div>
+          {injuryStatus && (
+            <div className="pc-risk-status">Status: {injuryStatus}</div>
+          )}
+          {updateHeadline && (
+            <div className="pc-risk-headline">{updateHeadline}</div>
+          )}
+          {updateImpact && (
+            <div className="pc-risk-impact">{updateImpact}</div>
+          )}
+        </div>
       )}
 
       {/* ── API Valuation Reasoning ─────────────────────────────────────── */}

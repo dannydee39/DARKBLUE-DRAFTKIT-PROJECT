@@ -1,70 +1,95 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // components/TaxiSquad.jsx
 //
-// $1 reserve / minor-league draft screen used after the main auction completes.
-// Each team can draft players into their "taxi squad" at a fixed $1 price.
-// Taxi squad picks do NOT reduce the team's main auction budget.
-//
-// The right panel shows the current owner's main roster + taxi slots.
+// $1 reserve draft screen used after the main auction phase. The component
+// renders active-team context, slot guards, search, and removal controls while
+// App owns the actual state mutation.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import { posColor } from "../utils/helpers.js";
 
-/**
- * TaxiSquad
- *
- * @param {Object}   props
- * @param {Object}   props.league           - Full league state
- * @param {Object[]} props.players          - Full player array
- * @param {Function} props.onTaxiPick       - (player, teamId) => void — assigns $1 taxi pick
- * @param {number}   props.currentOwnerIdx  - Index of the active owner in league.teams
- * @param {string[]} props.rosterPositions  - Flat roster slot array (e.g. ["C","OF","OF",...])
- * @returns {JSX.Element}
- */
 export default function TaxiSquad({
   league,
   players,
   onTaxiPick,
+  onRemoveTaxiPick,
   currentOwnerIdx,
+  onSetCurrentOwnerIdx,
   rosterPositions,
 }) {
-  // ── Local search state ────────────────────────────────────────────────────
-  // Controls the autocomplete dropdown for picking taxi squad players.
   const [taxiSearch, setTaxiSearch] = useState("");
+  const taxiSlots = Math.max(0, Number(league.roster?.TAXI) || 0);
+  const activeTeam = league.teams[currentOwnerIdx] || league.teams[0] || null;
+  const activeTaxiCount = activeTeam?.taxiSquad?.length || 0;
+  const activeTeamFull = taxiSlots > 0 && activeTaxiCount >= taxiSlots;
+  const searchQuery = taxiSearch.trim().toLowerCase();
 
-  // Number of taxi slots each team has (configured in league settings)
-  const taxiSlots = league.roster.TAXI || 3;
+  const available = useMemo(() => {
+    if (!searchQuery) return [];
+    return players
+      .filter(
+        (player) =>
+          !player.drafted &&
+          player.name.toLowerCase().includes(searchQuery),
+      )
+      .slice(0, 10);
+  }, [players, searchQuery]);
 
-  // Currently active (drafting) team
-  const myTeam = league.teams[currentOwnerIdx];
+  function addPick(player) {
+    if (!activeTeam || activeTeamFull || taxiSlots <= 0) return;
+    const saved = onTaxiPick?.(player, activeTeam.id);
+    if (saved) setTaxiSearch("");
+  }
 
-  // Undrafted players matching the search query
-  const available = players.filter(
-    (p) =>
-      !p.drafted &&
-      (taxiSearch === "" ||
-        p.name.toLowerCase().includes(taxiSearch.toLowerCase()))
-  );
+  function removePick(team, pick) {
+    onRemoveTaxiPick?.(team.id, pick.playerId);
+  }
 
   return (
     <div className="taxi-layout">
-
-      {/* ── Main: All Teams Taxi Grid ──────────────────────────────────────── */}
       <div className="taxi-main">
-        {/* Header row */}
         <div className="taxi-header-row">
           <h2 className="taxi-mode-title">TAXI SQUAD MODE</h2>
           <span className="taxi-badge">
-            $1 fixed per pick — does NOT reduce main ${league.budget} auction budget
+            $1 fixed per pick - main auction budget stays unchanged
           </span>
           <span className="taxi-hint" style={{ marginLeft: "auto" }}>
-            Reserve minor-league prospects below.
+            Active team controls reserve picks.
           </span>
         </div>
 
-        {/* All-teams taxi grid table */}
+        <div className={`taxi-active-card ${activeTeamFull ? "full" : ""}`}>
+          <div>
+            <span className="taxi-active-label">ACTIVE TAXI TEAM</span>
+            <strong>{activeTeam?.name || "No team selected"}</strong>
+          </div>
+          <div className="taxi-active-meter">
+            <span>
+              {activeTaxiCount}/{taxiSlots} slots
+            </span>
+            <div className="taxi-meter-track">
+              <div
+                className="taxi-meter-fill"
+                style={{
+                  width:
+                    taxiSlots > 0
+                      ? `${Math.min((activeTaxiCount / taxiSlots) * 100, 100)}%`
+                      : "0%",
+                }}
+              />
+            </div>
+          </div>
+          <span className="taxi-active-status">
+            {taxiSlots <= 0
+              ? "No taxi slots configured"
+              : activeTeamFull
+                ? "Taxi squad full"
+                : `${taxiSlots - activeTaxiCount} picks open`}
+          </span>
+        </div>
+
         <div className="settings-section-label" style={{ marginBottom: 8 }}>
           ALL TAXI SQUADS
         </div>
@@ -73,41 +98,78 @@ export default function TaxiSquad({
             <thead>
               <tr>
                 <th className="col-owner">OWNER</th>
-                {/* One column per taxi slot */}
-                {Array.from({ length: taxiSlots }, (_, i) => (
-                  <th key={i} style={{ minWidth: 120 }}>
-                    <span className="taxi-col-badge">TAXI $1</span>
+                {Array.from({ length: Math.max(taxiSlots, 1) }, (_, index) => (
+                  <th key={index} style={{ minWidth: 130 }}>
+                    <span className="taxi-col-badge">
+                      {taxiSlots > 0 ? `TAXI ${index + 1}` : "NO TAXI"}
+                    </span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {league.teams.map((team, ti) => {
-                const isMe = ti === currentOwnerIdx;
+              {league.teams.map((team, teamIndex) => {
+                const isActive = teamIndex === currentOwnerIdx;
+                const teamPicks = team.taxiSquad || [];
+                const teamFull = taxiSlots > 0 && teamPicks.length >= taxiSlots;
+
                 return (
-                  <tr key={team.id} className={isMe ? "taxi-my-row" : ""}>
-                    {/* Owner column */}
+                  <tr
+                    key={team.id}
+                    className={isActive ? "taxi-my-row" : ""}
+                    onClick={() => onSetCurrentOwnerIdx?.(teamIndex)}
+                    title={`Set ${team.name} as active taxi team`}
+                  >
                     <td className="col-owner">
-                      {isMe && (
-                        <span className="star" style={{ color: "#8b5cf6" }}>★ </span>
+                      {isActive && (
+                        <span className="star" style={{ color: "#8b5cf6" }}>
+                          *
+                        </span>
                       )}
                       {team.name}
+                      <div className="taxi-owner-sub">
+                        {teamPicks.length}/{taxiSlots} taxi
+                        {teamFull ? " - full" : ""}
+                      </div>
                     </td>
 
-                    {/* Taxi slot cells */}
-                    {Array.from({ length: taxiSlots }, (_, si) => {
-                      const pick = (team.taxiSquad || [])[si];
+                    {Array.from({ length: Math.max(taxiSlots, 1) }, (_, slotIndex) => {
+                      const pick = teamPicks[slotIndex];
                       return (
-                        <td key={si} className="taxi-cell">
+                        <td key={slotIndex} className="taxi-cell">
                           {pick ? (
-                            // Filled slot — shows player name
-                            <span className="taxi-pick">{pick.name}</span>
-                          ) : isMe ? (
-                            // Empty slot for current owner — shows clickable prompt
-                            <span className="taxi-pick-slot">+ pick</span>
+                            <div className="taxi-pick-chip">
+                              <span className="taxi-pick">{pick.name}</span>
+                              <button
+                                type="button"
+                                className="taxi-remove-btn"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  removePick(team, pick);
+                                }}
+                                title={`Remove ${pick.name}`}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : taxiSlots <= 0 ? (
+                            <span className="taxi-empty">configure slots</span>
+                          ) : isActive && !teamFull ? (
+                            <button
+                              type="button"
+                              className="taxi-pick-slot"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                const input = document.querySelector(".taxi-search-area .search-input");
+                                input?.focus();
+                              }}
+                            >
+                              + pick
+                            </button>
                           ) : (
-                            // Empty slot for other teams
-                            <span className="taxi-empty">empty</span>
+                            <span className="taxi-empty">
+                              {teamFull ? "full" : "empty"}
+                            </span>
                           )}
                         </td>
                       );
@@ -119,42 +181,43 @@ export default function TaxiSquad({
           </table>
         </div>
 
-        {/* ── Taxi Pick Search ─────────────────────────────────────────────── */}
-        {/* Search bar for the current owner to find and assign a taxi pick */}
-        <div className="taxi-search-area">
+        <div className={`taxi-search-area ${activeTeamFull ? "disabled" : ""}`}>
           <div className="search-label-row">
             <span className="search-label" style={{ color: "#8b5cf6" }}>
               TAXI PICK SEARCH
             </span>
             <span className="search-hint">
-              {myTeam?.name}: click a result to assign a $1 taxi pick
+              {activeTeam?.name || "Select a team"}: add available players for $1
             </span>
           </div>
           <div style={{ position: "relative" }}>
             <input
               className="search-input"
-              placeholder="Search available players for $1 taxi pick…"
+              placeholder={
+                taxiSlots <= 0
+                  ? "Add TAXI slots in League Settings first"
+                  : activeTeamFull
+                    ? `${activeTeam?.name || "This team"} is full`
+                    : "Search available players for taxi pick"
+              }
               value={taxiSearch}
-              onChange={(e) => setTaxiSearch(e.target.value)}
+              disabled={taxiSlots <= 0 || activeTeamFull}
+              onChange={(event) => setTaxiSearch(event.target.value)}
             />
-            {/* Dropdown results */}
-            {taxiSearch && (
+            {searchQuery && !activeTeamFull && taxiSlots > 0 && (
               <div className="search-dropdown">
-                {available.slice(0, 8).map((p) => (
-                  <div
-                    key={p.id}
-                    className="search-result"
-                    onClick={() => {
-                      // Assign $1 taxi pick to the current owner's team
-                      onTaxiPick(p, myTeam?.id);
-                      setTaxiSearch(""); // clear search after pick
-                    }}
-                    title={`Add ${p.name} to ${myTeam?.name} taxi squad for $1`}
+                {available.map((player) => (
+                  <button
+                    key={player.id}
+                    type="button"
+                    className="search-result taxi-search-result"
+                    onClick={() => addPick(player)}
+                    title={`Add ${player.name} to ${activeTeam?.name} taxi squad for $1`}
                   >
-                    <PlayerAvatar name={p.name} size={26} photoUrl={p.photoUrl} />
-                    <span className="sr-name">{p.name}</span>
-                    <span className="sr-team">{p.team}</span>
-                    {p.pos.map((pos) => (
+                    <PlayerAvatar name={player.name} size={26} photoUrl={player.photoUrl} />
+                    <span className="sr-name">{player.name}</span>
+                    <span className="sr-team">{player.team}</span>
+                    {(player.pos || []).map((pos) => (
                       <span
                         key={pos}
                         className="pos-badge"
@@ -164,11 +227,11 @@ export default function TaxiSquad({
                       </span>
                     ))}
                     <span className="sr-value" style={{ color: "#8b5cf6" }}>$1</span>
-                  </div>
+                  </button>
                 ))}
                 {available.length === 0 && (
-                  <div style={{ padding: "10px 12px", fontSize: 11, color: "var(--muted)" }}>
-                    No available players match "{taxiSearch}"
+                  <div className="taxi-empty-search">
+                    No available players match "{taxiSearch}".
                   </div>
                 )}
               </div>
@@ -177,21 +240,20 @@ export default function TaxiSquad({
         </div>
       </div>
 
-      {/* ── Right Panel: My Roster + Taxi ─────────────────────────────────── */}
       <div className="right-panel taxi-right-panel">
-
-        {/* Main roster summary */}
-        <div className="panel-section-label">MY MAIN ROSTER</div>
+        <div className="panel-section-label">ACTIVE MAIN ROSTER</div>
         <div className="roster-summary">
-          {rosterPositions.map((slot, i) => {
-            const entry = myTeam?.roster[i];
+          {rosterPositions.map((slot, index) => {
+            const entry = activeTeam?.roster?.find(
+              (candidate) => candidate.slotIndex === index,
+            );
             return (
-              <div key={i} className="roster-sum-row">
+              <div key={index} className="roster-sum-row">
                 <span className="roster-sum-pos" style={{ color: posColor(slot) }}>
                   {slot}
                 </span>
                 <span className="roster-sum-name">
-                  {entry ? entry.name : "–"}
+                  {entry ? entry.name : "-"}
                 </span>
                 {entry && (
                   <span style={{ marginLeft: "auto", fontSize: 9, color: "var(--green)" }}>
@@ -203,19 +265,32 @@ export default function TaxiSquad({
           })}
         </div>
 
-        {/* Taxi squad slots */}
         <div className="panel-section-label" style={{ marginTop: 16 }}>
-          MY TAXI SQUAD
+          ACTIVE TAXI SQUAD
         </div>
-        {Array.from({ length: taxiSlots }, (_, i) => {
-          const pick = (myTeam?.taxiSquad || [])[i];
+        {taxiSlots <= 0 && (
+          <div className="taxi-side-empty">
+            No taxi slots are configured for this league.
+          </div>
+        )}
+        {Array.from({ length: taxiSlots }, (_, index) => {
+          const pick = activeTeam?.taxiSquad?.[index];
           return (
-            <div key={i} className="taxi-roster-row">
+            <div key={index} className="taxi-roster-row">
               <span className="taxi-badge-sm">TAXI</span>
               <span className="roster-sum-name">
                 {pick ? pick.name : "empty"}
               </span>
-              {pick && (
+              {pick ? (
+                <button
+                  type="button"
+                  className="taxi-remove-link"
+                  onClick={() => removePick(activeTeam, pick)}
+                  title={`Remove ${pick.name}`}
+                >
+                  Remove
+                </button>
+              ) : (
                 <span style={{ marginLeft: "auto", fontSize: 9, color: "#8b5cf6" }}>
                   $1
                 </span>
@@ -223,9 +298,7 @@ export default function TaxiSquad({
             </div>
           );
         })}
-
       </div>
-
     </div>
   );
 }

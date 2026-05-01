@@ -42,9 +42,59 @@ async function jsonFetch(url, options = {}) {
   return { response, body };
 }
 
+async function readSseEvent(url, eventName, trigger) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const response = await fetch(url, { signal: controller.signal });
+  assert.equal(response.status, 200, "proxy SSE stream should connect");
+  assert.ok(
+    response.headers.get("content-type")?.includes("text/event-stream"),
+    "proxy SSE stream should preserve text/event-stream",
+  );
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    if (trigger) await trigger();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() || "";
+
+      for (const chunk of chunks) {
+        const eventLine = chunk
+          .split("\n")
+          .find((line) => line.startsWith("event:"));
+        const dataLines = chunk
+          .split("\n")
+          .filter((line) => line.startsWith("data:"));
+        const parsedEvent = eventLine ? eventLine.slice(6).trim() : "message";
+
+        if (parsedEvent === eventName) {
+          const data = dataLines.map((line) => line.slice(5).trim()).join("\n");
+          return data ? JSON.parse(data) : null;
+        }
+      }
+    }
+  } finally {
+    clearTimeout(timeoutId);
+    controller.abort();
+    await reader.cancel().catch(() => {});
+  }
+
+  throw new Error(`Timed out waiting for proxy SSE event ${eventName}`);
+}
+
 async function main() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dbdraftkit-proxy-"));
   process.env.AUTH_DB_PATH = path.join(tempDir, "draftkit-auth.db");
+  process.env.PLAYER_UPDATES_FILE = path.join(tempDir, "player-updates.json");
   process.env.NODE_ENV = "test";
 
   const { createApp: createValuationApp } = require("../../valuation-api/server");
@@ -74,6 +124,48 @@ async function main() {
       assert.equal(players.response.status, 200, "proxy /v1/players should succeed");
       assert.ok(Array.isArray(players.body?.players), "proxy /v1/players should return player array");
       assert.ok(players.body.players.length > 0, "proxy /v1/players should return at least one player");
+
+      const updates = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates?limit=5`);
+      assert.equal(updates.response.status, 200, "proxy /v1/player-updates should succeed");
+      assert.ok(Array.isArray(updates.body?.updates), "proxy player updates should return an updates array");
+
+      const publishedUpdate = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_name: "Aaron Judge", type: "INJURY", severity: "HIGH" }),
+      });
+      assert.equal(
+        publishedUpdate.response.status,
+        201,
+        "proxy /v1/player-updates should create an update",
+      );
+      assert.equal(publishedUpdate.body?.update?.player_name, "Aaron Judge");
+
+      const streamEvent = await readSseEvent(
+        `${draftkitBaseUrl}/v1/player-updates/stream?limit=5`,
+        "player-update",
+        async () => {
+          const response = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              player_name: "Bobby Witt Jr.",
+              type: "NEWS",
+              severity: "MEDIUM",
+            }),
+          });
+          assert.equal(
+            response.response.status,
+            201,
+            "proxy POST should push to open SSE stream",
+          );
+        },
+      );
+      assert.equal(
+        streamEvent.update.player_name,
+        "Bobby Witt Jr.",
+        "proxy SSE stream should emit the newly created update",
+      );
 
       const valuation = await jsonFetch(`${draftkitBaseUrl}/v1/valuate`, {
         method: "POST",

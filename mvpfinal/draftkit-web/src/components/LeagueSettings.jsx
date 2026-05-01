@@ -15,6 +15,12 @@ import {
   hasDraftStarted,
   validateLeagueConfig,
 } from "../utils/draftSessions.js";
+import {
+  buildRosterImpact,
+  getPositionHelp,
+  getScoringHelp,
+  summarizeScoring,
+} from "../utils/settingsHelp.js";
 
 /**
  * LeagueSettings
@@ -41,6 +47,14 @@ export default function LeagueSettings({ league, onSaveSettings }) {
   const draftStarted = useMemo(() => hasDraftStarted(league), [league]);
   const picksRecorded = useMemo(() => countDraftEntries(league), [league]);
   const validation = useMemo(() => validateLeagueConfig(form), [form]);
+  const rosterImpact = useMemo(
+    () => buildRosterImpact(form.roster, form.owners, form.budget),
+    [form.budget, form.owners, form.roster],
+  );
+  const scoringSummary = useMemo(
+    () => summarizeScoring(form.scoring),
+    [form.scoring],
+  );
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -129,9 +143,20 @@ export default function LeagueSettings({ league, onSaveSettings }) {
         {/* Scoring categories */}
         <div className="settings-card">
           <div className="settings-section-label">SCORING CATEGORIES</div>
-          <p style={{ fontSize: 10, color: "var(--muted)", marginBottom: 10 }}>
-            Click to toggle. Active categories are used for player valuations.
-          </p>
+          <div className="settings-impact-grid compact">
+            <div>
+              <span>Active Cats</span>
+              <strong>{scoringSummary.totalCount}</strong>
+            </div>
+            <div>
+              <span>Hitting</span>
+              <strong>{scoringSummary.hittingCount}</strong>
+            </div>
+            <div>
+              <span>Pitching</span>
+              <strong>{scoringSummary.pitchingCount}</strong>
+            </div>
+          </div>
 
           <div className="scoring-group-label">HITTING</div>
           <div className="scoring-cats">
@@ -140,9 +165,10 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                 key={cat}
                 className={`cat-btn ${form.scoring[cat] ? "active" : ""}`}
                 onClick={() => toggleScoring(cat)}
-                title={form.scoring[cat] ? `Remove ${cat}` : `Add ${cat}`}
+                title={`${getScoringHelp(cat)} ${form.scoring[cat] ? "Click to remove." : "Click to add."}`}
               >
                 {cat}
+                <span className="settings-help-dot" aria-hidden="true">?</span>
               </button>
             ))}
           </div>
@@ -154,9 +180,10 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                 key={cat}
                 className={`cat-btn ${form.scoring[cat] ? "active" : ""}`}
                 onClick={() => toggleScoring(cat)}
-                title={form.scoring[cat] ? `Remove ${cat}` : `Add ${cat}`}
+                title={`${getScoringHelp(cat)} ${form.scoring[cat] ? "Click to remove." : "Click to add."}`}
               >
                 {cat}
+                <span className="settings-help-dot" aria-hidden="true">?</span>
               </button>
             ))}
           </div>
@@ -261,21 +288,63 @@ export default function LeagueSettings({ league, onSaveSettings }) {
             Adjust how many slots each position gets. This affects the draft grid and max-bid calculations.
           </p>
 
+          <div className="settings-impact-grid">
+            <div>
+              <span>Active Slots</span>
+              <strong>{rosterImpact.activeSlots}</strong>
+            </div>
+            <div>
+              <span>Taxi Slots</span>
+              <strong>{rosterImpact.taxiSlots}</strong>
+            </div>
+            <div>
+              <span>League Draft Slots</span>
+              <strong>{rosterImpact.leagueActiveSlots}</strong>
+            </div>
+            <div>
+              <span>Opening Max Bid</span>
+              <strong>${rosterImpact.openingMaxBid}</strong>
+            </div>
+          </div>
+
+          <details className="settings-help-panel">
+            <summary>How roster slots affect the board</summary>
+            <p>
+              Active slots create draft-board columns and reserve $1 endgame
+              money per open slot. Taxi slots stay out of the main auction
+              board and are handled in Taxi Squad mode.
+            </p>
+          </details>
+
           <div className="roster-grid">
-            {Object.entries(form.roster).map(([slot, count]) => (
-              <div key={slot} className="roster-row">
-                <span
-                  className="roster-slot-label"
-                  style={{ color: posColor(slot) }}
-                >
-                  {slot}
+            {Object.entries(form.roster).map(([slot, count]) => {
+              const help = getPositionHelp(slot);
+              const lockReason =
+                draftStarted && !form.commissionerUnlocked
+                  ? "Locked after picks are recorded. Use Commissioner Override to expand roster counts."
+                  : draftStarted && form.commissionerUnlocked
+                    ? "Commissioner Override can expand this slot but cannot shrink below current saved structure."
+                    : help.draftImpact;
+
+              return (
+              <div key={slot} className="roster-row" title={`${help.label}: ${help.description} ${lockReason}`}>
+                <span className="roster-slot-wrap">
+                  <span
+                    className="roster-slot-label"
+                    style={{ color: posColor(slot) }}
+                  >
+                    {slot}
+                  </span>
+                  <span className="settings-help-dot" aria-label={`${help.label}: ${help.description}`}>
+                    ?
+                  </span>
                 </span>
                 <div className="roster-adj">
                   <button
                     className="adj-btn"
                     onClick={() => adjRoster(slot, -1)}
                     disabled={(draftStarted && !form.commissionerUnlocked) || count <= 0}
-                    title={`Remove one ${slot} slot`}
+                    title={`Remove one ${slot} slot. ${lockReason}`}
                   >
                     −
                   </button>
@@ -284,13 +353,14 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                     className="adj-btn"
                     onClick={() => adjRoster(slot, 1)}
                     disabled={draftStarted && !form.commissionerUnlocked}
-                    title={`Add one ${slot} slot`}
+                    title={`Add one ${slot} slot. ${lockReason}`}
                   >
                     +
                   </button>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           {(validation.errors.length > 0 || validation.warnings.length > 0) && (

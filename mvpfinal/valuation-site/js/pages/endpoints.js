@@ -26,6 +26,7 @@ DB.pages.endpoints = function (container) {
     {
       status: 'online',
       service: 'Dark Blue MLB Valuation API',
+      product: 'Dark Blue MLB Valuation API',
       version: '1.0.0',
       timestamp: '2026-04-10T14:30:00.000Z',
       environment: 'production',
@@ -33,43 +34,66 @@ DB.pages.endpoints = function (container) {
   );
 
   var PLAYERS_RESPONSE = JSON.stringify({
-    count: 313,
+    count: 1,
+    sort: 'tier,baseValue desc,fpts desc',
+    grouped_by: null,
+    groups: null,
     players: [
       {
+        id:        1,
         name:      'Shohei Ohtani',
         team:      'LAD',
         league:    'NL',
-        pos:       ['DH', '1B'],
+        pos:       ['DH', 'SP'],
         tier:      'Elite',
-        fpts:      892.4,
-        baseValue: 71,
-        drafted:   false,
+        baseValue: 75,
+        hr:        48,
+        rbi:       112,
+        r:         102,
+        sb:        22,
+        avg:       '0.288',
+        obp:       '0.381',
+        slg:       '0.574',
+        era:       null,
+        so:        null,
+        whip:      null,
+        w:         null,
+        sv:        null,
+        fpts:      842,
+        depth:     'Elite',
+        injury:    null,
+        note:      null,
+        photoUrl:  'https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_213,q_auto:best/v1/people/660271/headshot/67/current',
         overall_rank: 1,
         tier_rank: 1,
-        stats: { HR: 44, RBI: 130, SB: 20, AVG: 0.31, ERA: null, SO: null, WHIP: null },
       },
     ],
   }, null, 2);
 
   var VALUATE_RESPONSE = JSON.stringify({
     count:                  1821,
-    drafted_count:          2,
-    undrafted_count:        1819,
-    market_inflation:       1.08,
-    market_context:         { label: 'Hot', delta_percent: 8.0 },
+    drafted_count:          3,
+    undrafted_count:        1818,
+    generated_at:           '2026-04-23T19:45:00.000Z',
+    market_inflation:       1.045,
+    market_context:         { label: 'Neutral', delta_percent: 4.5 },
     valuations: {
-      'Shohei Ohtani': {
-        player:                 'Shohei Ohtani',
+      'Juan Soto': {
+        player:                 'Juan Soto',
+        player_id:              3,
         player_tier:            'Elite',
-        base_value:             63.1,
-        max_bid_recommendation: 69,
-        true_dollar_value:      74.8,
+        base_value:             56,
+        true_dollar_value:      58,
+        max_bid_recommendation: 53,
+        market_inflation:       1.045,
+        market_context:         { label: 'Neutral', delta_percent: 4.5 },
         scarcity_tier:          'HIGH',
-        position_scarcity:      { DH: 'HIGH', '1B': 'HIGH' },
-        draftability_score:     1.0,
-        value_delta:            12,
-        reasoning:              'DH scarce — high demand in pool. Market inflation +8.0%. Player tier: Elite. Scarcity: HIGH. TDV: $75.',
-        stats:                  { tier: 'Elite', positions: ['DH', '1B'], team: 'LAD', league: 'NL' },
+        position_scarcity:      { OF: 'HIGH' },
+        draftability_score:     1.04,
+        value_delta:            2,
+        is_drafted:             false,
+        reasoning:              'OF scarce — high demand in pool. Market inflation +4.5%. Player tier: Elite. Scarcity: HIGH. TDV: $58.',
+        stats:                  { tier: 'Elite', positions: ['OF'], team: 'NYM', league: 'NL' },
       },
     },
   }, null, 2);
@@ -88,16 +112,16 @@ DB.pages.endpoints = function (container) {
     '  -H "X-License-Key: ' + KEY + '" \\\n' +
     '  -d \'{\n' +
     '    "draft_state": {\n' +
-      '      "total_teams": 12,\n' +
-      '      "budget_per_team": 260,\n' +
-      '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
-      '      "teams": [\n' +
-    '        { "id": 1, "budget_remaining": 248, "roster": [["Freddie Freeman", "LAD"]] },\n' +
-    '        { "id": 2, "budget_remaining": 195, "roster": [["Ronald Acuna Jr.", "ATL"]] }\n' +
+    '      "total_teams": 12,\n' +
+    '      "budget_per_team": 260,\n' +
+    '      "scoring_categories": ["HR","RBI","AVG","SB","ERA","SO","WHIP"],\n' +
+    '      "teams": [\n' +
+    '        { "id": 1, "budget_remaining": 248, "roster": [["Garrett Crochet", "BOS"], ["Paul Goldschmidt", "NYY"]] },\n' +
+    '        { "id": 2, "budget_remaining": 215, "roster": [["Freddie Freeman", "LAD"]] }\n' +
     '      ],\n' +
     '      "roster_config": {\n' +
-    '        "C":1, "1B":1, "2B":1, "3B":1, "SS":1,\n' +
-    '        "OF":3, "SP":2, "RP":2, "UTIL":1, "BN":2\n' +
+    '        "C":2, "1B":1, "2B":1, "CI":1, "3B":1, "SS":1,\n' +
+    '        "MI":1, "OF":5, "SP":0, "RP":0, "P":9, "UTIL":1, "BN":0, "TAXI":0\n' +
     '      }\n' +
     '    }\n' +
     '  }\'';
@@ -110,9 +134,10 @@ DB.pages.endpoints = function (container) {
       budget_per_team:    260,
       scoring_categories: ['HR', 'RBI', 'AVG', 'SB', 'ERA', 'SO', 'WHIP'],
       teams: [
-        { id: 1, budget_remaining: 248, roster: [["Freddie Freeman", "LAD"]] },
+        { id: 1, budget_remaining: 248, roster: [["Garrett Crochet", "BOS"], ["Paul Goldschmidt", "NYY"]] },
+        { id: 2, budget_remaining: 215, roster: [["Freddie Freeman", "LAD"]] },
       ],
-      roster_config: { C: 1, '1B': 1, '2B': 1, '3B': 1, SS: 1, OF: 3, SP: 2, RP: 2, UTIL: 1, BN: 2 },
+      roster_config: { C: 2, '1B': 1, '2B': 1, CI: 1, '3B': 1, SS: 1, MI: 1, OF: 5, SP: 0, RP: 0, P: 9, UTIL: 1, BN: 0, TAXI: 0 },
     },
   }, null, 2);
 
@@ -176,8 +201,7 @@ DB.pages.endpoints = function (container) {
           '<div class="ep-card-body">' +
             '<p class="ep-desc">' +
               'Returns the full player pool with projected stats, tiers, rankings, and base values. ' +
-              'Filter by league with the <code>league</code> query parameter (<code>AL</code>, ' +
-              '<code>NL</code>, or <code>ALL</code>).' +
+              'Filter by league, position, tier, excluded drafted names, or grouped tier output without changing the base contract.' +
             '</p>' +
             '<div class="ep-why">' +
               '<strong>Why it matters:</strong> This is the data your draft board, player search, ' +
@@ -194,6 +218,30 @@ DB.pages.endpoints = function (container) {
                     '<td>string</td>' +
                     '<td><code>ALL</code></td>' +
                     '<td>Filter to AL, NL, or ALL (combined).</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><code>pos</code></td>' +
+                    '<td>string</td>' +
+                    '<td><code>ALL</code></td>' +
+                    '<td>Filter to one eligible position such as <code>OF</code> or <code>SP</code>.</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><code>tier</code></td>' +
+                    '<td>string</td>' +
+                    '<td><code>ALL</code></td>' +
+                    '<td>Restrict the result to <code>Elite</code>, <code>Starter</code>, or <code>Bench</code>.</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><code>drafted</code></td>' +
+                    '<td>string</td>' +
+                    '<td>none</td>' +
+                    '<td>Comma-separated player names to exclude from the returned pool.</td>' +
+                  '</tr>' +
+                  '<tr>' +
+                    '<td><code>group_by</code></td>' +
+                    '<td>string</td>' +
+                    '<td>none</td>' +
+                    '<td>Set to <code>tier</code> to include grouped tier buckets alongside the flat list.</td>' +
                   '</tr>' +
                 '</tbody>' +
               '</table>' +
@@ -214,7 +262,7 @@ DB.pages.endpoints = function (container) {
           '<div class="ep-card-body">' +
             '<p class="ep-desc">' +
               'The core endpoint. Send your full draft state once; receive a full valuation dictionary ' +
-              'for the player pool, backed by live SGP math, position scarcity, and market inflation.' +
+              'for the player pool, backed by live SGP math, position scarcity, and market inflation. Drafted rosters are sent as <code>[player_name, mlb_team]</code> tuples.' +
             '</p>' +
             '<div class="ep-callout">' +
               'This endpoint is <strong>stateless</strong>. Send the complete, current ' +
@@ -230,21 +278,27 @@ DB.pages.endpoints = function (container) {
               '<table class="ep-table">' +
                 '<thead><tr><th>Field</th><th>Type</th><th>Req</th><th>Description</th></tr></thead>' +
                 '<tbody>' +
+                  '<tr><td><code>draft_state</code></td><td>object</td>' +
+                    '<td><span class="ep-req">required</span></td>' +
+                    '<td>Container for the live league snapshot the API values against.</td></tr>' +
                   '<tr><td><code>total_teams</code></td><td>int</td>' +
-                    '<td><span class="ep-req">required</span></td>' +
-                    '<td>Number of teams in the league.</td></tr>' +
+                    '<td>optional</td>' +
+                    '<td>Number of teams in the league. Defaults to <code>12</code>.</td></tr>' +
                   '<tr><td><code>budget_per_team</code></td><td>int</td>' +
-                    '<td><span class="ep-req">required</span></td>' +
-                    '<td>Starting auction budget per team (standard: 260).</td></tr>' +
+                    '<td>optional</td>' +
+                    '<td>Starting auction budget per team. Defaults to <code>260</code>.</td></tr>' +
                   '<tr><td><code>scoring_categories</code></td><td>string[]</td>' +
-                    '<td><span class="ep-req">required</span></td>' +
-                    '<td>Active categories. Supported: HR, RBI, AVG, SB, R, H, OBP, BB, TB, XBH, W, SV, ERA, WHIP, SO, HLD, K/9, BB/9, QS.</td></tr>' +
+                    '<td>optional</td>' +
+                    '<td>League scoring metadata. The current MVP examples use standard 5x5-style categories when supplied.</td></tr>' +
                   '<tr><td><code>teams</code></td><td>object[]</td>' +
-                    '<td><span class="ep-req">required</span></td>' +
-                    '<td>Each: <code>id</code>, <code>budget_remaining</code>, <code>roster</code> as <code>[player_name, mlb_team]</code> tuples.</td></tr>' +
+                    '<td>optional</td>' +
+                    '<td>Team snapshots with <code>id</code>, <code>budget_remaining</code>, and <code>[player_name, mlb_team]</code> roster tuples.</td></tr>' +
+                  '<tr><td><code>teams[].roster</code></td><td>string[][]</td>' +
+                    '<td>optional</td>' +
+                    '<td>Already-drafted players expressed as arrays like <code>["Freddie Freeman","LAD"]</code>.</td></tr>' +
                   '<tr><td><code>roster_config</code></td><td>object</td>' +
                     '<td>optional</td>' +
-                    '<td>Slot counts per position. Defaults to standard 12-team layout.</td></tr>' +
+                    '<td>Slot counts per position. For predictable integrations, send your league template explicitly instead of relying on server defaults.</td></tr>' +
                 '</tbody>' +
               '</table>' +
             '</div>' +

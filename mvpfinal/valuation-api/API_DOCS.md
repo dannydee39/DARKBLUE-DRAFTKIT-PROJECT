@@ -8,14 +8,14 @@ Base URL (production): `https://darkblueapi.anythingavenue.com`
 
 ## Overview
 
-The Dark Blue MLB Valuation API is a **stateless** REST service that calculates real-time auction dollar values for fantasy baseball players during a live draft. It is designed to be called on each player nomination and returns a recommended maximum bid based on:
+The Dark Blue MLB Valuation API calculates real-time auction dollar values for fantasy baseball players during a live draft. The valuation calculation is stateless and is designed to be called whenever the live draft state changes. Player news and injury updates are stored separately as a persistent operational feed and can be surfaced in both player-pool and valuation responses.
 
 - A normalized player pool built from real MLB data
 - Current draft state (remaining budgets, already-drafted players)
 - Position scarcity
 - Market inflation
 
-The API does **not** maintain session state — every request must include the full draft state payload.
+The valuation endpoint does **not** maintain draft session state — every valuation request must include the full draft state payload.
 
 ### Customer Integration Contract
 
@@ -120,7 +120,7 @@ Health check — no authentication required.
 
 ### GET /
 
-API info page — no authentication required. Returns endpoint listing and docs URL.
+Interactive API tester — no authentication required. Serves the built-in HTML sandbox for `/v1/players` and `/v1/valuate`.
 
 ---
 
@@ -133,7 +133,6 @@ Calculates a valuation dictionary for the full player pool, given the current li
 **Request body:**
 ```json
 {
-  "license_key": "DB-2026-DEMO-0001",
   "draft_state": {
     "total_teams": 12,
     "budget_per_team": 260,
@@ -174,7 +173,6 @@ Calculates a valuation dictionary for the full player pool, given the current li
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `license_key` | string | No | Same as header key (can be provided in body OR header) |
 | `draft_state.total_teams` | number | No | Defaults to 12 |
 | `draft_state.budget_per_team` | number | No | Defaults to 260 |
 | `draft_state.scoring_categories` | string[] | No | Active scoring cats (defaults to 5x5) |
@@ -308,6 +306,168 @@ X-License-Key: DB-2026-DEMO-0001
   ]
 }
 ```
+
+---
+
+### GET /v1/player-updates
+
+**Auth required** (`X-License-Key` header)
+
+Returns the latest persisted player news, injury, lineup, or role updates.
+
+**Query parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---:|---:|---|
+| `limit` | number | `10` | Maximum updates to return, capped at 50 |
+| `since` | ISO timestamp | — | Return updates created after this timestamp |
+
+**Example:**
+
+```http
+GET /v1/player-updates?limit=10
+```
+
+**Response:**
+
+```json
+{
+  "count": 1,
+  "sort": "created_at desc",
+  "updates": [
+    {
+      "id": "upd-550e8400-e29b-41d4-a716-446655440000",
+      "player_id": 2,
+      "player_name": "Aaron Judge",
+      "team": "NYY",
+      "positions": ["OF"],
+      "type": "INJURY",
+      "severity": "HIGH",
+      "risk_level": "HIGH",
+      "headline": "Aaron Judge moved to high injury risk",
+      "body": "Aaron Judge has a high-risk injury flag for draft review.",
+      "injury_status": "Questionable",
+      "impact_summary": "Consider lowering the max bid or waiting for roster clarity.",
+      "source": "Commissioner update",
+      "created_by": "Draft Kit commissioner",
+      "created_at": "2026-04-30T18:15:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET /v1/player-updates/stream
+
+**Auth required** (`X-License-Key` header)
+
+Opens a Server-Sent Events stream for true push delivery of player news/injury updates. The stream sends an initial `snapshot` event with the latest updates, then sends a `player-update` event immediately after a new update is created through `POST /v1/player-updates`.
+
+**Query parameters:** same as `GET /v1/player-updates`.
+
+**Example:**
+
+```http
+GET /v1/player-updates/stream?limit=10
+Accept: text/event-stream
+```
+
+**Events:**
+
+```text
+event: snapshot
+data: {"updates":[...]}
+
+event: player-update
+data: {"update":{"player_name":"Aaron Judge","risk_level":"HIGH"}}
+```
+
+The Draft Kit API proxies this stream at `/v1/player-updates/stream`, so the browser can receive pushed updates without exposing the valuation API key.
+
+---
+
+### GET /v1/mlb/depth-charts
+
+**Auth required** (`X-License-Key` header)
+
+Returns MLB active roster context from the MLB Stats API. Draft Kit uses this endpoint to enrich its team-position depth chart view with live roster status while still applying Draft Kit fantasy value/rank ordering.
+
+The backend caches successful MLB roster responses for 15 minutes by default. Configure this with:
+
+```env
+MLB_DEPTH_CACHE_TTL_MS=900000
+MLB_DEPTH_TIMEOUT_MS=6000
+```
+
+If the MLB Stats API is unavailable, the endpoint returns a stale cached result when one exists. If no cache exists, it returns a local player-pool fallback with a `warning`.
+
+The Draft Kit API proxies this endpoint at `/v1/mlb/depth-charts`.
+
+**Example:**
+```http
+GET /v1/mlb/depth-charts
+X-License-Key: DB-2026-DEMO-0001
+```
+
+**Response fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `source` | string | `mlb-stats-api-active-roster`, stale-cache variant, or local fallback |
+| `upstream` | string | Upstream MLB Stats API base URL |
+| `generated_at` | string | Timestamp for the response payload |
+| `cache.hit` | boolean | Whether the response came from cache |
+| `teams[]` | array | MLB team roster payloads |
+| `teams[].team` | string | Draft Kit team abbreviation, for example `NYY` |
+| `teams[].mlbTeamId` | number | MLB Stats API team id |
+| `teams[].roster[]` | array | Active roster entries |
+| `roster[].mlbId` | number | MLB player id used to match Draft Kit player records |
+| `roster[].statusDescription` | string | MLB roster status description, usually `Active` |
+| `roster[].positionCode` | string | MLB roster position abbreviation |
+
+---
+
+### POST /v1/player-updates
+
+**Auth required** (`X-License-Key` header)
+
+Publishes a persisted player news/injury update and broadcasts it to every connected `/v1/player-updates/stream` subscriber. The Draft Kit uses this for commissioner-driven player context while preserving the production request path through the Draft Kit API proxy.
+
+**Request body:**
+
+```json
+{
+  "player_id": 2,
+  "type": "INJURY",
+  "severity": "HIGH",
+  "headline": "Aaron Judge moved to high injury risk",
+  "body": "Aaron Judge has a high-risk injury flag for draft review.",
+  "source": "Commissioner update",
+  "created_by": "Draft Kit commissioner"
+}
+```
+
+**Request fields:**
+
+| Field | Type | Required | Description |
+|---|---|---:|---|
+| `player_id` | number | Yes* | Player identifier from `/v1/players` |
+| `player_name` | string | Yes* | Alternative lookup when `player_id` is unavailable |
+| `type` | `INJURY`, `NEWS`, `LINEUP`, `ROLE` | No | Defaults to `NEWS` |
+| `severity` | `LOW`, `MEDIUM`, `HIGH` | No | Defaults to `LOW`; also drives `risk_level` |
+| `headline` | string | No | Defaults to a generated player status headline |
+| `body` | string | No | Longer internal update body |
+| `injury_status` | string | No | Defaults from severity for injury updates |
+| `impact_summary` | string | No | Defaults from type/severity |
+| `source` | string | No | Defaults to `Manual update` |
+| `created_by` | string | No | Defaults to `Draft Kit` |
+
+*Provide either `player_id` or `player_name`.
+
+**Response:** HTTP `201` with the created `update` and the latest `updates` array.
+
+Player updates are persisted in `data/player-updates.json` by default. Set `PLAYER_UPDATES_FILE` to override that path in test or production deployments.
 
 ---
 

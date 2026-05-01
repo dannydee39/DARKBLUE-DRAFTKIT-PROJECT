@@ -29,6 +29,9 @@ export function cloneLeagueConfig(source = {}) {
     scoring: { ...DEFAULT_SCORING, ...(source.scoring || {}) },
     keeperLeague: source.keeperLeague ?? true,
     commissionerUnlocked: source.commissionerUnlocked ?? false,
+    draftHistory: Array.isArray(source.draftHistory)
+      ? source.draftHistory.map((event) => ({ ...event }))
+      : [],
     teams,
   };
 }

@@ -97,10 +97,12 @@ export function slotAcceptsPlayer(player, slotPos) {
  */
 export function buildRosterPositions(roster) {
   const remaining = Object.fromEntries(
-    Object.entries(roster || {}).map(([slot, count]) => [
-      slot,
-      Math.max(0, Number(count) || 0),
-    ]),
+    Object.entries(roster || {})
+      .filter(([slot]) => slot !== "TAXI")
+      .map(([slot, count]) => [
+        slot,
+        Math.max(0, Number(count) || 0),
+      ]),
   );
   const slots = [];
 

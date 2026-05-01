@@ -1,4 +1,5 @@
 const express = require("express");
+const { Readable } = require("stream");
 
 const router = express.Router();
 
@@ -26,25 +27,29 @@ function respond(res, status, payload) {
 }
 
 async function fetchUpstream(path, options = {}) {
+  const { timeoutMs = UPSTREAM_TIMEOUT_MS, ...fetchOptions } = options;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+  const timeoutId =
+    Number.isFinite(timeoutMs) && timeoutMs > 0
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
   const headers = {
     "X-License-Key": VALUATION_API_KEY,
-    ...(options.headers || {}),
+    ...(fetchOptions.headers || {}),
   };
 
-  if (options.body != null && !headers["Content-Type"]) {
+  if (fetchOptions.body != null && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
   try {
     return await fetch(`${VALUATION_API_BASE}${path}`, {
-      ...options,
+      ...fetchOptions,
       signal: controller.signal,
       headers,
     });
   } finally {
-    clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
@@ -63,6 +68,120 @@ router.get("/players", async (req, res) => {
       message:
         error?.name === "AbortError"
           ? "Valuation service timed out while loading players."
+          : "Could not reach the valuation service.",
+    });
+  }
+});
+
+router.get("/player-updates", async (req, res) => {
+  const queryString = req.originalUrl.includes("?")
+    ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+    : "";
+
+  try {
+    const response = await fetchUpstream(`/v1/player-updates${queryString}`, {
+      method: "GET",
+    });
+    const payload = await readPayload(response);
+    return respond(res, response.status, payload);
+  } catch (error) {
+    return res.status(502).json({
+      error: "Bad Gateway",
+      message:
+        error?.name === "AbortError"
+          ? "Valuation service timed out while loading player updates."
+          : "Could not reach the valuation service.",
+    });
+  }
+});
+
+router.get("/mlb/depth-charts", async (req, res) => {
+  const queryString = req.originalUrl.includes("?")
+    ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+    : "";
+
+  try {
+    const response = await fetchUpstream(`/v1/mlb/depth-charts${queryString}`, {
+      method: "GET",
+      timeoutMs: Number(process.env.MLB_DEPTH_PROXY_TIMEOUT_MS || 10000),
+    });
+    const payload = await readPayload(response);
+    return respond(res, response.status, payload);
+  } catch (error) {
+    return res.status(502).json({
+      error: "Bad Gateway",
+      message:
+        error?.name === "AbortError"
+          ? "Valuation service timed out while loading MLB depth charts."
+          : "Could not reach the valuation service.",
+    });
+  }
+});
+
+router.get("/player-updates/stream", async (req, res) => {
+  const queryString = req.originalUrl.includes("?")
+    ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+    : "";
+
+  try {
+    const response = await fetchUpstream(`/v1/player-updates/stream${queryString}`, {
+      method: "GET",
+      headers: { Accept: "text/event-stream" },
+      timeoutMs: 0,
+    });
+
+    if (!response.ok || !response.body) {
+      const payload = await readPayload(response);
+      return respond(res, response.status, payload);
+    }
+
+    res.status(response.status);
+    res.setHeader(
+      "Content-Type",
+      response.headers.get("content-type") || "text/event-stream",
+    );
+    res.setHeader(
+      "Cache-Control",
+      response.headers.get("cache-control") || "no-cache, no-transform",
+    );
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const stream = Readable.fromWeb(response.body);
+    req.on("close", () => stream.destroy());
+    stream.on("error", () => {
+      if (!res.writableEnded) res.end();
+    });
+    stream.pipe(res);
+    return undefined;
+  } catch (error) {
+    return res.status(502).json({
+      error: "Bad Gateway",
+      message:
+        error?.name === "AbortError"
+          ? "Valuation service timed out while opening the player update stream."
+          : "Could not reach the valuation service.",
+    });
+  }
+});
+
+router.post("/player-updates", async (req, res) => {
+  try {
+    const payload =
+      req.body && typeof req.body === "object" ? { ...req.body } : {};
+    const response = await fetchUpstream("/v1/player-updates", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const upstreamPayload = await readPayload(response);
+    return respond(res, response.status, upstreamPayload);
+  } catch (error) {
+    return res.status(502).json({
+      error: "Bad Gateway",
+      message:
+        error?.name === "AbortError"
+          ? "Valuation service timed out while publishing a player update."
           : "Could not reach the valuation service.",
     });
   }

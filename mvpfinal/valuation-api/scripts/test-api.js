@@ -1,7 +1,13 @@
 const assert = require("assert/strict");
-const { createApp } = require("../server");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const playerPool = require("../data/players.json");
 
+const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dbvalue-updates-"));
+process.env.PLAYER_UPDATES_FILE = path.join(tempDir, "player-updates.json");
+
+const { createApp } = require("../server");
 const API_KEY = "DB-2026-DEMO-0001";
 
 function rosterTuple(playerName) {
@@ -53,6 +59,52 @@ async function jsonFetch(url, options = {}) {
   return { response, body };
 }
 
+async function readSseEvent(url, options = {}, eventName, trigger) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const response = await fetch(url, { ...options, signal: controller.signal });
+  assert.equal(response.status, 200, "SSE stream should connect");
+  assert.ok(
+    response.headers.get("content-type")?.includes("text/event-stream"),
+    "SSE stream should use text/event-stream",
+  );
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    if (trigger) await trigger();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() || "";
+
+      for (const chunk of chunks) {
+        const lines = chunk.split("\n");
+        const eventLine = lines.find((line) => line.startsWith("event:"));
+        const dataLines = lines.filter((line) => line.startsWith("data:"));
+        const parsedEvent = eventLine ? eventLine.slice(6).trim() : "message";
+
+        if (parsedEvent === eventName) {
+          const data = dataLines.map((line) => line.slice(5).trim()).join("\n");
+          return data ? JSON.parse(data) : null;
+        }
+      }
+    }
+  } finally {
+    clearTimeout(timeoutId);
+    controller.abort();
+    await reader.cancel().catch(() => {});
+  }
+
+  throw new Error(`Timed out waiting for SSE event ${eventName}`);
+}
+
 async function runGeneralRegressionSuite() {
   const app = createApp({ nodeEnv: "test", rateLimitMax: 500 });
   await withServer(app, async (baseUrl) => {
@@ -80,6 +132,54 @@ async function runGeneralRegressionSuite() {
     assert.ok(!players.body.players.some((player) => player.name === "Juan Soto"), "drafted players should be excluded");
     assert.ok(players.body.players[0].overall_rank >= 1, "players should include rank metadata");
     assert.ok(players.body.players.some((player) => player.photoUrl), "players should include headshots");
+    assert.ok(
+      players.body.players.every((player) => typeof player.risk_level === "string"),
+      "players should include live update risk metadata",
+    );
+
+    const updates = await jsonFetch(`${baseUrl}/v1/player-updates?limit=5`, {
+      headers: { "X-License-Key": API_KEY },
+    });
+    assert.equal(updates.response.status, 200, "GET /v1/player-updates should return 200");
+    assert.ok(Array.isArray(updates.body.updates), "updates payload should include an array");
+
+    const pushedUpdate = await jsonFetch(`${baseUrl}/v1/player-updates`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({
+        player_name: "Aaron Judge",
+        type: "INJURY",
+        severity: "HIGH",
+        source: "Commissioner update",
+      }),
+    });
+    assert.equal(pushedUpdate.response.status, 201, "POST /v1/player-updates should create an update");
+    assert.equal(pushedUpdate.body.update.player_name, "Aaron Judge");
+    assert.equal(pushedUpdate.body.update.risk_level, "HIGH");
+
+    const pushedStreamEvent = await readSseEvent(
+      `${baseUrl}/v1/player-updates/stream?limit=5`,
+      { headers: { "X-License-Key": API_KEY } },
+      "player-update",
+      async () => {
+        const response = await jsonFetch(`${baseUrl}/v1/player-updates`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+          body: JSON.stringify({
+            player_name: "Bobby Witt Jr.",
+            type: "NEWS",
+            severity: "MEDIUM",
+            headline: "Bobby Witt Jr. lineup status pushed",
+          }),
+        });
+        assert.equal(response.response.status, 201, "POST should push to open SSE stream");
+      },
+    );
+    assert.equal(
+      pushedStreamEvent.update.player_name,
+      "Bobby Witt Jr.",
+      "SSE stream should emit the newly created player update",
+    );
 
     const nlPitchers = await jsonFetch(
       `${baseUrl}/v1/players?league=NL&pos=SP`,
@@ -120,6 +220,15 @@ async function runGeneralRegressionSuite() {
     assert.ok(
       typeof valuate.body.valuations?.["Juan Soto"]?.max_bid_recommendation === "number",
       "valuation dictionary should expose Juan Soto max bid",
+    );
+    assert.ok(
+      valuate.body.valuations?.["Aaron Judge"]?.player_update,
+      "valuation dictionary should expose player update context after a published update",
+    );
+    assert.equal(
+      valuate.body.valuations?.["Aaron Judge"]?.risk_level,
+      "HIGH",
+      "valuation dictionary should expose injury risk level",
     );
     assert.ok(valuate.body.market_context?.label, "valuation batch should include market_context label");
 

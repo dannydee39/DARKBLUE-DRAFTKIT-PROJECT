@@ -24,6 +24,7 @@
 ### Draft Kit
 
 - Board-first draft setup with saved draft library.
+- Custom fantasy team names during setup and safe rename support in League Settings.
 - Keeper league setup with budget-safe keeper contracts.
 - Minor league/prospect rosters with protected-player draft-pool blocking and team-to-team transfers.
 - Taxi squad setup with configured reserve slots.
@@ -84,6 +85,7 @@
 - `draftkit-web/src/components/SetupScreen.jsx`
   - create/resume draft flow
   - pool counts and draft-library UI
+  - custom fantasy team-name setup
 - `draftkit-web/src/components/DraftBoard.jsx`
   - main draft grid
   - scouting rail
@@ -92,7 +94,7 @@
 - `draftkit-web/src/components/PlayerDictionary.jsx`
   - full player browser outside the board
 - `draftkit-web/src/components/LeagueSettings.jsx`
-  - post-setup configuration editing, roster-impact summaries, scoring/position help, and safeguards
+  - post-setup configuration editing, fantasy team renaming, roster-impact summaries, scoring/position help, and safeguards
 - `draftkit-web/src/components/KeeperSetup.jsx`
   - keeper workflow
 - `draftkit-web/src/components/ProspectRosters.jsx`
@@ -116,7 +118,7 @@
 - `draftkit-web/src/utils/cloudApi.js`
   - small client for `draftkit-api` auth and draft routes
 - `draftkit-web/src/utils/draftSessions.js`
-  - local draft serialization, cloning, validation, protected-prospect hydration, and storage helpers
+  - local draft serialization, team-name normalization, cloning, validation, protected-prospect hydration, and storage helpers
 - `draftkit-web/src/utils/draftHistory.js`
   - history event creation, minor league transfer events, row normalization, and CSV export formatting
 - `draftkit-web/src/utils/teamInsights.js`
@@ -235,6 +237,7 @@
   - `node scripts/test-depth-rankings.mjs`
   - `node scripts/test-draft-history.mjs`
   - `node scripts/test-minor-league-rosters.mjs`
+  - `node scripts/test-team-names.mjs`
   - `node scripts/test-settings-guardrails.mjs`
 - `draftkit-api`
   - `npm run test:auth`
@@ -266,6 +269,7 @@ cd mvpfinal/draftkit-web
 node scripts/test-depth-rankings.mjs
 node scripts/test-draft-history.mjs
 node scripts/test-minor-league-rosters.mjs
+node scripts/test-team-names.mjs
 node scripts/test-settings-guardrails.mjs
 npm run build
 

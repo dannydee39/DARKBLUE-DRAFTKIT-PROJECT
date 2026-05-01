@@ -2733,6 +2733,56 @@ a {
   flex: 1;
 }
 
+.setup-team-name-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.setup-team-name-header label {
+  margin: 0;
+}
+.setup-team-name-header span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.setup-team-name-grid {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 230px;
+  overflow-y: auto;
+  padding: 10px;
+}
+.setup-team-name-grid.compact {
+  max-height: 300px;
+}
+.team-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.team-name-field span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.team-name-field input {
+  width: 100%;
+  font-size: 11px;
+  padding: 7px 8px;
+}
+
 .toggle-group {
   display: flex;
   gap: 4px;

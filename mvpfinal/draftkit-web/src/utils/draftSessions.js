@@ -10,6 +10,25 @@ export function clonePlayers(players = []) {
   return players.map((player) => ({ ...player }));
 }
 
+export function normalizeTeamName(value, index = 0) {
+  const trimmed = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return trimmed || `Owner ${index + 1}`;
+}
+
+export function buildTeamNameList(source = {}, ownerCount = source.owners || 12) {
+  const count = Math.max(0, Number(ownerCount) || 0);
+  const explicitNames = Array.isArray(source.teamNames) ? source.teamNames : [];
+  const teamNames = Array.isArray(source.teams)
+    ? source.teams.map((team) => team?.name)
+    : [];
+
+  return Array.from({ length: count }, (_, index) =>
+    normalizeTeamName(explicitNames[index] || teamNames[index], index),
+  );
+}
+
 export function cloneLeagueConfig(source = {}) {
   const teams = Array.isArray(source.teams)
     ? source.teams.map((team) => ({
@@ -26,6 +45,7 @@ export function cloneLeagueConfig(source = {}) {
     owners: Number(source.owners || 12),
     budget: Number(source.budget || 260),
     pool: source.pool || "MLB",
+    teamNames: buildTeamNameList(source, Number(source.owners || 12)),
     roster: { ...DEFAULT_ROSTER, ...(source.roster || {}) },
     scoring: { ...DEFAULT_SCORING, ...(source.scoring || {}) },
     keeperLeague: source.keeperLeague ?? true,
@@ -38,11 +58,12 @@ export function cloneLeagueConfig(source = {}) {
 }
 
 export function buildTeamsFromConfig(config, previousTeams = []) {
+  const teamNames = buildTeamNameList(config, config.owners);
   return Array.from({ length: config.owners }, (_, index) => {
     const existing = previousTeams[index];
     return {
       id: index + 1,
-      name: existing?.name || `Owner ${index + 1}`,
+      name: normalizeTeamName(teamNames[index] || existing?.name, index),
       budget_remaining: config.budget,
       roster: [],
       taxiSquad: [],
@@ -110,6 +131,14 @@ export function validateLeagueConfig(config) {
 
   if (!Number.isFinite(config.owners) || config.owners < 2 || config.owners > 20) {
     errors.push("Owners must be between 2 and 20.");
+  }
+
+  const teamNames = buildTeamNameList(config, config.owners);
+  const uniqueTeamNames = new Set(
+    teamNames.map((name) => name.trim().toLowerCase()),
+  );
+  if (teamNames.length > 0 && uniqueTeamNames.size < teamNames.length) {
+    warnings.push("Two or more fantasy teams share the same name.");
   }
 
   if (!Number.isFinite(config.budget) || config.budget < 50 || config.budget > 1000) {

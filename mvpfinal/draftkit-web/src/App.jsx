@@ -1053,15 +1053,23 @@ export default function App() {
       commissionerUnlocked: normalized.commissionerUnlocked,
       budget: normalized.commissionerUnlocked ? normalized.budget : prev.budget,
       roster: normalized.commissionerUnlocked ? normalized.roster : prev.roster,
-      teams: normalized.commissionerUnlocked
-        ? prev.teams.map((team) => {
+      teams: prev.teams.map((team, index) => {
+        const normalizedTeam = normalized.teams?.[index];
+        const renamedTeam = {
+          ...team,
+          name: normalizedTeam?.name || normalized.teamNames?.[index] || team.name,
+        };
+
+        if (!normalized.commissionerUnlocked) {
+          return renamedTeam;
+        }
+
             const spent = prev.budget - team.budget_remaining;
             return {
-              ...team,
+          ...renamedTeam,
               budget_remaining: Math.max(0, normalized.budget - spent),
             };
-          })
-        : prev.teams,
+      }),
     }));
 
     const ignoredChanges = [];

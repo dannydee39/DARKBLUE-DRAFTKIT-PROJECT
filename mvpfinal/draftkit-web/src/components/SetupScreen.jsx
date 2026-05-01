@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DRAFTKIT_API_BASE, DEFAULT_ROSTER, DEFAULT_SCORING } from "../constants.js";
 import {
+  buildTeamNameList,
   countDraftEntries,
   countTaxiEntries,
   formatDraftTimestamp,
@@ -49,6 +50,7 @@ export default function SetupScreen({
     owners: 12,
     budget: 260,
     pool: "MLB",
+    teamNames: buildTeamNameList({ owners: 12 }, 12),
     roster: { ...DEFAULT_ROSTER },
     scoring: { ...DEFAULT_SCORING },
     keeperLeague: true,
@@ -126,6 +128,23 @@ export default function SetupScreen({
     setForm((prev) => ({ ...prev, [key]: val }));
   }
 
+  function setOwnerCount(nextOwners) {
+    const owners = Number(nextOwners);
+    setForm((prev) => ({
+      ...prev,
+      owners,
+      teamNames: buildTeamNameList(prev, owners),
+    }));
+  }
+
+  function setTeamName(index, value) {
+    setForm((prev) => {
+      const teamNames = buildTeamNameList(prev, prev.owners);
+      teamNames[index] = value;
+      return { ...prev, teamNames };
+    });
+  }
+
   async function handleInit() {
     if (validation.errors.length > 0 || creating) return;
     setCreating(true);
@@ -185,7 +204,7 @@ export default function SetupScreen({
                 value={form.owners}
                 min={2}
                 max={20}
-                onChange={(e) => set("owners", +e.target.value)}
+                onChange={(e) => setOwnerCount(e.target.value)}
               />
             </div>
             <div className="form-group">
@@ -197,6 +216,25 @@ export default function SetupScreen({
                 max={500}
                 onChange={(e) => set("budget", +e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="setup-team-name-header">
+              <label>FANTASY TEAM NAMES</label>
+              <span>{form.owners} teams</span>
+            </div>
+            <div className="setup-team-name-grid">
+              {buildTeamNameList(form, form.owners).map((teamName, index) => (
+                <label key={index} className="team-name-field">
+                  <span>Team {index + 1}</span>
+                  <input
+                    value={teamName}
+                    onChange={(event) => setTeamName(index, event.target.value)}
+                    placeholder={`Owner ${index + 1}`}
+                  />
+                </label>
+              ))}
             </div>
           </div>
 

@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HITTING_CATS, PITCHING_CATS } from "../constants.js";
 import { posColor } from "../utils/helpers.js";
 import {
+  buildTeamNameList,
   cloneLeagueConfig,
   countDraftEntries,
   hasDraftStarted,
@@ -58,6 +59,36 @@ export default function LeagueSettings({ league, onSaveSettings }) {
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setOwnerCount(value) {
+    const owners = Number(value);
+    setForm((prev) => ({
+      ...prev,
+      owners,
+      teamNames: buildTeamNameList(prev, owners),
+      teams: buildTeamNameList(prev, owners).map((name, index) => ({
+        ...(prev.teams?.[index] || {}),
+        id: index + 1,
+        name,
+      })),
+    }));
+  }
+
+  function setTeamName(index, value) {
+    setForm((prev) => {
+      const teamNames = buildTeamNameList(prev, prev.owners);
+      teamNames[index] = value;
+      return {
+        ...prev,
+        teamNames,
+        teams: teamNames.map((name, teamIndex) => ({
+          ...(prev.teams?.[teamIndex] || {}),
+          id: teamIndex + 1,
+          name,
+        })),
+      };
+    });
   }
 
   function toggleScoring(cat) {
@@ -217,7 +248,7 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                 type="number"
                 value={form.owners}
                 disabled={draftStarted}
-                onChange={(e) => setField("owners", +e.target.value)}
+                onChange={(e) => setOwnerCount(e.target.value)}
               />
             </div>
             <div className="form-group">
@@ -232,6 +263,28 @@ export default function LeagueSettings({ league, onSaveSettings }) {
                 onChange={(e) => setField("budget", +e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <div className="setup-team-name-header">
+              <label>FANTASY TEAM NAMES</label>
+              <span>{form.owners} teams</span>
+            </div>
+            <div className="setup-team-name-grid compact">
+              {buildTeamNameList(form, form.owners).map((teamName, index) => (
+                <label key={index} className="team-name-field">
+                  <span>Team {index + 1}</span>
+                  <input
+                    value={teamName}
+                    onChange={(event) => setTeamName(index, event.target.value)}
+                    placeholder={`Owner ${index + 1}`}
+                  />
+                </label>
+              ))}
+            </div>
+            <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 8 }}>
+              Team names are safe metadata and can be corrected without changing rosters, budgets, history, or saved draft state.
+            </p>
           </div>
 
           <div className="form-group">

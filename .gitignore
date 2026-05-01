@@ -67,9 +67,9 @@ temp/
 *.cert
 *.crt
 
-# ── Project-specific: keep generated players.json (it's part of the API) ──
-# To regenerate: node mvpfinal/api/scripts/generate-players.js
-# !mvpfinal/api/data/players.json   ← uncomment to exclude from git
+# ── Project-specific runtime data ─────────────────────────────────────────
+# `valuation-api/data/players.json` is intentionally tracked because it is the
+# generated player pool used by the deployed valuation service.
 
 # ── Local docs / prompts ───────────────────────────────────────────────────
 presentationslidesprompt.md
@@ -82,10 +82,10 @@ CURRENT.md
 CHANGELOG.md
 JIRA.md
 
-# ── Generated API validation artifacts ─────────────────────────────────────
-mvpfinal/draftkit-api/artifacts/
-mvpfinal/draftkit-api/data/draftkit-auth.db
-mvpfinal/draftkit-api/data/draftkit-auth.db-shm
-mvpfinal/draftkit-api/data/draftkit-auth.db-wal
-mvpfinal/valuation-api/artifacts/
-mvpfinal/valuation-api/data/player-updates.json
+# ── Generated API validation/runtime artifacts ────────────────────────────
+draftkit-api/artifacts/
+draftkit-api/data/draftkit-auth.db
+draftkit-api/data/draftkit-auth.db-shm
+draftkit-api/data/draftkit-auth.db-wal
+valuation-api/artifacts/
+valuation-api/data/player-updates.json

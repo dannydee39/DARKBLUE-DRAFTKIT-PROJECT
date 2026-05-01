@@ -16,6 +16,7 @@ export function cloneLeagueConfig(source = {}) {
         ...team,
         roster: [...(team.roster || [])],
         taxiSquad: [...(team.taxiSquad || [])],
+        minorLeague: [...(team.minorLeague || team.prospects || [])],
       }))
     : [];
 
@@ -45,6 +46,7 @@ export function buildTeamsFromConfig(config, previousTeams = []) {
       budget_remaining: config.budget,
       roster: [],
       taxiSquad: [],
+      minorLeague: [],
     };
   });
 }
@@ -63,8 +65,20 @@ export function countTaxiEntries(league) {
   );
 }
 
+export function countMinorLeagueEntries(league) {
+  return (league?.teams || []).reduce(
+    (total, team) => total + (team.minorLeague || []).length,
+    0
+  );
+}
+
 export function hasDraftStarted(league) {
-  return countDraftEntries(league) + countTaxiEntries(league) > 0;
+  return (
+    countDraftEntries(league) +
+      countTaxiEntries(league) +
+      countMinorLeagueEntries(league) >
+    0
+  );
 }
 
 export function formatPoolLabel(pool) {
@@ -153,6 +167,7 @@ export function buildCloudDraftPayload(record = {}) {
 export function hydratePlayersFromLeague(players = [], league = {}) {
   const mainAssignments = new Map();
   const taxiAssignments = new Map();
+  const minorLeagueAssignments = new Map();
 
   (league.teams || []).forEach((team) => {
     (team.roster || []).forEach((entry) => {
@@ -163,6 +178,7 @@ export function hydratePlayersFromLeague(players = [], league = {}) {
         draftPrice: entry.price ?? null,
         draftedAt: entry.draftedAt ?? null,
         taxi: false,
+        minorLeague: false,
       });
     });
 
@@ -174,6 +190,19 @@ export function hydratePlayersFromLeague(players = [], league = {}) {
         draftPrice: entry.price ?? 1,
         draftedAt: entry.draftedAt ?? null,
         taxi: true,
+        minorLeague: false,
+      });
+    });
+
+    (team.minorLeague || []).forEach((entry) => {
+      if (entry?.playerId == null) return;
+      minorLeagueAssignments.set(entry.playerId, {
+        drafted: true,
+        draftedBy: team.id,
+        draftPrice: 0,
+        draftedAt: entry.draftedAt ?? null,
+        taxi: false,
+        minorLeague: true,
       });
     });
   });
@@ -181,7 +210,8 @@ export function hydratePlayersFromLeague(players = [], league = {}) {
   return players.map((player) => {
     const mainEntry = mainAssignments.get(player.id);
     const taxiEntry = taxiAssignments.get(player.id);
-    const assignment = mainEntry || taxiEntry;
+    const minorLeagueEntry = minorLeagueAssignments.get(player.id);
+    const assignment = mainEntry || taxiEntry || minorLeagueEntry;
 
     if (!assignment) {
       return {
@@ -191,6 +221,7 @@ export function hydratePlayersFromLeague(players = [], league = {}) {
         draftPrice: null,
         draftedAt: null,
         taxi: false,
+        minorLeague: false,
       };
     }
 

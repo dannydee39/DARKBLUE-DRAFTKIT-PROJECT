@@ -6,11 +6,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── API Config ────────────────────────────────────────────────────────────────
+const VITE_ENV = import.meta.env || {};
+
 // DRAFTKIT_API_BASE: app backend used for auth, cloud saves, and valuation proxying.
 // Production should be provided via VITE_DRAFTKIT_API_BASE at build time.
 export const DRAFTKIT_API_BASE = (
-  import.meta.env.VITE_DRAFTKIT_API_BASE ||
-  (import.meta.env.PROD
+  VITE_ENV.VITE_DRAFTKIT_API_BASE ||
+  (VITE_ENV.PROD
     ? "https://draftapi.anythingavenue.com"
     : "http://localhost:3002")
 ).trim();
@@ -19,14 +21,14 @@ export const DRAFTKIT_API_BASE = (
 // Draft Kit depends on the separate licensed valuation product.
 // Requests from the Draft Kit still flow through the Draft Kit backend.
 export const VALUATION_DISPLAY_URL = (
-  import.meta.env.VITE_VALUATION_API_BASE || "https://darkblueapi.anythingavenue.com"
+  VITE_ENV.VITE_VALUATION_API_BASE || "https://darkblueapi.anythingavenue.com"
 ).trim();
 
 // VALUATION_SITE_URL: buyer-facing site for the separate licensed valuation
 // product. Use this in UI copy whenever Draft Kit needs to route users toward
 // the licensing product or its endpoint/account docs.
 export const VALUATION_SITE_URL = (
-  import.meta.env.VITE_VALUATION_SITE_URL || "https://darkbluevalue.anythingavenue.com"
+  VITE_ENV.VITE_VALUATION_SITE_URL || "https://darkbluevalue.anythingavenue.com"
 ).trim();
 
 // ── Player Pool ────────────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@
 //   └─ LeagueSettings (receives league + safe-save handler)
 //   └─ KeeperSetup (receives league + setLeague + players)
 //   └─ TaxiSquad (receives league + players + onTaxiPick)
+//   └─ ProspectRosters (receives league + players + protected roster actions)
 //   └─ ApiSandbox (receives league + apiStatus)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ import PlayerDictionary from "./components/PlayerDictionary.jsx";
 import LeagueSettings from "./components/LeagueSettings.jsx";
 import KeeperSetup from "./components/KeeperSetup.jsx";
 import TaxiSquad from "./components/TaxiSquad.jsx";
+import ProspectRosters from "./components/ProspectRosters.jsx";
 import ApiSandbox from "./components/ApiSandbox.jsx";
 import PlayerUpdateCenter from "./components/PlayerUpdateCenter.jsx";
 import DraftHistory from "./components/DraftHistory.jsx";
@@ -69,6 +71,7 @@ import {
   buildTeamsFromConfig,
   cloneLeagueConfig,
   clonePlayers,
+  countMinorLeagueEntries,
   countDraftEntries,
   createDraftId,
   DRAFT_LIBRARY_STORAGE_KEY,
@@ -545,7 +548,15 @@ export default function App() {
         .map((entry) => entry?.playerId ?? entry?.name ?? entry)
         .sort()
         .join("|");
-      return `${team.id}:${team.budget_remaining}:${rosterNames}`;
+      const taxiNames = (team.taxiSquad || [])
+        .map((entry) => entry?.playerId ?? entry?.name ?? entry)
+        .sort()
+        .join("|");
+      const minorLeagueNames = (team.minorLeague || [])
+        .map((entry) => entry?.playerId ?? entry?.name ?? entry)
+        .sort()
+        .join("|");
+      return `${team.id}:${team.budget_remaining}:${rosterNames}:${taxiNames}:${minorLeagueNames}`;
     })
     .join(";");
   useEffect(() => {
@@ -1378,6 +1389,13 @@ export default function App() {
       if (taxiEntry) {
         return { type: "taxi squad", team, entry: taxiEntry };
       }
+
+      const prospectEntry = (team.minorLeague || []).find(
+        (entry) => entry?.playerId === playerId,
+      );
+      if (prospectEntry) {
+        return { type: "minor league roster", team, entry: prospectEntry };
+      }
     }
 
     return null;
@@ -1563,6 +1581,7 @@ export default function App() {
               draftPrice: result.cost,
               draftedAt: actionTime,
               taxi: false,
+              minorLeague: false,
             }
           : player,
       ),
@@ -1639,6 +1658,7 @@ export default function App() {
             draftPrice: null,
             draftedAt: null,
             taxi: false,
+            minorLeague: false,
           };
         }
 
@@ -1650,6 +1670,7 @@ export default function App() {
             draftPrice: result.cost,
             draftedAt: actionTime,
             taxi: false,
+            minorLeague: false,
           };
         }
 
@@ -1726,6 +1747,7 @@ export default function App() {
               draftPrice: null,
               draftedAt: null,
               taxi: false,
+              minorLeague: false,
             }
           : player,
       ),
@@ -1790,6 +1812,7 @@ export default function App() {
       draftPrice: null,
       draftedAt: null,
       taxi: false,
+      minorLeague: false,
     };
 
     setPlayers((prev) => [customPlayer, ...prev]);
@@ -1971,6 +1994,8 @@ export default function App() {
               draftedBy: teamId,
               draftPrice: numericPrice,
               draftedAt: actionTime,
+              taxi: false,
+              minorLeague: false,
             }
           : p,
       ),
@@ -2096,6 +2121,8 @@ export default function App() {
               draftedAt:
                 historyEvents.find((entry) => entry.playerId === p.id)
                   ?.draftedAt || baseTime,
+              taxi: false,
+              minorLeague: false,
             }
           : p,
       ),
@@ -2392,6 +2419,256 @@ export default function App() {
     return true;
   }
 
+  function addProspectToMinorLeague(player, teamId) {
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const currentPlayer = players.find((entry) => entry.id === player?.id);
+
+    if (!team) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Choose a valid fantasy team before adding a prospect.",
+      });
+      return false;
+    }
+
+    if (!currentPlayer) {
+      setBoardNotice({
+        tone: "warning",
+        message: "That player is no longer available in the player pool.",
+      });
+      return false;
+    }
+
+    const assignment = findAssignmentForPlayer(currentPlayer.id);
+    if (assignment || currentPlayer.drafted) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${currentPlayer.name} is already assigned${assignment ? ` to ${assignment.team.name}'s ${assignment.type}` : ""}.`,
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+    const actionTime = Date.now();
+
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "minor_league",
+        player: currentPlayer,
+        team,
+        rosterSlot: `MiLB ${(team.minorLeague || []).length + 1}`,
+        price: 0,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(currentPlayer),
+        remainingBudgetAfter: team.budget_remaining,
+        note: "Minor league/prospect roster",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+          if (entry.id !== team.id) return entry;
+          return {
+            ...entry,
+            minorLeague: [
+              ...(entry.minorLeague || []),
+              {
+                playerId: currentPlayer.id,
+                name: currentPlayer.name,
+                pos: currentPlayer.pos,
+                draftedAt: actionTime,
+              },
+            ],
+          };
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((entry) =>
+        entry.id === currentPlayer.id
+          ? {
+              ...entry,
+              drafted: true,
+              draftedBy: team.id,
+              draftPrice: 0,
+              draftedAt: actionTime,
+              taxi: false,
+              minorLeague: true,
+            }
+          : entry,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "success",
+      message: `${currentPlayer.name} added to ${team.name}'s minor league roster and removed from the draft pool.`,
+    });
+    return true;
+  }
+
+  function removeProspectFromMinorLeague(teamId, playerId) {
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const prospectEntry = team?.minorLeague?.find(
+      (entry) => entry?.playerId === playerId,
+    );
+
+    if (!team || !prospectEntry) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Could not release that prospect because the roster entry changed.",
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+
+    setLeague((prev) => {
+      const player = players.find((entry) => entry.id === playerId) || {
+        id: playerId,
+        name: prospectEntry.name,
+        pos: prospectEntry.pos,
+      };
+      const event = makeDraftHistoryEvent({
+        type: "minor_league_remove",
+        player,
+        team,
+        rosterSlot: "MiLB",
+        price: 0,
+        timestamp: Date.now(),
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter: team.budget_remaining,
+        note: "Prospect released back to draft pool",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+          if (entry.id !== team.id) return entry;
+          return {
+            ...entry,
+            minorLeague: (entry.minorLeague || []).filter(
+              (candidate) => candidate?.playerId !== playerId,
+            ),
+          };
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((entry) =>
+        entry.id === playerId
+          ? {
+              ...entry,
+              drafted: false,
+              draftedBy: null,
+              draftPrice: null,
+              draftedAt: null,
+              taxi: false,
+              minorLeague: false,
+            }
+          : entry,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "info",
+      message: `${prospectEntry.name} released from ${team.name}'s minor league roster and restored to the draft pool.`,
+    });
+    return true;
+  }
+
+  function transferProspect(teamId, targetTeamId, playerId) {
+    const fromTeam = league.teams.find((entry) => entry.id === Number(teamId));
+    const targetTeam = league.teams.find(
+      (entry) => entry.id === Number(targetTeamId),
+    );
+    const prospectEntry = fromTeam?.minorLeague?.find(
+      (entry) => entry?.playerId === playerId,
+    );
+
+    if (!fromTeam || !targetTeam || !prospectEntry || fromTeam.id === targetTeam.id) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Choose a valid prospect and destination team before transferring.",
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+    const actionTime = Date.now();
+
+    setLeague((prev) => {
+      const player = players.find((entry) => entry.id === playerId) || {
+        id: playerId,
+        name: prospectEntry.name,
+        pos: prospectEntry.pos,
+      };
+      const event = makeDraftHistoryEvent({
+        type: "minor_league_transfer",
+        player,
+        team: targetTeam,
+        rosterSlot: "MiLB",
+        price: 0,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter: targetTeam.budget_remaining,
+        note: `Transferred from ${fromTeam.name}`,
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+          if (entry.id === fromTeam.id) {
+            return {
+              ...entry,
+              minorLeague: (entry.minorLeague || []).filter(
+                (candidate) => candidate?.playerId !== playerId,
+              ),
+            };
+          }
+
+          if (entry.id === targetTeam.id) {
+            return {
+              ...entry,
+              minorLeague: [
+                ...(entry.minorLeague || []),
+                {
+                  ...prospectEntry,
+                  transferredAt: actionTime,
+                  transferredFrom: fromTeam.id,
+                },
+              ],
+            };
+          }
+
+          return entry;
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((entry) =>
+        entry.id === playerId
+          ? {
+              ...entry,
+              drafted: true,
+              draftedBy: targetTeam.id,
+              draftPrice: 0,
+              taxi: false,
+              minorLeague: true,
+            }
+          : entry,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "success",
+      message: `${prospectEntry.name} transferred from ${fromTeam.name} to ${targetTeam.name}'s minor league roster.`,
+    });
+    return true;
+  }
+
   function redoLastAction() {
     if (redoStack.length === 0) return;
     const snapshot = redoStack[redoStack.length - 1];
@@ -2513,6 +2790,7 @@ export default function App() {
     0,
   );
   const taxiSlots = Math.max(0, Number(league.roster?.TAXI) || 0);
+  const prospectCount = countMinorLeagueEntries(league);
   const showKeeperBoardPrompt =
     activeTab === "board" &&
     league.keeperLeague &&
@@ -2542,6 +2820,7 @@ export default function App() {
             ["dictionary", "Player Dictionary"],
             ["settings", "League Settings"],
             ["keeper", "Keeper Setup"],
+            ["prospects", "Prospects"],
             // "sandbox" tab intentionally omitted from nav — use setActiveTab("sandbox")
             // programmatically or navigate directly for API diagnostics.
             ["taxi", "Taxi Squad"],
@@ -2699,6 +2978,7 @@ export default function App() {
                   <span>{keeperCount} keepers entered</span>
                   <span>{totalRecordedPicks} board entries</span>
                   <span>{taxiSlots} taxi slots</span>
+                  <span>{prospectCount} prospects</span>
                 </div>
                 <div className="keeper-board-actions">
                   <button
@@ -2811,6 +3091,19 @@ export default function App() {
         {/* API Sandbox — raw JSON request/response tester */}
         {activeTab === "sandbox" && (
           <ApiSandbox league={league} apiStatus={apiStatus} />
+        )}
+
+        {/* Prospect Rosters — protected minor league player assignments */}
+        {activeTab === "prospects" && (
+          <ProspectRosters
+            league={league}
+            players={players}
+            currentOwnerIdx={currentOwnerIdx}
+            onSetCurrentOwnerIdx={setCurrentOwnerIdx}
+            onAddProspect={addProspectToMinorLeague}
+            onRemoveProspect={removeProspectFromMinorLeague}
+            onTransferProspect={transferProspect}
+          />
         )}
 
         {/* Taxi Squad — $1 reserve picks */}

@@ -84,6 +84,17 @@ function buildAssignmentMap(league = {}) {
         slot: "TAXI",
       });
     });
+
+    (team.minorLeague || []).forEach((entry) => {
+      if (entry?.playerId == null) return;
+      assignments.set(Number(entry.playerId), {
+        status: "Minor League",
+        teamId: team.id,
+        teamName: team.name,
+        price: 0,
+        slot: "MiLB",
+      });
+    });
   });
 
   return assignments;
@@ -209,13 +220,17 @@ export function buildMlbDepthCharts(players = [], league = {}, liveDepthData = n
           assignment ||
           (player.drafted
             ? {
-                status: player.taxi ? "Taxi" : "Rostered",
+                status: player.minorLeague
+                  ? "Minor League"
+                  : player.taxi
+                    ? "Taxi"
+                    : "Rostered",
                 teamId: player.draftedBy,
                 teamName: player.draftedBy
                   ? `Owner ${player.draftedBy}`
                   : "Drafted",
                 price: asNumber(player.draftPrice, null),
-                slot: player.taxi ? "TAXI" : null,
+                slot: player.minorLeague ? "MiLB" : player.taxi ? "TAXI" : null,
               }
             : null),
       });

@@ -149,6 +149,27 @@ export function buildDraftHistoryRows(league = {}, players = [], rosterPositions
         note: "Taxi squad",
       });
     });
+
+    (team.minorLeague || []).forEach((entry, prospectIndex) => {
+      const player = resolvePlayer(entry, players);
+      const value = getPlayerPrePickValue(player, null);
+      derived.push({
+        type: "minor_league",
+        timestamp: entry.draftedAt || 0,
+        playerId: entry.playerId ?? player?.id ?? null,
+        playerName: entry.name || player?.name || "",
+        mlbTeam: player?.team || entry.team || "",
+        positions: normalizePositions(entry.pos || player?.pos),
+        fantasyOwnerId: team.id,
+        fantasyOwner: team.name,
+        rosterSlot: `MiLB ${prospectIndex + 1}`,
+        price: 0,
+        prePickValue: value,
+        valueDelta: -value,
+        remainingBudgetAfter: team.budget_remaining,
+        note: entry.note || "Minor league/prospect roster",
+      });
+    });
   });
 
   return derived
@@ -198,6 +219,12 @@ export function formatEventType(type) {
       return "Taxi Squad";
     case "taxi_remove":
       return "Taxi Removed";
+    case "minor_league":
+      return "Minor League";
+    case "minor_league_transfer":
+      return "Minor League Transfer";
+    case "minor_league_remove":
+      return "Minor League Removed";
     case "auction_remove":
       return "Auction Removed";
     case "auction":

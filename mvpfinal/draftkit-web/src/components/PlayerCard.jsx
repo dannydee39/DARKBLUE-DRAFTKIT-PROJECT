@@ -248,6 +248,14 @@ export default function PlayerCard({
         </div>
       )}
 
+      {player.minorLeague && (
+        <div className="pc-news">
+          <span className="news-tag">[MiLB]</span>{" "}
+          Protected on a minor league roster. This player is unavailable for
+          auction picks until released or transferred by the commissioner.
+        </div>
+      )}
+
       {/* ── Live Update Alert ───────────────────────────────────────────── */}
       {(injuryStatus || updateHeadline) && (
         <div className={`pc-risk-panel risk-${String(riskLevel).toLowerCase()}`}>

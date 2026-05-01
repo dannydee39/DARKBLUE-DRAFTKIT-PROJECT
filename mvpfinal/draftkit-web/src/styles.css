@@ -4357,6 +4357,219 @@ a {
   flex-shrink: 0;
 }
 
+/* ── Prospect / Minor League Rosters ─────────────────────────────────────── */
+.prospect-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.prospect-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.prospect-right-panel {
+  background: rgba(20, 184, 166, 0.04);
+  border-left: 1px solid rgba(20, 184, 166, 0.2);
+}
+.prospect-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(20, 184, 166, 0.12);
+  color: #5eead4;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.prospect-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.prospect-summary-card {
+  background: var(--bg2);
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.prospect-summary-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.prospect-summary-card strong {
+  display: block;
+  color: #5eead4;
+  font-size: 14px;
+  margin-top: 3px;
+}
+.prospect-search-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  position: relative;
+}
+.prospect-search-result {
+  width: 100%;
+  border: 0;
+  text-align: left;
+}
+.prospect-value {
+  color: #5eead4;
+}
+.prospect-team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.prospect-team-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.prospect-team-card.active {
+  border-color: rgba(20, 184, 166, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(20, 184, 166, 0.15);
+}
+.prospect-team-header {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  cursor: pointer;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+.prospect-team-header span {
+  font-weight: 800;
+  font-size: 12px;
+}
+.prospect-team-header strong {
+  color: #5eead4;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.prospect-empty {
+  color: var(--muted2);
+  font-size: 11px;
+  padding: 12px;
+}
+.prospect-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.prospect-row:last-child {
+  border-bottom: 0;
+}
+.prospect-player {
+  min-width: 0;
+}
+.prospect-player strong,
+.prospect-player span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prospect-player strong {
+  font-size: 12px;
+}
+.prospect-player span {
+  color: var(--muted2);
+  font-size: 10px;
+  margin-top: 2px;
+}
+.prospect-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.prospect-actions select,
+.prospect-actions button {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 6px;
+}
+.prospect-actions button {
+  cursor: pointer;
+}
+.prospect-actions button:hover {
+  border-color: rgba(20, 184, 166, 0.55);
+  color: #5eead4;
+}
+.prospect-actions button.danger:hover {
+  border-color: rgba(239, 68, 68, 0.55);
+  color: var(--red);
+}
+.prospect-rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prospect-rule-list div {
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  background: rgba(20, 184, 166, 0.05);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.prospect-rule-list strong {
+  display: block;
+  color: #5eead4;
+  font-size: 11px;
+}
+.prospect-rule-list span {
+  display: block;
+  color: var(--muted2);
+  font-size: 10px;
+  line-height: 1.35;
+  margin-top: 3px;
+}
+
+@media (max-width: 900px) {
+  .prospect-layout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .prospect-right-panel {
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid rgba(20, 184, 166, 0.2);
+  }
+  .prospect-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .prospect-row {
+    grid-template-columns: 1fr;
+  }
+  .prospect-actions {
+    justify-content: flex-start;
+  }
+}
+
 /* ── API Sandbox ─────────────────────────────────────────────────────────── */
 .sandbox-layout {
   flex: 1;

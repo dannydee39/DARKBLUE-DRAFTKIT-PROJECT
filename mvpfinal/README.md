@@ -25,6 +25,7 @@
 
 - Board-first draft setup with saved draft library.
 - Keeper league setup with budget-safe keeper contracts.
+- Minor league/prospect rosters with protected-player draft-pool blocking and team-to-team transfers.
 - Taxi squad setup with configured reserve slots.
 - Main auction board with undo/redo, favorites, notes, player cards, and valuation cache.
 - True push player news/injury alerts through Server-Sent Events.
@@ -32,7 +33,7 @@
 - MLB Depth + Rankings tab:
   - MLB team/position depth chart view.
   - Live MLB active roster enrichment through MLB Stats API.
-  - Drafted/keeper/taxi/risk context on depth rows.
+  - Drafted/keeper/prospect/taxi/risk context on depth rows.
   - Owner strength score and sortable team comparison.
 - League Settings guardrails:
   - scoring category help,
@@ -54,7 +55,7 @@
 
 - `draftkit-web`
   - React + Vite frontend for the commissioner-facing draft application
-  - owns board UI, setup flow, notes, favorites, keeper flow, taxi flow, history/export, depth charts/rankings, settings guardrails, and account UI
+  - owns board UI, setup flow, notes, favorites, keeper flow, minor league/prospect rosters, taxi flow, history/export, depth charts/rankings, settings guardrails, and account UI
 - `draftkit-api`
   - Express backend for Draft Kit auth, cloud draft persistence, and valuation proxying
   - owns user accounts, sessions, draft records, player-update proxying, MLB roster proxying, and the backend integration layer used by the frontend
@@ -94,6 +95,10 @@
   - post-setup configuration editing, roster-impact summaries, scoring/position help, and safeguards
 - `draftkit-web/src/components/KeeperSetup.jsx`
   - keeper workflow
+- `draftkit-web/src/components/ProspectRosters.jsx`
+  - minor league/prospect roster workflow
+  - protects assigned players from the auction pool while rostered
+  - transfers prospects between fantasy teams without making them draft eligible
 - `draftkit-web/src/components/TaxiSquad.jsx`
   - taxi workflow
 - `draftkit-web/src/components/PlayerUpdateCenter.jsx`
@@ -111,9 +116,9 @@
 - `draftkit-web/src/utils/cloudApi.js`
   - small client for `draftkit-api` auth and draft routes
 - `draftkit-web/src/utils/draftSessions.js`
-  - local draft serialization, cloning, validation, and storage helpers
+  - local draft serialization, cloning, validation, protected-prospect hydration, and storage helpers
 - `draftkit-web/src/utils/draftHistory.js`
-  - history event creation, row normalization, and CSV export formatting
+  - history event creation, minor league transfer events, row normalization, and CSV export formatting
 - `draftkit-web/src/utils/teamInsights.js`
   - MLB depth chart grouping and owner strength ranking calculations
 - `draftkit-web/src/utils/settingsHelp.js`
@@ -229,6 +234,7 @@
   - `npm run build`
   - `node scripts/test-depth-rankings.mjs`
   - `node scripts/test-draft-history.mjs`
+  - `node scripts/test-minor-league-rosters.mjs`
   - `node scripts/test-settings-guardrails.mjs`
 - `draftkit-api`
   - `npm run test:auth`
@@ -258,6 +264,8 @@ Typical deploy validation:
 ```powershell
 cd mvpfinal/draftkit-web
 node scripts/test-depth-rankings.mjs
+node scripts/test-draft-history.mjs
+node scripts/test-minor-league-rosters.mjs
 node scripts/test-settings-guardrails.mjs
 npm run build
 

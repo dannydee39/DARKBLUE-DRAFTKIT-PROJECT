@@ -363,7 +363,9 @@ function DictCard({
       onClick={onClick}
       title={
         player.drafted
-          ? `Drafted by Team ${player.draftedBy}`
+          ? player.minorLeague
+            ? `Protected on Team ${player.draftedBy}'s minor league roster`
+            : `Drafted by Team ${player.draftedBy}`
           : "Click to view card"
       }
     >
@@ -428,7 +430,11 @@ function DictCard({
       )}
 
       {/* Drafted overlay badge */}
-      {player.drafted && <div className="dc-drafted">DRAFTED</div>}
+      {player.drafted && (
+        <div className="dc-drafted">
+          {player.minorLeague ? "PROSPECT" : "DRAFTED"}
+        </div>
+      )}
       {note && <div className="dc-note-dot" />}
     </div>
   );

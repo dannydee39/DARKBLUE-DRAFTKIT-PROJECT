@@ -749,11 +749,68 @@ a {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(240px, 0.75fr);
   gap: 10px;
+  padding: 7px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.18);
+}
+.player-update-center.is-open {
   padding: 10px 12px;
   background:
     linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.07)),
     var(--bg2);
-  border-bottom: 1px solid rgba(245, 158, 11, 0.18);
+}
+.player-update-center.is-collapsed {
+  display: block;
+}
+.puc-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.puc-compact-main {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  gap: 1px;
+  padding: 0;
+  text-align: left;
+}
+.puc-compact-main strong {
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.puc-compact-main span:last-child {
+  color: var(--muted2);
+  font-size: 9px;
+  font-weight: 700;
+}
+.puc-compact-btn {
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--bg3);
+  color: var(--muted2);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 6px 9px;
+  text-transform: uppercase;
+}
+.puc-compact-btn:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: var(--white);
+}
+.puc-compact .puc-primary-btn {
+  min-width: auto;
 }
 .puc-header {
   display: flex;
@@ -835,28 +892,32 @@ a {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: 150px;
+  width: 170px;
 }
-.puc-target {
+.puc-field {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
   background: rgba(0, 0, 0, 0.14);
   padding: 6px 8px;
 }
-.puc-target span {
+.puc-field span {
   color: var(--muted);
   display: block;
   font-size: 8px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  margin-bottom: 4px;
 }
-.puc-target strong {
+.puc-field select {
+  width: 100%;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: var(--bg3);
   color: var(--white);
-  display: block;
   font-size: 10px;
-  line-height: 1.3;
-  margin-top: 2px;
+  font-weight: 800;
+  padding: 6px 7px;
 }
 .puc-actions button,
 .puc-link-btn {
@@ -895,6 +956,9 @@ a {
   border-radius: var(--radius);
   font-size: 10px;
   padding: 7px 9px;
+}
+.puc-error.compact {
+  margin-top: 6px;
 }
 .puc-list {
   display: grid;
@@ -942,8 +1006,22 @@ a {
   min-width: 0;
 }
 .puc-item-copy strong {
+  align-items: center;
   color: var(--white);
+  display: flex;
   font-size: 10px;
+  gap: 6px;
+}
+.puc-item-copy strong em {
+  border: 1px solid rgba(245, 158, 11, 0.26);
+  border-radius: 999px;
+  color: #fcd34d;
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 2px 5px;
+  text-transform: uppercase;
 }
 .puc-item-copy span {
   color: var(--muted2);
@@ -4957,12 +5035,23 @@ a {
   .player-update-center {
     grid-template-columns: 1fr;
   }
+  .puc-compact {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .puc-compact-main {
+    flex-basis: 100%;
+  }
   .puc-body {
     flex-direction: column;
   }
   .puc-actions {
     flex-direction: row;
+    flex-wrap: wrap;
     width: auto;
+  }
+  .puc-field {
+    min-width: 132px;
   }
 
   .setup-content {

@@ -1242,15 +1242,33 @@ export default function App() {
     }
   }
 
-  async function publishInjuryUpdate() {
+  async function publishInjuryUpdate(options = {}) {
     if (apiStatus !== "online") {
       setPlayerUpdatesError("Player updates need the Draft Kit API to be online.");
       return null;
     }
     if (!selectedPlayer) {
-      setPlayerUpdatesError("Select a player before publishing an injury update.");
+      setPlayerUpdatesError("Select a player before publishing a league note.");
       return null;
     }
+
+    const allowedTypes = new Set(["INJURY", "NEWS", "LINEUP", "ROLE"]);
+    const allowedSeverities = new Set(["LOW", "MEDIUM", "HIGH"]);
+    const updateType = allowedTypes.has(options.type) ? options.type : "INJURY";
+    const severity = allowedSeverities.has(options.severity)
+      ? options.severity
+      : "HIGH";
+    const typeLabel = {
+      INJURY: "injury",
+      NEWS: "news",
+      LINEUP: "lineup",
+      ROLE: "role",
+    }[updateType];
+    const severityCopy = {
+      HIGH: "high-priority",
+      MEDIUM: "watch-list",
+      LOW: "low-risk",
+    }[severity];
 
     setPlayerUpdatesLoading(true);
     setPlayerUpdatesError("");
@@ -1263,11 +1281,11 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             player_id: selectedPlayer.id,
-            type: "INJURY",
-            severity: "HIGH",
-            headline: `${selectedPlayer.name} moved to high injury risk`,
-            body: `${selectedPlayer.name} has a high-risk injury flag for draft review.`,
-            source: "Commissioner update",
+            type: updateType,
+            severity,
+            headline: `${selectedPlayer.name} marked as ${severityCopy} ${typeLabel} context`,
+            body: `${selectedPlayer.name} has a ${severityCopy} ${typeLabel} note for draft review.`,
+            source: "League commissioner note",
             created_by: "Draft Kit commissioner",
           }),
         },
@@ -1283,11 +1301,11 @@ export default function App() {
       openPlayerFromUpdate(data.update);
       setBoardNotice({
         tone: "warning",
-        message: `${data.update.player_name} injury update published to the draft board.`,
+        message: `${data.update.player_name} league note published to the draft board.`,
       });
       return data.update;
     } catch (error) {
-      setPlayerUpdatesError(error?.message || "Could not publish the player update.");
+      setPlayerUpdatesError(error?.message || "Could not publish the league note.");
       return null;
     } finally {
       setPlayerUpdatesLoading(false);

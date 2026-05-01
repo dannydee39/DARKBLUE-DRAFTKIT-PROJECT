@@ -111,6 +111,8 @@ export default function DraftBoard({
   onUndo,
   onRedo,
   onUndoCell,
+  onMoveRosterEntry,
+  onTransferRosterEntry,
   currentOwnerIdx,
   setCurrentOwnerIdx,
   notes,
@@ -154,6 +156,9 @@ export default function DraftBoard({
 
   // ── Remove confirmation modal state ──────────────────────────────────────
   const [removeModal, setRemoveModal] = useState(null); // {playerName, teamId, price, pos}
+  const [moveSlotChoice, setMoveSlotChoice] = useState("");
+  const [transferTeamChoice, setTransferTeamChoice] = useState("");
+  const [transferSlotChoice, setTransferSlotChoice] = useState("");
 
   // ── Active slot context ───────────────────────────────────────────────────
   // When set, the right scouting rail filters to players for this slot.
@@ -798,6 +803,7 @@ export default function DraftBoard({
   function handleFilledCellClick(entry, teamId, pos, e) {
     e.stopPropagation();
     setActiveCellSearch(null); // close any open inline search
+    const defaultTransferTeam = league.teams.find((team) => team.id !== teamId);
     setRemoveModal({
       playerId: entry.playerId,
       playerName: entry.name,
@@ -806,6 +812,75 @@ export default function DraftBoard({
       price: entry.price,
       pos,
     });
+    setMoveSlotChoice("");
+    setTransferTeamChoice(defaultTransferTeam ? String(defaultTransferTeam.id) : "");
+    setTransferSlotChoice("");
+  }
+
+  function getCorrectionContext() {
+    if (!removeModal) {
+      return {
+        sourceTeam: null,
+        rosterEntry: null,
+        player: null,
+        moveSlots: [],
+        transferTeam: null,
+        transferSlots: [],
+      };
+    }
+
+    const sourceTeam = league.teams.find(
+      (team) => team.id === removeModal.teamId,
+    );
+    const rosterEntry = sourceTeam?.roster?.find(
+      (entry) =>
+        entry?.playerId === removeModal.playerId &&
+        Number(entry.slotIndex) === Number(removeModal.slotIndex),
+    );
+    const player =
+      players.find((candidate) => candidate.id === removeModal.playerId) ||
+      rosterEntry ||
+      null;
+    const eligibilityPlayer = {
+      ...(player || {}),
+      pos: rosterEntry?.pos || player?.pos || [],
+    };
+
+    const moveSlots = sourceTeam && rosterEntry
+      ? rosterPositions
+          .map((slot, slotIndex) => ({ slot, slotIndex }))
+          .filter(({ slot, slotIndex }) => {
+            if (Number(slotIndex) === Number(rosterEntry.slotIndex)) return false;
+            if ((sourceTeam.roster || []).some((entry) => Number(entry.slotIndex) === Number(slotIndex))) {
+              return false;
+            }
+            return slotAcceptsPlayer(eligibilityPlayer, slot);
+          })
+      : [];
+
+    const transferTeam =
+      league.teams.find((team) => String(team.id) === String(transferTeamChoice)) ||
+      league.teams.find((team) => team.id !== removeModal.teamId) ||
+      null;
+    const transferSlots = transferTeam && rosterEntry
+      ? rosterPositions
+          .map((slot, slotIndex) => ({ slot, slotIndex }))
+          .filter(({ slot, slotIndex }) => {
+            if ((transferTeam.roster || []).some((entry) => Number(entry.slotIndex) === Number(slotIndex))) {
+              return false;
+            }
+            return slotAcceptsPlayer(eligibilityPlayer, slot);
+          })
+      : [];
+
+    return {
+      sourceTeam,
+      rosterEntry,
+      player,
+      moveSlots,
+      transferTeam,
+      transferSlots,
+    };
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -833,6 +908,28 @@ export default function DraftBoard({
     if (!removeModal) return;
     onUndoCell(removeModal.playerId, removeModal.teamId, removeModal.slotIndex);
     setRemoveModal(null);
+  }
+
+  function confirmMoveSlot() {
+    if (!removeModal || moveSlotChoice === "") return;
+    const saved = onMoveRosterEntry?.(
+      removeModal.teamId,
+      removeModal.playerId,
+      removeModal.slotIndex,
+      Number(moveSlotChoice),
+    );
+    if (saved !== false) setRemoveModal(null);
+  }
+
+  function confirmTransferTeam() {
+    if (!removeModal || !transferTeamChoice || transferSlotChoice === "") return;
+    const saved = onTransferRosterEntry?.(
+      removeModal.teamId,
+      Number(transferTeamChoice),
+      removeModal.playerId,
+      Number(transferSlotChoice),
+    );
+    if (saved !== false) setRemoveModal(null);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -910,6 +1007,7 @@ export default function DraftBoard({
       : "";
   const saleHasPlacementOptions =
     slotOptionsForModal.length > 0 || availableOverridePositions.length > 0;
+  const correctionContext = getCorrectionContext();
   const hoverPreviewLayout = useMemo(() => {
     if (!hoverPreviewPlayer || !hoverPreviewAnchorRect || !rightPanelRef.current) {
       return null;
@@ -2009,6 +2107,85 @@ export default function DraftBoard({
               </div>
               <div style={{ marginTop: 4 }}>
                 Player returns to available pool.
+              </div>
+            </div>
+
+            <div className="correction-panel">
+              <div className="correction-section">
+                <div className="correction-title">Move Slot</div>
+                <div className="correction-row">
+                  <select
+                    value={moveSlotChoice}
+                    onChange={(event) => setMoveSlotChoice(event.target.value)}
+                  >
+                    <option value="">Choose open eligible slot</option>
+                    {correctionContext.moveSlots.map(({ slot, slotIndex }) => (
+                      <option key={slotIndex} value={slotIndex}>
+                        {slot} slot {slotIndex + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={confirmMoveSlot}
+                    disabled={!moveSlotChoice || correctionContext.moveSlots.length === 0}
+                  >
+                    Move
+                  </button>
+                </div>
+                {correctionContext.moveSlots.length === 0 && (
+                  <div className="correction-empty">
+                    No other open eligible slots on this team.
+                  </div>
+                )}
+              </div>
+
+              <div className="correction-section">
+                <div className="correction-title">Transfer Team</div>
+                <div className="correction-row stacked">
+                  <select
+                    value={transferTeamChoice}
+                    onChange={(event) => {
+                      setTransferTeamChoice(event.target.value);
+                      setTransferSlotChoice("");
+                    }}
+                  >
+                    {league.teams
+                      .filter((team) => team.id !== removeModal.teamId)
+                      .map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                  </select>
+                  <select
+                    value={transferSlotChoice}
+                    onChange={(event) => setTransferSlotChoice(event.target.value)}
+                  >
+                    <option value="">Choose destination slot</option>
+                    {correctionContext.transferSlots.map(({ slot, slotIndex }) => (
+                      <option key={slotIndex} value={slotIndex}>
+                        {slot} slot {slotIndex + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={confirmTransferTeam}
+                    disabled={
+                      !transferTeamChoice ||
+                      !transferSlotChoice ||
+                      correctionContext.transferSlots.length === 0
+                    }
+                  >
+                    Transfer
+                  </button>
+                </div>
+                {correctionContext.transferSlots.length === 0 && (
+                  <div className="correction-empty">
+                    Selected team has no open eligible destination slot.
+                  </div>
+                )}
               </div>
             </div>
 

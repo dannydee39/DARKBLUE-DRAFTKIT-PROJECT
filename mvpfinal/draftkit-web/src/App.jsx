@@ -2586,6 +2586,207 @@ export default function App() {
     return true;
   }
 
+  function moveRosterEntry(teamId, playerId, fromSlotIndex, toSlotIndex) {
+    const team = league.teams.find((entry) => entry.id === Number(teamId));
+    const rosterEntry = team?.roster?.find(
+      (entry) =>
+        entry?.playerId === playerId &&
+        Number(entry.slotIndex) === Number(fromSlotIndex),
+    );
+    const player = players.find((entry) => entry.id === playerId) || rosterEntry;
+    const targetSlot = rosterPositions[Number(toSlotIndex)];
+
+    if (!team || !rosterEntry || !targetSlot || Number(fromSlotIndex) === Number(toSlotIndex)) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Choose a valid open roster slot before moving that player.",
+      });
+      return false;
+    }
+
+    const targetOccupied = (team.roster || []).some(
+      (entry) => Number(entry.slotIndex) === Number(toSlotIndex),
+    );
+    if (targetOccupied) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${team.name} already has a player in that target slot.`,
+      });
+      return false;
+    }
+
+    if (!canPlayerFillSlot({ ...player, pos: rosterEntry.pos || player?.pos }, targetSlot)) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${rosterEntry.name} is not eligible for the ${targetSlot} slot.`,
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+    const actionTime = Date.now();
+
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "roster_move",
+        player,
+        team,
+        rosterSlot: `${rosterEntry.draftedPos || rosterPositions[fromSlotIndex]} -> ${targetSlot}`,
+        price: rosterEntry.price,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter: team.budget_remaining,
+        note: "Roster slot correction",
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+          if (entry.id !== team.id) return entry;
+          return {
+            ...entry,
+            roster: (entry.roster || []).map((candidate) =>
+              candidate?.playerId === playerId &&
+              Number(candidate.slotIndex) === Number(fromSlotIndex)
+                ? {
+                    ...candidate,
+                    slotIndex: Number(toSlotIndex),
+                    draftedPos: targetSlot,
+                    movedAt: actionTime,
+                  }
+                : candidate,
+            ),
+          };
+        }),
+      }, event);
+    });
+
+    setBoardNotice({
+      tone: "success",
+      message: `${rosterEntry.name} moved to ${team.name}'s ${targetSlot} slot.`,
+    });
+    return true;
+  }
+
+  function transferRosterEntry(fromTeamId, toTeamId, playerId, toSlotIndex) {
+    const fromTeam = league.teams.find((entry) => entry.id === Number(fromTeamId));
+    const targetTeam = league.teams.find((entry) => entry.id === Number(toTeamId));
+    const rosterEntry = fromTeam?.roster?.find(
+      (entry) => entry?.playerId === playerId,
+    );
+    const player = players.find((entry) => entry.id === playerId) || rosterEntry;
+    const targetSlot = rosterPositions[Number(toSlotIndex)];
+    const price = Number(rosterEntry?.price || 0);
+
+    if (!fromTeam || !targetTeam || !rosterEntry || !targetSlot || fromTeam.id === targetTeam.id) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Choose a valid destination team and open slot before transferring that player.",
+      });
+      return false;
+    }
+
+    const targetOccupied = (targetTeam.roster || []).some(
+      (entry) => Number(entry.slotIndex) === Number(toSlotIndex),
+    );
+    if (targetOccupied) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${targetTeam.name} already has a player in that target slot.`,
+      });
+      return false;
+    }
+
+    if (!canPlayerFillSlot({ ...player, pos: rosterEntry.pos || player?.pos }, targetSlot)) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${rosterEntry.name} is not eligible for the ${targetSlot} slot.`,
+      });
+      return false;
+    }
+
+    const targetSlotsLeft = totalSlots - (targetTeam.roster || []).length;
+    const targetMaxBid = calcMaxBid(targetTeam.budget_remaining, targetSlotsLeft);
+    if (price > targetMaxBid) {
+      setBoardNotice({
+        tone: "warning",
+        message: `${targetTeam.name} can only absorb a $${targetMaxBid} transfer and still leave $1 for each remaining slot.`,
+      });
+      return false;
+    }
+
+    pushUndoSnapshot();
+    const actionTime = Date.now();
+
+    setLeague((prev) => {
+      const event = makeDraftHistoryEvent({
+        type: "roster_transfer",
+        player,
+        team: targetTeam,
+        rosterSlot: targetSlot,
+        price,
+        timestamp: actionTime,
+        prePickValue: getCachedPrePickValue(player),
+        remainingBudgetAfter: targetTeam.budget_remaining - price,
+        note: `Transferred from ${fromTeam.name}`,
+      });
+
+      return withDraftHistory({
+        ...prev,
+        teams: prev.teams.map((entry) => {
+          if (entry.id === fromTeam.id) {
+            return {
+              ...entry,
+              budget_remaining: entry.budget_remaining + price,
+              roster: (entry.roster || []).filter(
+                (candidate) => candidate?.playerId !== playerId,
+              ),
+            };
+          }
+
+          if (entry.id === targetTeam.id) {
+            return {
+              ...entry,
+              budget_remaining: entry.budget_remaining - price,
+              roster: [
+                ...(entry.roster || []),
+                {
+                  ...rosterEntry,
+                  slotIndex: Number(toSlotIndex),
+                  draftedPos: targetSlot,
+                  transferredAt: actionTime,
+                  transferredFrom: fromTeam.id,
+                },
+              ],
+            };
+          }
+
+          return entry;
+        }),
+      }, event);
+    });
+
+    setPlayers((prev) =>
+      prev.map((entry) =>
+        entry.id === playerId
+          ? {
+              ...entry,
+              draftedBy: targetTeam.id,
+              draftedAt: actionTime,
+              taxi: false,
+              minorLeague: false,
+            }
+          : entry,
+      ),
+    );
+
+    setBoardNotice({
+      tone: "success",
+      message: `${rosterEntry.name} transferred from ${fromTeam.name} to ${targetTeam.name}.`,
+    });
+    return true;
+  }
+
   function transferProspect(teamId, targetTeamId, playerId) {
     const fromTeam = league.teams.find((entry) => entry.id === Number(teamId));
     const targetTeam = league.teams.find(
@@ -3036,6 +3237,8 @@ export default function App() {
               onUndo={undoLast}
               onRedo={redoLast}
               onUndoCell={undoSale}
+              onMoveRosterEntry={moveRosterEntry}
+              onTransferRosterEntry={transferRosterEntry}
               onFillSample={fillSampleDraft}
               currentOwnerIdx={currentOwnerIdx}
               setCurrentOwnerIdx={setCurrentOwnerIdx}

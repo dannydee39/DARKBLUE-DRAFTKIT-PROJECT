@@ -225,6 +225,10 @@ export function formatEventType(type) {
       return "Minor League Transfer";
     case "minor_league_remove":
       return "Minor League Removed";
+    case "roster_move":
+      return "Roster Move";
+    case "roster_transfer":
+      return "Roster Transfer";
     case "auction_remove":
       return "Auction Removed";
     case "auction":

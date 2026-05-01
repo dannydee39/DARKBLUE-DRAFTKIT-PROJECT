@@ -29,6 +29,7 @@
 - Minor league/prospect rosters with protected-player draft-pool blocking and team-to-team transfers.
 - Taxi squad setup with configured reserve slots.
 - Main auction board with undo/redo, favorites, notes, player cards, and valuation cache.
+- Direct roster correction controls for moving a player to another eligible slot or transferring a player to another fantasy team.
 - True push player news/injury alerts through Server-Sent Events.
 - Ordered Draft History tab with filters, sorting, value deltas, remaining budget, and CSV export.
 - MLB Depth + Rankings tab:
@@ -90,6 +91,7 @@
   - main draft grid
   - scouting rail
   - sale flow
+  - roster move/transfer correction controls
   - hover/pinned player interactions
 - `draftkit-web/src/components/PlayerDictionary.jsx`
   - full player browser outside the board

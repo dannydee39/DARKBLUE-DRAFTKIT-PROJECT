@@ -31,6 +31,7 @@ export default function PlayerUpdateCenter({
   onRefresh,
   onPublishInjury,
   onOpenPlayer,
+  onDeleteUpdate,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [updateType, setUpdateType] = useState("INJURY");
@@ -58,6 +59,10 @@ export default function PlayerUpdateCenter({
 
   function handlePublish() {
     onPublishInjury?.({ type: updateType, severity });
+  }
+
+  function canDeleteUpdate(update) {
+    return Boolean(update?.draft_id && formatUpdateSource(update) === "League");
   }
 
   return (
@@ -120,13 +125,24 @@ export default function PlayerUpdateCenter({
                   "Use this only for notification-worthy context. The board stays clean when there is nothing to review."}
               </p>
               {latest && (
-                <button
-                  type="button"
-                  className="puc-link-btn"
-                  onClick={() => onOpenPlayer?.(latest)}
-                >
-                  Inspect Updated Player
-                </button>
+                <div className="puc-primary-actions">
+                  <button
+                    type="button"
+                    className="puc-link-btn"
+                    onClick={() => onOpenPlayer?.(latest)}
+                  >
+                    Inspect Updated Player
+                  </button>
+                  {canDeleteUpdate(latest) && (
+                    <button
+                      type="button"
+                      className="puc-link-btn danger"
+                      onClick={() => onDeleteUpdate?.(latest)}
+                    >
+                      Remove Note
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -190,25 +206,44 @@ export default function PlayerUpdateCenter({
 
           {error ? <div className="puc-error">{error}</div> : null}
 
-          {updates.length > 0 && (
+          {updates.length > 0 ? (
             <div className="puc-list">
               {updates.slice(0, 3).map((update) => (
-                <button
+                <div
                   key={update.id}
-                  type="button"
                   className={`puc-item risk-${String(update.risk_level || "LOW").toLowerCase()}`}
-                  onClick={() => onOpenPlayer?.(update)}
                 >
-                  <span className="puc-item-risk">{update.risk_level}</span>
-                  <span className="puc-item-copy">
-                    <strong>
-                      {update.player_name}
-                      <em>{formatUpdateSource(update)}</em>
-                    </strong>
-                    <span>{update.headline}</span>
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    className="puc-item-main"
+                    onClick={() => onOpenPlayer?.(update)}
+                  >
+                    <span className="puc-item-risk">{update.risk_level}</span>
+                    <span className="puc-item-copy">
+                      <strong>
+                        {update.player_name}
+                        <em>{formatUpdateSource(update)}</em>
+                      </strong>
+                      <span>{update.headline}</span>
+                    </span>
+                  </button>
+                  {canDeleteUpdate(update) && (
+                    <button
+                      type="button"
+                      className="puc-delete-btn"
+                      onClick={() => onDeleteUpdate?.(update)}
+                      title={`Remove league note for ${update.player_name}`}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               ))}
+            </div>
+          ) : (
+            <div className="puc-empty">
+              No active player notes. Select a player only when there is real
+              draft context to publish.
             </div>
           )}
         </>

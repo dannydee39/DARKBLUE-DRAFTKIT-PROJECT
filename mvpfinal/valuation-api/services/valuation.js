@@ -12,6 +12,7 @@ const POSITION_DEFAULT = {
   remainingSlots: 0,
   undraftedAtPos: 0,
 };
+const RISK_ORDER = { LOW: 0, MEDIUM: 1, HIGH: 2 };
 
 function normalizeNameKey(value) {
   return String(value || "")
@@ -78,6 +79,8 @@ function buildDraftContext(draftState = {}) {
     budget_per_team = 260,
     scoring_categories = ["R", "HR", "RBI", "SB", "AVG", "W", "SV", "ERA", "WHIP", "SO"],
     teams = [],
+    commissioner_notes = [],
+    commissionerNotes = [],
     roster_config = {
       C: 2,
       "1B": 1,
@@ -113,6 +116,10 @@ function buildDraftContext(draftState = {}) {
   });
 
   const undrafted = players.filter((player) => !draftedPlayerIds.has(player.id));
+  const commissionerNotesByPlayerId = buildCommissionerNotesByPlayerId([
+    ...commissioner_notes,
+    ...commissionerNotes,
+  ]);
   const totalRosterSlots = Object.values(roster_config).reduce(
     (sum, count) => sum + Number(count || 0),
     0,
@@ -157,6 +164,7 @@ function buildDraftContext(draftState = {}) {
     undrafted,
     inflationFactor,
     positionScarcity,
+    commissionerNotesByPlayerId,
   };
 }
 
@@ -215,7 +223,10 @@ function valuatePlayer(player, context) {
   const baseValue = player.baseValue ?? 1;
   const playerPositions = Array.isArray(player.pos) ? player.pos : [];
   const positionDetails = {};
-  const playerUpdate = getLatestUpdateForPlayer(player.id);
+  const playerUpdate = chooseMostSevereUpdate(
+    getLatestUpdateForPlayer(player.id),
+    context.commissionerNotesByPlayerId.get(player.id),
+  );
   const riskAdjustment = getRiskAdjustment(playerUpdate);
 
   let selectedScarcity = POSITION_DEFAULT;
@@ -469,6 +480,56 @@ function getRiskAdjustment(playerUpdate) {
     return { level: "MEDIUM", multiplier: 0.94, max_bid_delta_percent: -6 };
   }
   return { level: "LOW", multiplier: 1, max_bid_delta_percent: 0 };
+}
+
+function normalizeRiskLevel(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Object.prototype.hasOwnProperty.call(RISK_ORDER, normalized)
+    ? normalized
+    : "LOW";
+}
+
+function buildCommissionerNotesByPlayerId(notes) {
+  const byPlayerId = new Map();
+  if (!Array.isArray(notes)) return byPlayerId;
+
+  notes.forEach((note) => {
+    const playerId = Number(note?.player_id ?? note?.playerId);
+    if (!Number.isFinite(playerId)) return;
+    const normalized = {
+      ...note,
+      player_id: playerId,
+      type: String(note.type || "NEWS").toUpperCase(),
+      risk_level: normalizeRiskLevel(note.risk_level || note.severity),
+      severity: normalizeRiskLevel(note.severity || note.risk_level),
+      headline:
+        note.headline ||
+        `${note.player_name || `Player ${playerId}`} has commissioner draft context`,
+      source: note.source || "League commissioner note",
+      created_at: note.created_at || new Date(0).toISOString(),
+    };
+
+    byPlayerId.set(
+      playerId,
+      chooseMostSevereUpdate(byPlayerId.get(playerId), normalized),
+    );
+  });
+
+  return byPlayerId;
+}
+
+function chooseMostSevereUpdate(left, right) {
+  if (!left) return right || null;
+  if (!right) return left;
+
+  const leftRisk = RISK_ORDER[normalizeRiskLevel(left.risk_level || left.severity)];
+  const rightRisk = RISK_ORDER[normalizeRiskLevel(right.risk_level || right.severity)];
+  if (rightRisk > leftRisk) return right;
+  if (rightRisk < leftRisk) return left;
+
+  const leftTime = Date.parse(left.created_at || 0) || 0;
+  const rightTime = Date.parse(right.created_at || 0) || 0;
+  return rightTime > leftTime ? right : left;
 }
 
 function buildReasoning(

@@ -232,6 +232,40 @@ async function runGeneralRegressionSuite() {
     );
     assert.ok(valuate.body.market_context?.label, "valuation batch should include market_context label");
 
+    const commissionerNoteValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({
+        draft_state: buildDraftState({
+          commissioner_notes: [
+            {
+              player_id: playerPool.find((entry) => entry.name === "Juan Soto").id,
+              player_name: "Juan Soto",
+              type: "ROLE",
+              severity: "MEDIUM",
+              headline: "Juan Soto has a league-only role note",
+              source: "League commissioner note",
+            },
+          ],
+        }),
+      }),
+    });
+    assert.equal(
+      commissionerNoteValuation.response.status,
+      200,
+      "commissioner note valuation should return 200",
+    );
+    assert.equal(
+      commissionerNoteValuation.body.valuations?.["Juan Soto"]?.risk_level,
+      "MEDIUM",
+      "valuation should apply commissioner_notes as local-only risk context",
+    );
+    assert.equal(
+      commissionerNoteValuation.body.valuations?.["Juan Soto"]?.player_update?.source,
+      "League commissioner note",
+      "valuation should preserve commissioner note source",
+    );
+
     const hitterValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },

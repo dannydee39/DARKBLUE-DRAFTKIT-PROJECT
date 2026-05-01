@@ -30,6 +30,12 @@
   --mono: "JetBrains Mono", "Fira Code", "Courier New", monospace;
   --radius: 6px;
   --radius2: 10px;
+  --z-owner-strip: 10;
+  --z-sticky-nav: 20;
+  --z-tooltip: 150;
+  --z-modal-backdrop: 200;
+  --z-modal: 201;
+  --z-toast: 300;
 }
 
 html,
@@ -58,6 +64,50 @@ button {
 button {
   cursor: pointer;
 }
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.sample-draft-btn {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--yellow);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius);
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.sample-draft-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.auth-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auth-error-dismiss {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  opacity: 0.7;
+}
+.auth-error-dismiss:hover {
+  opacity: 1;
+}
+
 a {
   color: var(--green);
   text-decoration: none;

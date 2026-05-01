@@ -13,6 +13,7 @@ export default function AuthModal({
   onLogin,
   onSignup,
   onLogout,
+  onDismissError,
 }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -84,7 +85,7 @@ export default function AuthModal({
       >
         <div className="auth-modal-header">
           <div>
-            <div className="auth-modal-kicker">DB Draft Kit</div>
+            <div className="auth-modal-kicker">Draft Kit</div>
             <h2 id="auth-modal-title">
               {user
                 ? "Cloud Library"
@@ -180,7 +181,21 @@ export default function AuthModal({
               </ul>
             </div>
 
-            {error ? <div className="auth-error">{error}</div> : null}
+            {error ? (
+              <div className="auth-error" role="alert">
+                <span>{error}</span>
+                {onDismissError ? (
+                  <button
+                    type="button"
+                    className="auth-error-dismiss"
+                    onClick={() => onDismissError()}
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="auth-actions">
               <button
@@ -266,7 +281,21 @@ export default function AuthModal({
               />
             </label>
 
-            {error ? <div className="auth-error">{error}</div> : null}
+            {error ? (
+              <div className="auth-error" role="alert">
+                <span>{error}</span>
+                {onDismissError ? (
+                  <button
+                    type="button"
+                    className="auth-error-dismiss"
+                    onClick={() => onDismissError()}
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="auth-actions">
               <button

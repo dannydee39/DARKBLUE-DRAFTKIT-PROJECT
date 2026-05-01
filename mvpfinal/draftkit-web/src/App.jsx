@@ -2914,6 +2914,29 @@ export default function App() {
     });
   }
 
+  useEffect(() => {
+    function onKeyDown(event) {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      const target = event.target;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (key === "z" && event.shiftKey) {
+        event.preventDefault();
+        redoLastAction();
+      } else if (key === "z") {
+        event.preventDefault();
+        undoLastAction();
+      } else if (key === "y") {
+        event.preventDefault();
+        redoLastAction();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undoStack, redoStack]);
+
   // ─────────────────────────────────────────────────────────────────────────
   // saveNote — persists a scouting note for a player ID.
   //
@@ -2972,6 +2995,7 @@ export default function App() {
           onLogin={handleLogin}
           onSignup={handleSignup}
           onLogout={handleLogout}
+          onDismissError={() => setAuthError("")}
         />
       </>
     );
@@ -3055,41 +3079,17 @@ export default function App() {
             Draft Library
           </button>
 
-          {/* Sample Draft debug button — only shown on the board tab */}
           {activeTab === "board" && (
             <button
+              type="button"
+              className="sample-draft-btn"
               onClick={fillSampleDraft}
               title="Fill 10 sample picks for debugging the draft grid"
-              style={{
-                background: "rgba(245,158,11,0.12)",
-                border: "1px solid rgba(245,158,11,0.35)",
-                color: "#f59e0b",
-                fontSize: 10,
-                fontWeight: 700,
-                padding: "3px 10px",
-                borderRadius: "var(--radius)",
-                cursor: "pointer",
-                letterSpacing: "0.04em",
-                flexShrink: 0,
-              }}
             >
               Sample Draft
             </button>
           )}
 
-          {/* API status indicator removed from header UI per UX decision.
-              The ApiSandbox tab (setActiveTab("sandbox")) and its underlying
-              checkApiStatus / apiStatus state are preserved for diagnostics.
-              To restore the header indicator, un-comment the block below:
-
-          <div className={`api-dot ${apiStatus}`} />
-          <span className="api-status-label">API {apiStatus.toUpperCase()}</span>
-          <button onClick={checkApiStatus} title="Re-check API connection"
-            style={{ background:"none", border:"none", cursor:"pointer",
-                     fontSize:10, color:"var(--muted)", padding:"2px 6px" }}>
-            ↺
-          </button>
-          */}
           <div className="nav-badge">
             {totalRecordedPicks > 0
               ? `${totalRecordedPicks} PICKS SAVED`

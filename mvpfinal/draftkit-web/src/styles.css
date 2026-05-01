@@ -1215,12 +1215,11 @@ a {
 }
 
 /* Empty roster cell when NO players remain at that position in the pool.
-   Subtle red tint alerts the drafter that this slot can't be filled normally. */
-.roster-cell-empty.cell-no-avail {
-  background: rgba(239, 68, 68, 0.04);
-}
+   The column header already displays "(0)" for the exhausted position, so
+   the cell itself stays neutral — no red tint. */
 .roster-cell-empty.cell-no-avail .roster-empty {
-  color: rgba(239, 68, 68, 0.35);
+  color: var(--muted);
+  opacity: 0.6;
 }
 
 /* Summary footer row at the bottom of the teams table.
@@ -1418,10 +1417,19 @@ a {
   gap: 10px;
   padding: 8px 10px;
   cursor: pointer;
+  border: 0;
   border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--white);
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
   transition: background 0.1s;
   min-width: 0;
   min-height: 80px;
+}
+.search-result:last-child {
+  border-bottom: 0;
 }
 .search-result:hover {
   background: var(--bg4);

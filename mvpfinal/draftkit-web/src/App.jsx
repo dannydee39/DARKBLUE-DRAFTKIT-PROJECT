@@ -39,7 +39,6 @@ import ApiSandbox from "./components/ApiSandbox.jsx";
 import PlayerUpdateCenter from "./components/PlayerUpdateCenter.jsx";
 import DraftHistory from "./components/DraftHistory.jsx";
 import DepthCharts from "./components/DepthCharts.jsx";
-import RankedTeamBanner from "./components/RankedTeamBanner.jsx";
 
 // ── Shared constants and helpers ──────────────────────────────────────────────
 import {
@@ -3128,9 +3127,15 @@ export default function App() {
 
       <div className="owner-strip">
         {league.teams.map((team, idx) => {
-          const teamSlotsLeft = totalSlots - (team.roster?.length || 0);
+          const rosterCount = team.roster?.length || 0;
+          const teamSlotsLeft = totalSlots - rosterCount;
           const teamMaxBid = calcMaxBid(team.budget_remaining, teamSlotsLeft);
           const isActive = idx === currentOwnerIdx;
+          const fillPct = totalSlots > 0
+            ? Math.min(100, Math.round((rosterCount / totalSlots) * 100))
+            : 0;
+          const budget = Number(team.budget_remaining) || 0;
+          const budgetClass = budget <= 0 ? "zero" : budget <= 5 ? "low" : "";
 
           return (
             <button
@@ -3145,16 +3150,20 @@ export default function App() {
               </div>
               <div className="owner-strip-stats">
                 <span
-                  className="owner-strip-stat owner-strip-stat-budget budget"
-                  title={`${team.budget_remaining} budget left`}
+                  className={`owner-strip-stat owner-strip-stat-budget budget ${budgetClass}`}
+                  title={
+                    budget <= 0
+                      ? `${team.name} has no budget remaining — locked from bidding`
+                      : `${team.budget_remaining} budget left`
+                  }
                 >
                   ${team.budget_remaining}
                 </span>
                 <span
                   className="owner-strip-stat owner-strip-stat-roster"
-                  title={`${team.roster.length} of ${totalSlots} roster slots filled`}
+                  title={`${rosterCount} of ${totalSlots} roster slots filled (${fillPct}%)`}
                 >
-                  {team.roster.length}/{totalSlots}
+                  {rosterCount}/{totalSlots}
                 </span>
                 <span
                   className="owner-strip-stat owner-strip-stat-max"
@@ -3162,6 +3171,9 @@ export default function App() {
                 >
                   max {teamMaxBid}
                 </span>
+              </div>
+              <div className="owner-strip-fill-bar" aria-hidden="true">
+                <span style={{ width: `${fillPct}%` }} />
               </div>
             </button>
           );
@@ -3212,11 +3224,21 @@ export default function App() {
                 </div>
               </div>
             )}
-            <RankedTeamBanner
-              rankings={ownerRankings}
-              currentOwnerId={myTeam?.id}
-              onOpenRankings={() => setActiveTab("insights")}
-            />
+            {ownerRankings.length > 0 && (() => {
+              const myRank = ownerRankings.find((t) => t.id === myTeam?.id);
+              if (!myRank) return null;
+              return (
+                <button
+                  type="button"
+                  className="rank-pill"
+                  onClick={() => setActiveTab("insights")}
+                  title={`Open Depth + Rankings — strength score ${myRank.strengthScore}`}
+                >
+                  <span>★ Rank #{myRank.rank} of {ownerRankings.length}</span>
+                  <span className="rank-pill-arrow">View Rankings →</span>
+                </button>
+              );
+            })()}
             <PlayerUpdateCenter
               updates={playerUpdates}
               loading={playerUpdatesLoading}
@@ -3335,6 +3357,7 @@ export default function App() {
           <DepthCharts
             depthCharts={depthCharts}
             ownerRankings={ownerRankings}
+            currentOwnerId={myTeam?.id}
             selectedPlayer={selectedPlayer}
             setSelectedPlayer={setSelectedPlayer}
             liveDepthLoading={liveDepthLoading}

@@ -2067,7 +2067,7 @@ export default function DraftBoard({
                     : saleBudgetError || ""
                 }
               >
-                Confirm Sale
+                Complete Sale
               </button>
             </div>
           </div>
@@ -2272,6 +2272,7 @@ function SearchResult({
       <button
         type="button"
         className={`favorite-btn compact ${isFavorite ? "active" : ""}`}
+        aria-label={isFavorite ? "Remove favorite" : "Favorite this player"}
         onClick={(e) => {
           e.stopPropagation();
           onToggleFavorite();

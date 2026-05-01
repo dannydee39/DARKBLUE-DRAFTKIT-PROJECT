@@ -17,8 +17,8 @@
   --green: #22c55e;
   --green-d: #16a34a;
   --white: #f1f5f9;
-  --muted: #6b7280;
-  --muted2: #9ca3af;
+  --muted: #8a93a3;
+  --muted2: #b1b9c5;
   --red: #ef4444;
   --yellow: #f59e0b;
   --blue: #3b82f6;
@@ -69,6 +69,16 @@ button[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.55;
 }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
 
 .sample-draft-btn {
   background: rgba(245, 158, 11, 0.12);
@@ -87,6 +97,123 @@ button[aria-disabled="true"] {
 .sample-draft-btn:hover:not(:disabled) {
   background: rgba(245, 158, 11, 0.2);
   border-color: rgba(245, 158, 11, 0.55);
+}
+
+/* ── Round 2/3 UX polish additions ──────────────────────────────────────── */
+.rank-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin: 8px 0 0;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  color: var(--green);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.rank-pill:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.55);
+}
+.rank-pill .rank-pill-arrow {
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.owner-strip-stat.budget.low {
+  color: var(--yellow);
+}
+.owner-strip-stat.budget.zero {
+  color: var(--red);
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+.owner-strip-stat-fill {
+  font-size: 9px;
+  color: var(--muted2);
+  letter-spacing: 0.04em;
+}
+.owner-strip-fill-bar {
+  margin-top: 2px;
+  height: 3px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.owner-strip-fill-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width 0.18s ease;
+}
+
+.dc-badges-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.dc-fpts-inline {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-left: 2px;
+  letter-spacing: 0.02em;
+}
+
+.rankings-table tr.is-current-owner td {
+  background: rgba(34, 197, 94, 0.08);
+}
+.rankings-current-pill {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.16);
+  border-radius: 999px;
+}
+
+.league-settings-form input:disabled,
+.league-settings-form select:disabled,
+.league-settings-form textarea:disabled,
+.settings-disabled-field {
+  opacity: 0.45 !important;
+  background: var(--bg3) !important;
+  cursor: not-allowed !important;
+}
+
+.scout-empty-hint {
+  padding: 14px 12px;
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--muted2);
+  text-align: center;
+  margin: 8px 0;
+}
+
+.puc-primary-btn {
+  min-width: 168px;
+}
+
+.custom-player-hint {
+  font-size: 10px;
+  color: var(--muted2);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
 }
 
 .auth-error {
@@ -3113,8 +3240,9 @@ a {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: none;
-  overflow: visible;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .setup-cloud-banner {
@@ -3922,14 +4050,14 @@ a {
 .player-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
-  gap: 8px;
+  gap: 5px;
 }
 
 .dict-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 7px 8px;
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -5472,6 +5600,17 @@ a {
   min-width: 1160px;
 }
 
+@media (max-width: 1280px) {
+  .history-table {
+    min-width: 0;
+    font-size: 11px;
+  }
+  .history-table th,
+  .history-table td {
+    padding: 8px 6px;
+  }
+}
+
 .history-table th,
 .history-table td {
   border-bottom: 1px solid var(--border);
@@ -5485,7 +5624,8 @@ a {
   position: sticky;
   top: 0;
   background: var(--panel-2);
-  z-index: 1;
+  z-index: 5;
+  box-shadow: 0 1px 0 var(--border);
 }
 
 .history-table th button {
@@ -5660,6 +5800,11 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
   gap: 14px;
+  overflow-y: auto;
+  min-height: 0;
+  align-self: stretch;
+  flex: 1;
+  padding-bottom: 24px;
 }
 
 .insights-main,

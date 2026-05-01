@@ -59,17 +59,24 @@ export default function PlayerUpdateCenter({
         </div>
 
         <div className="puc-actions">
-          <div className="puc-target">
-            <span>Publishing target</span>
-            <strong>{targetPlayer?.name || "Select a player"}</strong>
-          </div>
           <button
             type="button"
             className="puc-primary-btn"
             onClick={onPublishInjury}
             disabled={!canPublish}
+            title={
+              !canPublish && !targetPlayer
+                ? "Select a player first to publish an alert"
+                : !canPublish && !isOnline
+                  ? "Player updates need the Draft Kit API to be online"
+                  : `Publish injury/news for ${targetPlayer?.name || "selected player"}`
+            }
           >
-            {loading ? "Publishing..." : "Publish Injury Alert"}
+            {loading
+              ? "Publishing..."
+              : targetPlayer
+                ? `Publish Alert for ${targetPlayer.name}`
+                : "Publish Injury Alert"}
           </button>
           <button
             type="button"

@@ -199,6 +199,7 @@ export default function PlayerCard({
               className={`favorite-btn compact ${favorites?.[player.id] ? "active" : ""}`}
               onClick={() => !previewMode && toggleFavorite(player.id)}
               disabled={previewMode}
+              aria-label={favorites?.[player.id] ? `Unfavorite ${player.name}` : `Favorite ${player.name}`}
               title={favorites?.[player.id] ? "Remove favorite" : "Favorite this player"}
             >
               ★
@@ -340,7 +341,7 @@ export default function PlayerCard({
                 className="record-sale-btn pc-save-note-btn"
                 onClick={handleSaveNote}
               >
-                Save Note
+                Save
               </button>
             ) : (
               <span className="pc-note-status">{localNote ? "Notes synced" : "No note yet"}</span>

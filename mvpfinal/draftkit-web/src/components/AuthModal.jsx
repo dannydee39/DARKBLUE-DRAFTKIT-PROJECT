@@ -45,18 +45,9 @@ export default function AuthModal({
 
   if (!open) return null;
 
-  const activeDraft = drafts.find((draft) => draft.id === activeDraftId) || null;
   const cloudDraftCount = drafts.filter(
     (draft) => (draft.source || "").toLowerCase() === "cloud",
   ).length;
-  const lastSavedDraft =
-    drafts
-      .slice()
-      .sort((a, b) => {
-        const aTime = new Date(a.updatedAt || a.lastOpenedAt || 0).getTime();
-        const bTime = new Date(b.updatedAt || b.lastOpenedAt || 0).getTime();
-        return bTime - aTime;
-      })[0] || null;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -149,26 +140,6 @@ export default function AuthModal({
                 </div>
               </div>
 
-              <div className="auth-library-card">
-                <div className="auth-library-kicker">Current Workspace</div>
-                <div className="auth-library-title">
-                  {activeDraft?.league?.name || "No draft open"}
-                </div>
-                <div className="auth-library-list">
-                  <div className="auth-library-row">
-                    <span>Season</span>
-                    <strong>{activeDraft?.league?.season || "2025"}</strong>
-                  </div>
-                  <div className="auth-library-row">
-                    <span>Pool</span>
-                    <strong>{formatPool(activeDraft?.league?.pool)}</strong>
-                  </div>
-                  <div className="auth-library-row">
-                    <span>Last Saved</span>
-                    <strong>{formatTimestamp(lastSavedDraft?.updatedAt || lastSavedDraft?.lastOpenedAt)}</strong>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="auth-library-panel">
@@ -319,17 +290,3 @@ export default function AuthModal({
   );
 }
 
-function formatTimestamp(timestamp) {
-  if (!timestamp) return "Not saved yet";
-  try {
-    return new Date(timestamp).toLocaleDateString();
-  } catch {
-    return String(timestamp);
-  }
-}
-
-function formatPool(pool) {
-  if (pool === "AL") return "AL Only";
-  if (pool === "NL") return "NL Only";
-  return "MLB (All)";
-}

@@ -382,7 +382,7 @@ function DictCard({
             <div className="dc-team">
               {player.team} · {player.league}
             </div>
-            <div className="dc-badges">
+            <div className="dc-badges-row">
               {player.pos.map((pos) => (
                 <span
                   key={pos}
@@ -392,6 +392,9 @@ function DictCard({
                   {pos}
                 </span>
               ))}
+              {player.fpts ? (
+                <span className="dc-fpts-inline">{player.fpts} FPTS</span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -399,6 +402,7 @@ function DictCard({
           <button
             type="button"
             className={`favorite-btn compact ${isFavorite ? "active" : ""}`}
+            aria-label={isFavorite ? `Unfavorite ${player.name}` : `Favorite ${player.name}`}
             onClick={(e) => {
               e.stopPropagation();
               onToggleFavorite();
@@ -410,13 +414,6 @@ function DictCard({
           <div className="dc-value green">${liveValue ?? player.baseValue}</div>
         </div>
       </div>
-
-      {/* FPTS micro-display */}
-      {player.fpts && (
-        <div style={{ fontSize: 9, color: "var(--muted)", marginTop: 3 }}>
-          {player.fpts} FPTS
-        </div>
-      )}
 
       {/* Injury flag */}
       {player.injury && <div className="dc-injury">⚠ {player.injury}</div>}

@@ -34,6 +34,7 @@ export default function DepthCharts({
   liveDepthLoading = false,
   liveDepthError = "",
   onRefreshLiveDepth,
+  currentOwnerId = null,
 }) {
   const teamOptions = depthCharts?.teamOptions || [];
   const positionOptions = depthCharts?.positionOptions || [];
@@ -289,20 +290,24 @@ export default function DepthCharts({
                 </tr>
               </thead>
               <tbody>
-                {sortedRankings.map((team) => (
-                  <tr key={team.id}>
-                    <td>{team.displayRank}</td>
-                    <td>
-                      <strong>{team.name}</strong>
-                    </td>
-                    <td>{team.strengthScore}</td>
-                    <td>{formatMoney(team.rosterValue)}</td>
-                    <td>{formatMoney(team.budgetRemaining)}</td>
-                    <td>{formatMoney(team.maxBid)}</td>
-                    <td>{team.rosterFillPercent}%</td>
-                    <td>{team.highRiskCount + team.mediumRiskCount}</td>
-                  </tr>
-                ))}
+                {sortedRankings.map((team) => {
+                  const isMe = currentOwnerId != null && team.id === currentOwnerId;
+                  return (
+                    <tr key={team.id} className={isMe ? "is-current-owner" : ""}>
+                      <td>{team.displayRank}</td>
+                      <td>
+                        <strong>{team.name}</strong>
+                        {isMe ? <span className="rankings-current-pill">YOU</span> : null}
+                      </td>
+                      <td>{team.strengthScore}</td>
+                      <td>{formatMoney(team.rosterValue)}</td>
+                      <td>{formatMoney(team.budgetRemaining)}</td>
+                      <td>{formatMoney(team.maxBid)}</td>
+                      <td>{team.rosterFillPercent}%</td>
+                      <td>{team.highRiskCount + team.mediumRiskCount}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

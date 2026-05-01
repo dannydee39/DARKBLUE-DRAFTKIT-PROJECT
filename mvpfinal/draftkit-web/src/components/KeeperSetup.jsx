@@ -264,7 +264,7 @@ export default function KeeperSetup({
             onClick={handleSubmit}
             disabled={!canSubmit || !league.keeperLeague}
           >
-            {editing ? "Save Keeper" : "Add Keeper"}
+            {editing ? "Save" : "Add Keeper"}
           </button>
           {editing && (
             <button

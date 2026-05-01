@@ -120,7 +120,7 @@ export default function LeagueSettings({ league, onSaveSettings }) {
   }
 
   return (
-    <div className="settings-layout">
+    <div className="settings-layout league-settings-form">
 
       {/* ── Left Panel: Scoring + Meta ─────────────────────────────────── */}
       <div className="settings-left">
@@ -437,7 +437,7 @@ export default function LeagueSettings({ league, onSaveSettings }) {
             disabled={validation.errors.length > 0 || saving}
             onClick={handleSave}
           >
-            {saving ? "Saving…" : "Save Settings"}
+            {saving ? "Saving…" : "Save"}
           </button>
           <p style={{ fontSize: 10, color: "var(--muted)", textAlign: "center", marginTop: 8 }}>
             {draftStarted

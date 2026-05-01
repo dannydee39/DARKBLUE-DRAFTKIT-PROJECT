@@ -171,8 +171,8 @@ a:focus-visible,
   letter-spacing: 0.02em;
 }
 
-.rankings-table tr.is-current-owner td {
-  background: rgba(34, 197, 94, 0.08);
+.rankings-table tr.is-leader td {
+  background: rgba(245, 158, 11, 0.08);
 }
 .rankings-current-pill {
   display: inline-block;
@@ -181,9 +181,42 @@ a:focus-visible,
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: var(--green);
-  background: rgba(34, 197, 94, 0.16);
+  color: var(--yellow);
+  background: rgba(245, 158, 11, 0.16);
   border-radius: 999px;
+}
+
+.owner-strip-card.readonly {
+  cursor: default;
+}
+.owner-strip-card.readonly:hover {
+  border-color: var(--border2);
+  background: var(--bg3);
+}
+.owner-strip-top {
+  position: relative;
+}
+.owner-strip-rename {
+  opacity: 0;
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--muted2);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.owner-strip-card:hover .owner-strip-rename,
+.owner-strip-card:focus-within .owner-strip-rename {
+  opacity: 1;
+}
+.owner-strip-rename:hover {
+  color: var(--green);
+  border-color: var(--green);
 }
 
 .league-settings-form input:disabled,
@@ -193,6 +226,30 @@ a:focus-visible,
   opacity: 0.45 !important;
   background: var(--bg3) !important;
   cursor: not-allowed !important;
+}
+
+.taxi-results-list,
+.keeper-results-list {
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.keeper-empty-results,
+.taxi-empty-search {
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--muted2);
+  border-bottom: 1px solid var(--border);
+}
+.keeper-empty-results:last-child,
+.taxi-empty-search:last-child {
+  border-bottom: 0;
+}
+.keeper-resolved {
+  background: rgba(34, 197, 94, 0.05);
+}
+.keeper-resolved.taken {
+  opacity: 0.5;
 }
 
 .scout-empty-hint {

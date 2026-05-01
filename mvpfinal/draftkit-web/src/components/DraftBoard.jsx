@@ -640,7 +640,14 @@ export default function DraftBoard({
     setIsPinnedExpanded(false);
     clearHoverPreview();
     requestValuation();
-    const team = league.teams[currentOwnerIdx];
+    // Slot-first model: no "active owner". Default to the team with the most
+    // open slots; commissioner can change via the modal's team selector.
+    const team =
+      [...league.teams].sort(
+        (a, b) =>
+          (totalSlots - (b.roster?.length || 0)) -
+          (totalSlots - (a.roster?.length || 0)),
+      )[0] || league.teams[0];
     const initialSlots = getValidSlotsForPlayer(player, team?.id || 1);
     setSaleModal(player);
     setSaleTeam(team?.id || 1);
@@ -663,9 +670,6 @@ export default function DraftBoard({
     setIsPinnedExpanded(false);
     clearHoverPreview();
     requestValuation();
-    // Switch the active owner to the team being filled
-    const ti = league.teams.findIndex((t) => t.id === teamId);
-    if (ti >= 0) setCurrentOwnerIdx(ti);
 
     setSaleModal(player);
     setSaleTeam(teamId);
@@ -942,9 +946,10 @@ export default function DraftBoard({
         favoritesOnly,
         favorites,
         notes,
-        slotPos: null,
+        slotPos: activeCellSearch?.pos || null,
       }),
     [
+      activeCellSearch,
       favorites,
       favoritesOnly,
       notes,
@@ -979,8 +984,6 @@ export default function DraftBoard({
     scoutResults,
   ]);
 
-  const myTeam = league.teams[currentOwnerIdx];
-  const slotsLeft = totalSlots - (myTeam?.roster?.length || 0);
   const displayedPinnedPlayer = hoverPreviewPlayer ?? selectedPlayer;
   const previewingPinnedPlayer = Boolean(hoverPreviewPlayer);
   const activeContextTeam = activeCellSearch
@@ -1144,15 +1147,14 @@ export default function DraftBoard({
               add a player to that cell
             </span>
             <div className="board-current-owner">
-              Now drafting: <strong>{myTeam?.name}</strong> · $
-              {myTeam?.budget_remaining ?? league.budget} left · {slotsLeft}{" "}
-              slots left
-              {activeCellSearch && activeContextTeam && (
+              {activeCellSearch && activeContextTeam ? (
                 <>
-                  {" "}
-                  · Filling <strong>{activeContextTeam.name}</strong>{" "}
-                  <strong>{activeCellSearch.pos}</strong>
+                  Filling <strong>{activeContextTeam.name}</strong>{" "}
+                  <strong>{activeCellSearch.pos}</strong> slot — search a
+                  player below
                 </>
+              ) : (
+                <>Click any empty slot to start drafting</>
               )}
             </div>
           </div>
@@ -1245,28 +1247,19 @@ export default function DraftBoard({
             </thead>
             <tbody>
               {league.teams.map((team, ti) => {
-                const isMe = ti === currentOwnerIdx;
                 const teamMaxBid = calcMaxBid(
                   team.budget_remaining,
                   totalSlots - team.roster.length,
                 );
 
                 return (
-                  <tr
-                    key={team.id}
-                    className={isMe ? "my-row" : ""}
-                    onClick={() => setCurrentOwnerIdx(ti)}
-                    title={`Click row to set ${team.name} as drafting owner`}
-                  >
+                  <tr key={team.id}>
                     {/* Owner label + roster progress */}
                     <td className="col-owner">
-                      {isMe && <span className="star">★ </span>}
                       {team.name}
-                      {isMe && (
-                        <div className="max-bid-mini">
-                          max bid ${teamMaxBid}
-                        </div>
-                      )}
+                      <div className="max-bid-mini">
+                        max bid ${teamMaxBid}
+                      </div>
                       {/* Mini progress bar: green fill = % of slots filled */}
                       <div
                         className="roster-progress-wrap"
@@ -1679,7 +1672,7 @@ export default function DraftBoard({
                 ref={searchRef}
                 className="search-input scout-search-input"
                 placeholder={
-                  false
+                  activeCellSearch
                     ? `Search ${activeCellSearch.pos} fits for ${activeContextTeam?.name ?? "this slot"}`
                     : posFilter !== "ALL"
                       ? `Search ${posFilter} players…`

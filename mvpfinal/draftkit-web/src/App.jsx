@@ -2942,6 +2942,22 @@ export default function App() {
   // @param {number} playerId - Player ID (from players array)
   // @param {string} text     - Note text to save
   // ─────────────────────────────────────────────────────────────────────────
+  function renameTeam(teamIndex, nextName) {
+    const trimmed = String(nextName || "").trim();
+    if (!trimmed) return;
+    pushUndoSnapshot();
+    setLeague((prev) => {
+      const teams = prev.teams.map((team, idx) =>
+        idx === teamIndex ? { ...team, name: trimmed } : team,
+      );
+      return { ...prev, teams };
+    });
+    setBoardNotice({
+      tone: "info",
+      message: `Renamed team ${teamIndex + 1} to "${trimmed}".`,
+    });
+  }
+
   function saveNote(playerId, text) {
     setNotes((prev) => {
       const next = { ...prev };
@@ -3130,7 +3146,6 @@ export default function App() {
           const rosterCount = team.roster?.length || 0;
           const teamSlotsLeft = totalSlots - rosterCount;
           const teamMaxBid = calcMaxBid(team.budget_remaining, teamSlotsLeft);
-          const isActive = idx === currentOwnerIdx;
           const fillPct = totalSlots > 0
             ? Math.min(100, Math.round((rosterCount / totalSlots) * 100))
             : 0;
@@ -3138,15 +3153,30 @@ export default function App() {
           const budgetClass = budget <= 0 ? "zero" : budget <= 5 ? "low" : "";
 
           return (
-            <button
+            <div
               key={team.id}
-              type="button"
-              className={`owner-strip-card ${isActive ? "active" : ""}`}
-              onClick={() => setCurrentOwnerIdx(idx)}
-              title={`Set ${team.name} as the active owner`}
+              className="owner-strip-card readonly"
+              role="status"
+              aria-label={`${team.name} status — $${budget} budget, ${rosterCount} of ${totalSlots} slots`}
             >
               <div className="owner-strip-top">
                 <span className="owner-strip-name">{team.name}</span>
+                <button
+                  type="button"
+                  className="owner-strip-rename"
+                  aria-label={`Rename ${team.name}`}
+                  title="Rename team"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const next = window.prompt(
+                      "Rename team",
+                      team.name,
+                    );
+                    if (next != null) renameTeam(idx, next);
+                  }}
+                >
+                  ✎
+                </button>
               </div>
               <div className="owner-strip-stats">
                 <span
@@ -3175,7 +3205,7 @@ export default function App() {
               <div className="owner-strip-fill-bar" aria-hidden="true">
                 <span style={{ width: `${fillPct}%` }} />
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -3225,16 +3255,16 @@ export default function App() {
               </div>
             )}
             {ownerRankings.length > 0 && (() => {
-              const myRank = ownerRankings.find((t) => t.id === myTeam?.id);
-              if (!myRank) return null;
+              const leader = ownerRankings[0];
+              if (!leader) return null;
               return (
                 <button
                   type="button"
                   className="rank-pill"
                   onClick={() => setActiveTab("insights")}
-                  title={`Open Depth + Rankings — strength score ${myRank.strengthScore}`}
+                  title={`Open Depth + Rankings — leader strength score ${leader.strengthScore}`}
                 >
-                  <span>★ Rank #{myRank.rank} of {ownerRankings.length}</span>
+                  <span>★ Leader: {leader.name}</span>
                   <span className="rank-pill-arrow">View Rankings →</span>
                 </button>
               );
@@ -3357,7 +3387,6 @@ export default function App() {
           <DepthCharts
             depthCharts={depthCharts}
             ownerRankings={ownerRankings}
-            currentOwnerId={myTeam?.id}
             selectedPlayer={selectedPlayer}
             setSelectedPlayer={setSelectedPlayer}
             liveDepthLoading={liveDepthLoading}

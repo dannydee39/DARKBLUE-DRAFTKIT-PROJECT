@@ -190,53 +190,56 @@ export default function TaxiSquad({
               {activeTeam?.name || "Select a team"}: add available players for $1
             </span>
           </div>
-          <div style={{ position: "relative" }}>
-            <input
-              className="search-input"
-              placeholder={
-                taxiSlots <= 0
-                  ? "Add TAXI slots in League Settings first"
-                  : activeTeamFull
-                    ? `${activeTeam?.name || "This team"} is full`
-                    : "Search available players for taxi pick"
-              }
-              value={taxiSearch}
-              disabled={taxiSlots <= 0 || activeTeamFull}
-              onChange={(event) => setTaxiSearch(event.target.value)}
-            />
-            {searchQuery && !activeTeamFull && taxiSlots > 0 && (
-              <div className="search-dropdown">
-                {available.map((player) => (
-                  <button
-                    key={player.id}
-                    type="button"
-                    className="search-result taxi-search-result"
-                    onClick={() => addPick(player)}
-                    title={`Add ${player.name} to ${activeTeam?.name} taxi squad for $1`}
-                  >
-                    <PlayerAvatar name={player.name} size={26} photoUrl={player.photoUrl} />
-                    <span className="sr-name">{player.name}</span>
-                    <span className="sr-team">{player.team}</span>
-                    {(player.pos || []).map((pos) => (
-                      <span
-                        key={pos}
-                        className="pos-badge"
-                        style={{ background: posColor(pos) }}
-                      >
-                        {pos}
-                      </span>
-                    ))}
-                    <span className="sr-value" style={{ color: "#8b5cf6" }}>$1</span>
-                  </button>
-                ))}
-                {available.length === 0 && (
-                  <div className="taxi-empty-search">
-                    No available players match "{taxiSearch}".
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <input
+            className="search-input"
+            placeholder={
+              taxiSlots <= 0
+                ? "Add TAXI slots in League Settings first"
+                : activeTeamFull
+                  ? `${activeTeam?.name || "This team"} is full`
+                  : "Search available players for taxi pick"
+            }
+            value={taxiSearch}
+            disabled={taxiSlots <= 0 || activeTeamFull}
+            onChange={(event) => setTaxiSearch(event.target.value)}
+          />
+          {!activeTeamFull && taxiSlots > 0 && (
+            <div className="scout-results-list taxi-results-list">
+              {available.map((player) => (
+                <button
+                  key={player.id}
+                  type="button"
+                  className="search-result taxi-search-result"
+                  onClick={() => addPick(player)}
+                  title={`Add ${player.name} to ${activeTeam?.name} taxi squad for $1`}
+                >
+                  <PlayerAvatar name={player.name} size={26} photoUrl={player.photoUrl} />
+                  <span className="sr-name">{player.name}</span>
+                  <span className="sr-team">{player.team}</span>
+                  {(player.pos || []).map((pos) => (
+                    <span
+                      key={pos}
+                      className="pos-badge"
+                      style={{ background: posColor(pos) }}
+                    >
+                      {pos}
+                    </span>
+                  ))}
+                  <span className="sr-value" style={{ color: "#8b5cf6" }}>$1</span>
+                </button>
+              ))}
+              {searchQuery && available.length === 0 && (
+                <div className="taxi-empty-search">
+                  No available players match "{taxiSearch}".
+                </div>
+              )}
+              {!searchQuery && (
+                <div className="taxi-empty-search">
+                  Type a player name to find available taxi candidates.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

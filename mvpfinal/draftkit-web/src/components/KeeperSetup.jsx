@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useMemo, useState } from "react";
+import PlayerAvatar from "./PlayerAvatar.jsx";
 import { posColor } from "../utils/helpers.js";
 
 function normalizeName(value) {
@@ -170,6 +171,7 @@ export default function KeeperSetup({
           <div className="form-group">
             <label>PLAYER SEARCH</label>
             <input
+              className="search-input"
               value={form.playerName}
               onChange={(event) => setField("playerName", event.target.value)}
               placeholder="Search player name"
@@ -179,17 +181,51 @@ export default function KeeperSetup({
             />
 
             {form.playerName && (
-              <div className="keeper-match-panel">
-                {resolvedPlayer ? (
+              <div className="scout-results-list keeper-results-list">
+                {resolvedPlayer && (
                   <div
-                    className={`keeper-match-row selected ${resolvedPlayerTaken ? "taken" : ""}`}
+                    className={`search-result keeper-resolved ${resolvedPlayerTaken ? "taken" : ""}`}
+                    title={resolvedPlayerTaken ? "Player already drafted" : "Selected"}
                   >
-                    <div>
+                    <PlayerAvatar
+                      name={resolvedPlayer.name}
+                      size={26}
+                      photoUrl={resolvedPlayer.photoUrl}
+                    />
+                    <span className="sr-name">
                       <strong>{resolvedPlayer.name}</strong>
-                      <span>{resolvedPlayer.team}</span>
-                    </div>
-                    <div className="keeper-pos-list">
-                      {(resolvedPlayer.pos || []).map((pos) => (
+                    </span>
+                    <span className="sr-team">{resolvedPlayer.team}</span>
+                    {(resolvedPlayer.pos || []).map((pos) => (
+                      <span
+                        key={pos}
+                        className="pos-badge"
+                        style={{ background: posColor(pos) }}
+                      >
+                        {pos}
+                      </span>
+                    ))}
+                    <span className="sr-value">${resolvedPlayer.baseValue || 0}</span>
+                  </div>
+                )}
+
+                {!exactMatch && playerMatches.length > 0 &&
+                  playerMatches.map((player) => (
+                    <button
+                      key={player.id}
+                      type="button"
+                      className="search-result"
+                      onClick={() => setField("playerName", player.name)}
+                      title={`Use ${player.name}`}
+                    >
+                      <PlayerAvatar
+                        name={player.name}
+                        size={26}
+                        photoUrl={player.photoUrl}
+                      />
+                      <span className="sr-name">{player.name}</span>
+                      <span className="sr-team">{player.team}</span>
+                      {(player.pos || []).map((pos) => (
                         <span
                           key={pos}
                           className="pos-badge"
@@ -198,35 +234,15 @@ export default function KeeperSetup({
                           {pos}
                         </span>
                       ))}
-                    </div>
-                    <span className="keeper-match-value">
-                      ${resolvedPlayer.baseValue || 0}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="keeper-match-empty">
+                      <span className="sr-value">${player.baseValue || 0}</span>
+                    </button>
+                  ))}
+
+                {!resolvedPlayer && playerMatches.length === 0 && (
+                  <div className="keeper-empty-results">
                     {query.length < 2
                       ? "Type at least 2 letters to search the player pool."
-                      : "No exact keeper selected yet."}
-                  </div>
-                )}
-
-                {!exactMatch && playerMatches.length > 0 && (
-                  <div className="keeper-suggestion-list">
-                    {playerMatches.map((player) => (
-                      <button
-                        key={player.id}
-                        type="button"
-                        className="keeper-suggestion"
-                        onClick={() => setField("playerName", player.name)}
-                        title={`Use ${player.name}`}
-                      >
-                        <span>{player.name}</span>
-                        <small>
-                          {player.team} · {formatPositions(player)}
-                        </small>
-                      </button>
-                    ))}
+                      : `No matches for "${form.playerName}".`}
                   </div>
                 )}
 

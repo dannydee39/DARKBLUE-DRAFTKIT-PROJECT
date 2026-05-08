@@ -323,7 +323,7 @@ function createApp(options = {}) {
         <div class="curl-block">
           <div class="curl-label">CURL EXAMPLE</div>
           <pre class="curl-code" id="players-curl">curl -H "X-License-Key: DB-2026-DEMO-0001" \\
-  "${window.location.origin}/v1/players?league=NL&tier=Elite"</pre>
+  "\${window.location.origin}/v1/players?league=NL&tier=Elite"</pre>
           <button class="copy-btn" onclick="copyText('players-curl', this)">Copy</button>
         </div>
 
@@ -397,7 +397,7 @@ function createApp(options = {}) {
   -H "Content-Type: application/json" \\
   -H "X-License-Key: DB-2026-DEMO-0001" \\
   -d '{"draft_state":{"teams":[{"id":1,"budget_remaining":248,"roster":[["Garrett Crochet","BOS"]]}]}}' \\
-  ${window.location.origin}/v1/valuate</pre>
+  \${window.location.origin}/v1/valuate</pre>
         </div>
 
         <!-- Example selector -->

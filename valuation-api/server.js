@@ -10,6 +10,7 @@ const mlbDepthChartsRouter = require("./routes/mlb-depth-charts");
 
 function createApp(options = {}) {
   const app = express();
+  app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 1));
   const NODE_ENV = options.nodeEnv || process.env.NODE_ENV || "development";
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
     .split(",")

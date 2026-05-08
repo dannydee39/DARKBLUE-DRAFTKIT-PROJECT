@@ -34,6 +34,18 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    request_ip TEXT,
+    user_agent TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS drafts (
     id TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -72,6 +84,8 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_password_reset_expires ON password_reset_tokens(expires_at);
   CREATE INDEX IF NOT EXISTS idx_drafts_user_id_updated_at ON drafts(user_id, updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_draft_notes_draft_created ON draft_notes(draft_id, user_id, created_at DESC);
 `);
@@ -145,6 +159,67 @@ function deleteSessionByTokenHash(tokenHash) {
 
 function deleteExpiredSessions() {
   db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(nowIso());
+}
+
+function createPasswordResetToken({
+  id,
+  userId,
+  tokenHash,
+  expiresAt,
+  requestIp = null,
+  userAgent = null,
+}) {
+  const timestamp = nowIso();
+  db.prepare(
+    `INSERT INTO password_reset_tokens (
+       id, user_id, token_hash, created_at, expires_at, request_ip, user_agent
+     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(id, userId, tokenHash, timestamp, expiresAt, requestIp, userAgent);
+}
+
+function findPasswordResetToken(tokenHash) {
+  return db
+    .prepare(
+      `SELECT prt.id, prt.user_id, prt.token_hash, prt.created_at,
+              prt.expires_at, prt.used_at, u.email, u.display_name
+       FROM password_reset_tokens prt
+       JOIN users u ON u.id = prt.user_id
+       WHERE prt.token_hash = ?`
+    )
+    .get(tokenHash);
+}
+
+function markPasswordResetTokenUsed(id) {
+  const timestamp = nowIso();
+  db.prepare(
+    `UPDATE password_reset_tokens
+     SET used_at = ?
+     WHERE id = ?`
+  ).run(timestamp, id);
+}
+
+function deletePasswordResetTokensForUser(userId) {
+  db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ?").run(userId);
+}
+
+function deleteExpiredPasswordResetTokens() {
+  db.prepare("DELETE FROM password_reset_tokens WHERE expires_at <= ? OR used_at IS NOT NULL").run(nowIso());
+}
+
+function updateUserPassword(userId, passwordHash) {
+  const timestamp = nowIso();
+  const info = db
+    .prepare(
+      `UPDATE users
+       SET password_hash = ?, updated_at = ?
+       WHERE id = ?`
+    )
+    .run(passwordHash, timestamp, userId);
+  return info.changes > 0;
+}
+
+function deleteSessionsForUser(userId) {
+  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
 }
 
 function summarizeDraftRecord(record = {}) {
@@ -462,6 +537,13 @@ module.exports = {
   touchSession,
   deleteSessionByTokenHash,
   deleteExpiredSessions,
+  createPasswordResetToken,
+  findPasswordResetToken,
+  markPasswordResetTokenUsed,
+  deletePasswordResetTokensForUser,
+  deleteExpiredPasswordResetTokens,
+  updateUserPassword,
+  deleteSessionsForUser,
   listDraftsForUser,
   upsertDraftForUser,
   deleteDraftForUser,

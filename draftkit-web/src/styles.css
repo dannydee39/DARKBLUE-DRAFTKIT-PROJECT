@@ -3564,6 +3564,15 @@ a {
   border-color: rgba(34, 197, 94, 0.32);
   background: rgba(34, 197, 94, 0.16);
 }
+.auth-reset-copy {
+  border: 1px solid var(--border2);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+}
 .auth-field {
   display: flex;
   flex-direction: column;
@@ -3763,6 +3772,23 @@ a {
   background: var(--bg4);
   border-color: var(--green);
   filter: none;
+}
+.auth-secondary-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.auth-text-btn {
+  border: none;
+  background: transparent;
+  color: #86efac;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.auth-text-btn:hover {
+  color: #bbf7d0;
 }
 
 @media (max-width: 900px) {

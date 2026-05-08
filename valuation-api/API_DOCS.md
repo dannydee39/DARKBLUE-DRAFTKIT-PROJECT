@@ -572,6 +572,7 @@ The generator fetches and blends official MLB data, normalizes player identity a
 |---|---|---|
 | 400 | Bad Request | `draft_state` missing |
 | 401 | Unauthorized | Missing or invalid `X-License-Key` header |
+| 403 | Forbidden | Valid license key used from an IP outside its configured allowlist |
 | 429 | Too Many Requests | Rate limit exceeded (120/min) |
 | 500 | Internal Server Error | Unexpected error in valuation calculation |
 
@@ -587,6 +588,21 @@ ALLOWED_ORIGINS=http://localhost:5173,https://darkbluevalue.anythingavenue.com
 
 Requests with no `Origin` header (curl, Postman, server-to-server) are always allowed.
 In `NODE_ENV=development`, all origins are permitted.
+
+## API Key IP Allowlists
+
+Set `API_IP_WHITELIST` for one global allowlist or `API_KEY_IP_WHITELIST` for
+per-key allowlists:
+
+```env
+API_IP_WHITELIST=127.0.0.1,198.51.100.0/24
+API_KEY_IP_WHITELIST=DB-2026-DEMO-0001=127.0.0.1|198.51.100.0/24;DB-2026-DEMO-0002=*
+```
+
+Rules support exact IPs, IPv4 CIDR ranges, and `*`. When both variables are
+empty, valid API keys are not IP-restricted. Set `TRUST_PROXY_HOPS` to the
+known proxy hop count for the deployment so proxy headers are trusted without
+weakening rate-limit behavior.
 
 ---
 

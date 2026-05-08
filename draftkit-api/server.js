@@ -7,7 +7,10 @@ const rateLimit = require("express-rate-limit");
 const authRouter = require("./routes/auth");
 const draftsRouter = require("./routes/drafts");
 const valuationProxyRouter = require("./routes/valuation-proxy");
-const { deleteExpiredSessions } = require("./lib/db");
+const {
+  deleteExpiredPasswordResetTokens,
+  deleteExpiredSessions,
+} = require("./lib/db");
 
 function createApp(options = {}) {
   const app = express();
@@ -29,6 +32,7 @@ function createApp(options = {}) {
   setInterval(() => {
     try {
       deleteExpiredSessions();
+      deleteExpiredPasswordResetTokens();
     } catch (error) {
       console.error("Session cleanup failed:", error.message);
     }

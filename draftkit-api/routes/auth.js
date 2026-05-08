@@ -2,15 +2,28 @@ const crypto = require("crypto");
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const {
+  createPasswordResetToken: createPasswordResetTokenRecord,
   createSession,
   createUser,
   deleteSessionByTokenHash,
+  deletePasswordResetTokensForUser,
+  deleteSessionsForUser,
   findUserByEmail,
+  findPasswordResetToken,
+  markPasswordResetTokenUsed,
+  updateUserPassword,
 } = require("../lib/db");
+const {
+  buildPasswordResetUrl,
+  mailerIsConfigured,
+  sendPasswordResetEmail,
+} = require("../lib/mailer");
 const {
   createSessionExpiry,
   createSessionToken,
+  createPasswordResetToken,
   deriveDisplayName,
+  hashPasswordResetToken,
   hashPassword,
   hashSessionToken,
   normalizeEmail,
@@ -35,8 +48,34 @@ const authLimiter = rateLimit({
     message: "Too many authentication attempts. Please wait a moment.",
   },
 });
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too Many Requests",
+    message: "Too many password reset attempts. Please wait before trying again.",
+  },
+});
+const PASSWORD_RESET_TTL_MINUTES = Number(process.env.PASSWORD_RESET_TTL_MINUTES || 30);
 
 router.use(attachSessionUser);
+
+function createPasswordResetExpiry() {
+  return new Date(
+    Date.now() + PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
+  ).toISOString();
+}
+
+function passwordResetAcceptedPayload(extra = {}) {
+  return {
+    ok: true,
+    message:
+      "If that account exists, a password reset link will be sent shortly.",
+    ...extra,
+  };
+}
 
 router.get("/me", (req, res) => {
   res.json({
@@ -130,6 +169,109 @@ router.post("/login", authLimiter, async (req, res) => {
   res.json({
     authenticated: true,
     user: sanitizeUser(user),
+  });
+});
+
+router.post("/password-reset/request", passwordResetLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "A valid email address is required.",
+    });
+  }
+
+  if (!mailerIsConfigured()) {
+    return res.status(503).json({
+      error: "Service Unavailable",
+      code: "MAIL_NOT_CONFIGURED",
+      message: "Password reset email is not configured for this deployment.",
+    });
+  }
+
+  const user = findUserByEmail(email);
+  if (!user) {
+    return res.status(202).json(passwordResetAcceptedPayload());
+  }
+
+  const rawToken = createPasswordResetToken();
+  const tokenHash = hashPasswordResetToken(rawToken);
+  const resetUrl = buildPasswordResetUrl(rawToken);
+
+  deletePasswordResetTokensForUser(user.id);
+  createPasswordResetTokenRecord({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    tokenHash,
+    expiresAt: createPasswordResetExpiry(),
+    requestIp: req.ip,
+    userAgent: req.get("user-agent") || null,
+  });
+
+  try {
+    await sendPasswordResetEmail({
+      to: user.email,
+      displayName: user.display_name,
+      resetUrl,
+    });
+  } catch (error) {
+    deletePasswordResetTokensForUser(user.id);
+    const statusCode = error.code === "MAIL_NOT_CONFIGURED" ? 503 : 502;
+    return res.status(statusCode).json({
+      error: "Service Unavailable",
+      code: "MAIL_DELIVERY_FAILED",
+      message: "Password reset email could not be sent. Please try again later.",
+    });
+  }
+
+  const exposeToken =
+    process.env.NODE_ENV !== "production" &&
+    process.env.PASSWORD_RESET_EXPOSE_TOKEN === "true";
+  return res.status(202).json(
+    passwordResetAcceptedPayload(
+      exposeToken ? { resetToken: rawToken, resetUrl } : {},
+    ),
+  );
+});
+
+router.post("/password-reset/confirm", passwordResetLimiter, async (req, res) => {
+  const token = String(req.body?.token || "").trim();
+  const password = String(req.body?.password || "");
+
+  if (!token) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "A reset token is required.",
+    });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({
+      error: "Bad Request",
+      message: "Password must be at least 8 characters.",
+    });
+  }
+
+  const record = findPasswordResetToken(hashPasswordResetToken(token));
+  const expired = !record || Date.parse(record.expires_at) <= Date.now();
+  if (expired || record.used_at) {
+    return res.status(400).json({
+      error: "Bad Request",
+      code: "INVALID_RESET_TOKEN",
+      message: "Reset link is invalid or expired.",
+    });
+  }
+
+  const passwordHash = await hashPassword(password);
+  updateUserPassword(record.user_id, passwordHash);
+  markPasswordResetTokenUsed(record.id);
+  deletePasswordResetTokensForUser(record.user_id);
+  deleteSessionsForUser(record.user_id);
+  clearSessionCookie(res);
+
+  return res.json({
+    ok: true,
+    message: "Password reset complete. Sign in with your new password.",
   });
 });
 

@@ -12,25 +12,36 @@ export default function AuthModal({
   onClose,
   onLogin,
   onSignup,
+  onRequestPasswordReset,
+  onConfirmPasswordReset,
   onLogout,
   onDismissError,
+  resetToken = "",
 }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [resetTokenInput, setResetTokenInput] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setPassword("");
+    setNewPassword("");
+    setResetMessage("");
+    setResetTokenInput(resetToken || "");
     if (user) {
       setMode("account");
       setEmail(user.email || "");
       setDisplayName(user.displayName || "");
+    } else if (resetToken) {
+      setMode("reset-confirm");
     } else {
       setMode("login");
     }
-  }, [open, user]);
+  }, [open, user, resetToken]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -53,6 +64,29 @@ export default function AuthModal({
     event.preventDefault();
     if (busy) return;
 
+    if (mode === "forgot") {
+      const response = await onRequestPasswordReset?.({ email });
+      if (response?.ok) {
+        setResetMessage(response.message || "If that account exists, a reset link will be sent shortly.");
+      }
+      return;
+    }
+
+    if (mode === "reset-confirm") {
+      const response = await onConfirmPasswordReset?.({
+        token: resetTokenInput,
+        password: newPassword,
+      });
+      if (response?.ok) {
+        setPassword("");
+        setNewPassword("");
+        setResetTokenInput("");
+        setMode("login");
+        setResetMessage(response.message || "Password reset complete. Sign in with your new password.");
+      }
+      return;
+    }
+
     if (mode === "signup") {
       await onSignup?.({
         email,
@@ -63,6 +97,28 @@ export default function AuthModal({
     }
 
     await onLogin?.({ email, password });
+  }
+
+  function getTitle() {
+    if (user) return "Cloud Library";
+    if (mode === "forgot") return "Reset Password";
+    if (mode === "reset-confirm") return "Choose New Password";
+    if (mode === "signup") return "Create Draft Kit Account";
+    return "Sign In";
+  }
+
+  function getSubmitLabel() {
+    if (busy) {
+      if (mode === "forgot") return "Sending reset link...";
+      if (mode === "reset-confirm") return "Resetting password...";
+      if (mode === "signup") return "Creating account...";
+      return "Signing in...";
+    }
+
+    if (mode === "forgot") return "Send Reset Link";
+    if (mode === "reset-confirm") return "Reset Password";
+    if (mode === "signup") return "Create Account";
+    return "Sign In";
   }
 
   return (
@@ -77,13 +133,7 @@ export default function AuthModal({
         <div className="auth-modal-header">
           <div>
             <div className="auth-modal-kicker">Draft Kit</div>
-            <h2 id="auth-modal-title">
-              {user
-                ? "Cloud Library"
-                : mode === "signup"
-                  ? "Create Draft Kit Account"
-                  : "Sign In"}
-            </h2>
+            <h2 id="auth-modal-title">{getTitle()}</h2>
           </div>
           <button
             type="button"
@@ -201,18 +251,38 @@ export default function AuthModal({
               <button
                 type="button"
                 className={mode === "login" ? "active" : ""}
-                onClick={() => setMode("login")}
+                onClick={() => {
+                  setMode("login");
+                  setResetMessage("");
+                }}
               >
                 Login
               </button>
               <button
                 type="button"
                 className={mode === "signup" ? "active" : ""}
-                onClick={() => setMode("signup")}
+                onClick={() => {
+                  setMode("signup");
+                  setResetMessage("");
+                }}
               >
                 Sign Up
               </button>
             </div>
+
+            {mode === "forgot" ? (
+              <div className="auth-reset-copy">
+                Enter your Draft Kit account email. If it exists, we will send a single-use reset link.
+              </div>
+            ) : null}
+
+            {mode === "reset-confirm" ? (
+              <div className="auth-reset-copy">
+                {resetToken
+                  ? "Choose a new password for your Draft Kit account."
+                  : "Enter the reset token from your email and choose a new password."}
+              </div>
+            ) : null}
 
             {mode === "signup" ? (
               <label className="auth-field">
@@ -226,31 +296,66 @@ export default function AuthModal({
               </label>
             ) : null}
 
-            <label className="auth-field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@anythingavenue.com"
-                autoComplete="email"
-                required
-              />
-            </label>
+            {mode !== "reset-confirm" ? (
+              <label className="auth-field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@anythingavenue.com"
+                  autoComplete="email"
+                  required
+                />
+              </label>
+            ) : null}
 
-            <label className="auth-field">
-              <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Minimum 8 characters"
-                autoComplete={
-                  mode === "signup" ? "new-password" : "current-password"
-                }
-                required
-              />
-            </label>
+            {mode === "reset-confirm" ? (
+              <>
+                {!resetToken ? (
+                  <label className="auth-field">
+                    <span>Reset Token</span>
+                    <input
+                      value={resetTokenInput}
+                      onChange={(event) => setResetTokenInput(event.target.value)}
+                      placeholder="Token from reset email"
+                      autoComplete="one-time-code"
+                      required
+                    />
+                  </label>
+                ) : null}
+                <label className="auth-field">
+                  <span>New Password</span>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </label>
+              </>
+            ) : mode !== "forgot" ? (
+              <label className="auth-field">
+                <span>Password</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Minimum 8 characters"
+                  autoComplete={
+                    mode === "signup" ? "new-password" : "current-password"
+                  }
+                  required
+                />
+              </label>
+            ) : null}
+
+            {resetMessage ? (
+              <div className="auth-sync-banner">{resetMessage}</div>
+            ) : null}
 
             {error ? (
               <div className="auth-error" role="alert">
@@ -274,14 +379,35 @@ export default function AuthModal({
                 className="auth-submit-btn"
                 disabled={busy}
               >
-                {busy
-                  ? mode === "signup"
-                    ? "Creating account…"
-                    : "Signing in…"
-                  : mode === "signup"
-                    ? "Create Account"
-                    : "Sign In"}
+                {getSubmitLabel()}
               </button>
+            </div>
+
+            <div className="auth-secondary-actions">
+              {mode === "login" ? (
+                <button
+                  type="button"
+                  className="auth-text-btn"
+                  onClick={() => {
+                    setMode("forgot");
+                    setResetMessage("");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              ) : null}
+              {mode === "forgot" || mode === "reset-confirm" ? (
+                <button
+                  type="button"
+                  className="auth-text-btn"
+                  onClick={() => {
+                    setMode("login");
+                    setResetMessage("");
+                  }}
+                >
+                  Back to sign in
+                </button>
+              ) : null}
             </div>
           </form>
         )}
@@ -289,4 +415,3 @@ export default function AuthModal({
     </div>
   );
 }
-

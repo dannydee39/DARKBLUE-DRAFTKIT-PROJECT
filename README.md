@@ -45,10 +45,10 @@ The browser never sends the valuation license key directly. `draftkit-api` store
   - Manages board, keeper setup, taxi draft, minor league rosters, draft history, settings, player notes, and UI feedback.
   - Subscribes to player update streams and sends league-scoped commissioner notes for signed-in cloud drafts.
 - `draftkit-api`
-  - Owns Draft Kit accounts, sessions, cloud draft persistence, and per-draft commissioner notes.
+  - Owns Draft Kit accounts, password reset, sessions, cloud draft persistence, and per-draft commissioner notes.
   - Proxies player pool, valuation, MLB depth chart, and global player update calls to `valuation-api`.
 - `valuation-api`
-  - Owns licensed valuation logic, player pool data, global MLB/player news feed, live depth charts, API key mediation, and rate limiting.
+  - Owns licensed valuation logic, player pool data, global MLB/player news feed, live depth charts, API key mediation, optional IP allowlisting, and rate limiting.
   - Accepts stateless draft payloads, including local `commissioner_notes`, and returns valuation dictionaries.
 - `valuation-site`
   - Explains the licensed API, shows endpoint examples, and provides buyer/account-oriented copy.
@@ -162,7 +162,7 @@ Source rubric: `C:\Users\Apple\Documents\Downloads\416-S26-Final Project-System 
 
 The project should receive full credit for the relevant licensing workflow because the valuation API is treated as a separate licensed product rather than as code directly exposed to the Draft Kit browser. The public valuation product site gives a buyer-facing account/license surface, shows the API key flow, and documents how a developer sends `X-License-Key`. Reviewers can see that in `valuation-site/index.html`, `valuation-site/js/pages/account.js`, `valuation-site/js/pages/license.js`, and `valuation-site/js/pages/endpoints.js`.
 
-The backend enforces key-based API access in `valuation-api/middleware/auth.js`, applies request throttling in `valuation-api/server.js`, and has regression coverage for authenticated calls and rate limiting in `valuation-api/scripts/test-api.js`. Draft Kit uses the license correctly because only `draftkit-api/routes/valuation-proxy.js` reads `VALUATION_API_KEY` from server-side environment and forwards it to the valuation API. The React app never stores or sends the licensed valuation key directly.
+The backend enforces key-based API access and optional exact-IP/CIDR allowlisting in `valuation-api/middleware/auth.js`, applies request throttling in `valuation-api/server.js`, and has regression coverage for authenticated calls, blocked IPs, whitelisted CIDR access, and rate limiting in `valuation-api/scripts/test-api.js`. Draft Kit uses the license correctly because only `draftkit-api/routes/valuation-proxy.js` reads `VALUATION_API_KEY` from server-side environment and forwards it to the valuation API. The React app never stores or sends the licensed valuation key directly.
 
 ### Player API Valuations
 
@@ -172,7 +172,7 @@ The player pool includes generated baseball context in `valuation-api/data/playe
 
 ### Draft Kit Accounts
 
-Draft Kit should receive full credit for account-backed draft ownership because account creation, login, sessions, draft storage, draft reopening, and duplicate draft workflows are all implemented as real product behavior. The backend account/session implementation is in `draftkit-api/routes/auth.js`, `draftkit-api/middleware/session.js`, `draftkit-api/lib/security.js`, and `draftkit-api/lib/db.js`. The user-facing login/signup modal is `draftkit-web/src/components/AuthModal.jsx`.
+Draft Kit should receive full credit for account-backed draft ownership because account creation, login, production password reset, sessions, draft storage, draft reopening, and duplicate draft workflows are all implemented as real product behavior. The backend account/session implementation is in `draftkit-api/routes/auth.js`, `draftkit-api/middleware/session.js`, `draftkit-api/lib/security.js`, `draftkit-api/lib/mailer.js`, and `draftkit-api/lib/db.js`. The user-facing login/signup/password-reset modal is `draftkit-web/src/components/AuthModal.jsx`.
 
 Saved drafts are scoped to the authenticated user in `draftkit-api/routes/drafts.js` and `draftkit-api/lib/db.js`. On the frontend, `draftkit-web/src/App.jsx` manages creating drafts for a season, saving multiple cloud drafts, reopening current or prior drafts, and duplicating an existing draft as a new workspace. This gives reviewers a concrete account-to-draft flow rather than a local-only demo.
 

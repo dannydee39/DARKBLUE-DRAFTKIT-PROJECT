@@ -5,10 +5,11 @@ const path = require("path");
 const playerPool = require("../data/players.json");
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dbvalue-updates-"));
+const API_KEY = "DB-2026-DEMO-0001";
 process.env.PLAYER_UPDATES_FILE = path.join(tempDir, "player-updates.json");
+process.env.API_KEY_IP_WHITELIST = `${API_KEY}=127.0.0.1|198.51.100.0/24`;
 
 const { createApp } = require("../server");
-const API_KEY = "DB-2026-DEMO-0001";
 
 function rosterTuple(playerName) {
   const player = playerPool.find((entry) => entry.name === playerName);
@@ -204,6 +205,17 @@ async function runGeneralRegressionSuite() {
       body: JSON.stringify({ draft_state: buildDraftState() }),
     });
     assert.equal(invalidKey.response.status, 401, "Invalid key should return 401");
+
+    const whitelistedIp = await jsonFetch(`${baseUrl}/v1/players`, {
+      headers: { "X-License-Key": API_KEY, "X-Forwarded-For": "198.51.100.25" },
+    });
+    assert.equal(whitelistedIp.response.status, 200, "Whitelisted CIDR IP should be allowed");
+
+    const blockedIp = await jsonFetch(`${baseUrl}/v1/players`, {
+      headers: { "X-License-Key": API_KEY, "X-Forwarded-For": "203.0.113.77" },
+    });
+    assert.equal(blockedIp.response.status, 403, "Non-whitelisted IP should be blocked");
+    assert.equal(blockedIp.body.code, "IP_NOT_ALLOWED");
 
     const valuate = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",

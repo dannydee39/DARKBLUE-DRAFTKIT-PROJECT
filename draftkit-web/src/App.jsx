@@ -58,11 +58,13 @@ import {
   createCloudDraft,
   deleteCloudDraft,
   deleteDraftNote,
+  confirmPasswordReset,
   getCurrentUser,
   listCloudDrafts,
   login as loginToCloud,
   logout as logoutFromCloud,
   markCloudDraftOpened,
+  requestPasswordReset,
   signup as signupForCloud,
   updateCloudDraft,
 } from "./utils/cloudApi.js";
@@ -195,6 +197,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [passwordResetToken, setPasswordResetToken] = useState("");
   const [cloudSyncMessage, setCloudSyncMessage] = useState("");
   const cloudSaveTimeoutRef = useRef(null);
 
@@ -479,6 +482,20 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resetToken = params.get("resetToken");
+    if (!resetToken) return;
+
+    setPasswordResetToken(resetToken);
+    setAuthError("");
+    setShowAuthModal(true);
+    params.delete("resetToken");
+    const nextSearch = params.toString();
+    const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
   }, []);
 
   useEffect(() => {
@@ -775,6 +792,42 @@ export default function App() {
     } finally {
       setAuthBusy(false);
     }
+  }
+
+  async function handlePasswordResetRequest(payload) {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const response = await requestPasswordReset(payload);
+      setCloudSyncMessage(response?.message || "If that account exists, a reset link will be sent shortly.");
+      return response;
+    } catch (error) {
+      setAuthError(error?.message || "Could not request a password reset.");
+      return null;
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handlePasswordResetConfirm(payload) {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const response = await confirmPasswordReset(payload);
+      setPasswordResetToken("");
+      setCloudSyncMessage(response?.message || "Password reset complete. Sign in with your new password.");
+      return response;
+    } catch (error) {
+      setAuthError(error?.message || "Could not reset password.");
+      return null;
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  function closeAuthModal() {
+    setShowAuthModal(false);
+    setPasswordResetToken("");
   }
 
   async function handleLogout() {
@@ -3264,9 +3317,12 @@ export default function App() {
           cloudSyncMessage={cloudSyncMessage}
           busy={authBusy}
           error={authError}
-          onClose={() => setShowAuthModal(false)}
+          resetToken={passwordResetToken}
+          onClose={closeAuthModal}
           onLogin={handleLogin}
           onSignup={handleSignup}
+          onRequestPasswordReset={handlePasswordResetRequest}
+          onConfirmPasswordReset={handlePasswordResetConfirm}
           onLogout={handleLogout}
           onDismissError={() => setAuthError("")}
         />
@@ -3669,10 +3725,14 @@ export default function App() {
         cloudSyncMessage={cloudSyncMessage}
         busy={authBusy}
         error={authError}
-        onClose={() => setShowAuthModal(false)}
+        resetToken={passwordResetToken}
+        onClose={closeAuthModal}
         onLogin={handleLogin}
         onSignup={handleSignup}
+        onRequestPasswordReset={handlePasswordResetRequest}
+        onConfirmPasswordReset={handlePasswordResetConfirm}
         onLogout={handleLogout}
+        onDismissError={() => setAuthError("")}
       />
     </div>
   );

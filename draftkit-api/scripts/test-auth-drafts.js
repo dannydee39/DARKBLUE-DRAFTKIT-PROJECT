@@ -7,6 +7,9 @@ async function main() {
   process.env.AUTH_DB_PATH = path.join(tempDir, "draftkit-auth.db");
   process.env.NODE_ENV = "development";
   process.env.ALLOWED_ORIGINS = "http://localhost:4173,https://draft.anythingavenue.com";
+  process.env.MAIL_TRANSPORT = "json";
+  process.env.PASSWORD_RESET_BASE_URL = "https://draft.anythingavenue.com";
+  process.env.PASSWORD_RESET_EXPOSE_TOKEN = "true";
 
   const { createApp } = require("../server");
   const app = createApp({ rateLimitMax: 5000 });
@@ -169,6 +172,89 @@ async function main() {
     const afterLogout = await request("/v1/auth/me", { method: "GET" });
     if (afterLogout.body?.authenticated) {
       throw new Error("User still authenticated after logout.");
+    }
+
+    const unknownReset = await request("/v1/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify({ email: `missing-${Date.now()}@anythingavenue.com` }),
+    });
+    if (unknownReset.response.status !== 202 || unknownReset.body?.resetToken) {
+      throw new Error(`Unknown-account reset did not return a generic 202: ${JSON.stringify(unknownReset.body)}`);
+    }
+
+    const resetRequest = await request("/v1/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    if (
+      resetRequest.response.status !== 202 ||
+      !resetRequest.body?.resetToken ||
+      !resetRequest.body?.resetUrl?.includes("https://draft.anythingavenue.com")
+    ) {
+      throw new Error(`Password reset request failed: ${JSON.stringify(resetRequest.body)}`);
+    }
+
+    const shortPasswordReset = await request("/v1/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify({
+        token: resetRequest.body.resetToken,
+        password: "short",
+      }),
+    });
+    if (shortPasswordReset.response.status !== 400) {
+      throw new Error(`Short password reset should fail: ${JSON.stringify(shortPasswordReset.body)}`);
+    }
+
+    const activeLogin = await request("/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (!activeLogin.body?.authenticated) {
+      throw new Error(`Login before reset failed: ${JSON.stringify(activeLogin.body)}`);
+    }
+
+    const newPassword = "password456";
+    const confirmedReset = await request("/v1/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify({
+        token: resetRequest.body.resetToken,
+        password: newPassword,
+      }),
+    });
+    if (!confirmedReset.body?.ok) {
+      throw new Error(`Password reset confirm failed: ${JSON.stringify(confirmedReset.body)}`);
+    }
+
+    const resetClearedSession = await request("/v1/auth/me", { method: "GET" });
+    if (resetClearedSession.body?.authenticated) {
+      throw new Error("Password reset should invalidate existing sessions.");
+    }
+
+    const oldPasswordLogin = await request("/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (oldPasswordLogin.response.status !== 401) {
+      throw new Error(`Old password should fail after reset: ${JSON.stringify(oldPasswordLogin.body)}`);
+    }
+
+    const newPasswordLogin = await request("/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: newPassword }),
+    });
+    if (!newPasswordLogin.body?.authenticated) {
+      throw new Error(`New password login failed after reset: ${JSON.stringify(newPasswordLogin.body)}`);
+    }
+
+    const reusedReset = await request("/v1/auth/password-reset/confirm", {
+      method: "POST",
+      body: JSON.stringify({
+        token: resetRequest.body.resetToken,
+        password: "password789",
+      }),
+    });
+    if (reusedReset.response.status !== 400 || reusedReset.body?.code !== "INVALID_RESET_TOKEN") {
+      throw new Error(`Reset token reuse should fail: ${JSON.stringify(reusedReset.body)}`);
     }
 
     console.log("Auth + draft cloud regression passed.");

@@ -29,8 +29,16 @@ function createSessionToken() {
   return crypto.randomBytes(32).toString("base64url");
 }
 
+function createPasswordResetToken() {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
 function hashSessionToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function hashPasswordResetToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
 }
 
 function createSessionExpiry() {
@@ -60,7 +68,9 @@ module.exports = {
   hashPassword,
   verifyPassword,
   createSessionToken,
+  createPasswordResetToken,
   hashSessionToken,
+  hashPasswordResetToken,
   createSessionExpiry,
   sanitizeUser,
 };

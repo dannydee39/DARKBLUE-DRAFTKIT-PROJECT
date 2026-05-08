@@ -48,6 +48,20 @@ export function login(payload) {
   });
 }
 
+export function requestPasswordReset(payload) {
+  return cloudRequest("/v1/auth/password-reset/request", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function confirmPasswordReset(payload) {
+  return cloudRequest("/v1/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function logout() {
   return cloudRequest("/v1/auth/logout", { method: "POST" });
 }

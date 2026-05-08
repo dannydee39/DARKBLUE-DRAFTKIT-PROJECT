@@ -5,7 +5,7 @@ Express backend for Draft Kit accounts, cloud draft persistence, per-draft leagu
 ## Start Here
 
 - `server.js` creates the Express app, CORS policy, rate limiter, health endpoint, and route mounts.
-- `routes/auth.js` owns signup, login, logout, and current-user session checks.
+- `routes/auth.js` owns signup, login, logout, password reset, and current-user session checks.
 - `routes/drafts.js` owns cloud drafts, open markers, per-draft league notes, and note SSE streams.
 - `routes/valuation-proxy.js` proxies valuation API calls while keeping `VALUATION_API_KEY` server-side.
 - `lib/db.js` initializes SQLite tables and contains persistence helpers.
@@ -35,3 +35,16 @@ Use `.env.example` as the template. Important values:
 - `VALUATION_API_BASE`
 - `VALUATION_API_KEY`
 - `AUTH_DB_PATH`
+- `PASSWORD_RESET_BASE_URL`
+- `PASSWORD_RESET_TTL_MINUTES`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM`
+
+Password reset is intentionally SMTP-backed in production. If SMTP is not
+configured, reset requests return `503 MAIL_NOT_CONFIGURED` instead of exposing
+tokens or pretending an email was sent. Tests use `MAIL_TRANSPORT=json` and
+`PASSWORD_RESET_EXPOSE_TOKEN=true` to verify the reset flow without real mail.

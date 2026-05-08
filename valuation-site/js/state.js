@@ -1,8 +1,7 @@
 /**
  * state.js — Global state and API constants.
  *
- * Minimal namespace. No real auth, no session persistence — the site is a
- * static licensing + endpoint reference plus a buyer-account preview shell.
+ * Minimal namespace plus API-backed buyer authentication.
  */
 
 window.DB = window.DB || {};
@@ -24,29 +23,36 @@ DB.DRAFTKIT_API = 'https://draftapi.anythingavenue.com';
 DB.state = { page: 'license' };
 DB.pages = {};
 
-/* ── Auth (browser-only, Draft-Kit-style) ─────────────────────────────────── */
-
-DB.AUTH_STORAGE_KEY = 'darkblue-api-session-v1';
+/* ── Auth (API-backed buyer sessions) ─────────────────────────────────────── */
 
 DB.auth = (function () {
   var _listeners = [];
   var _user = null;
+  var _ready = false;
 
-  try {
-    var raw = window.localStorage.getItem(DB.AUTH_STORAGE_KEY);
-    if (raw) _user = JSON.parse(raw);
-  } catch (e) {
-    _user = null;
+  function _request(path, options) {
+    options = options || {};
+    return fetch(DB.API_BASE + path, Object.assign({
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    }, options)).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        if (!response.ok) {
+          var error = new Error(body.message || body.error || 'Request failed.');
+          error.status = response.status;
+          error.body = body;
+          throw error;
+        }
+        return body;
+      });
+    });
   }
 
-  function _persist() {
-    try {
-      if (_user) {
-        window.localStorage.setItem(DB.AUTH_STORAGE_KEY, JSON.stringify(_user));
-      } else {
-        window.localStorage.removeItem(DB.AUTH_STORAGE_KEY);
-      }
-    } catch (e) {}
+  function _setUser(user) {
+    _user = user || null;
+    _ready = true;
+    _emit();
+    return _user;
   }
 
   function _emit() {
@@ -55,28 +61,63 @@ DB.auth = (function () {
     });
   }
 
+  function init() {
+    return _request('/v1/auth/me', { method: 'GET', headers: {} })
+      .then(function (body) {
+        return _setUser(body.authenticated ? body.user : null);
+      })
+      .catch(function () {
+        return _setUser(null);
+      });
+  }
+
   function login(fields) {
     var email = (fields && fields.email || '').trim();
-    var name = (fields && fields.displayName || '').trim() || email.split('@')[0] || 'Buyer';
+    var password = String(fields && fields.password || '');
     if (!email) throw new Error('Email is required.');
-    _user = {
-      email: email,
-      displayName: name,
-      createdAt: new Date().toISOString(),
-    };
-    _persist();
-    _emit();
-    return _user;
+    if (!password) throw new Error('Password is required.');
+    return _request('/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: email, password: password }),
+    }).then(function (body) {
+      return _setUser(body.user);
+    });
   }
 
   function signup(fields) {
-    return login(fields);
+    var email = (fields && fields.email || '').trim();
+    var password = String(fields && fields.password || '');
+    var displayName = (fields && fields.displayName || '').trim();
+    if (!email) throw new Error('Email is required.');
+    if (password.length < 8) throw new Error('Password must be at least 8 characters.');
+    return _request('/v1/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email: email, password: password, displayName: displayName }),
+    }).then(function (body) {
+      return _setUser(body.user);
+    });
   }
 
   function logout() {
-    _user = null;
-    _persist();
-    _emit();
+    return _request('/v1/auth/logout', { method: 'POST', body: '{}' })
+      .catch(function () {})
+      .then(function () {
+        return _setUser(null);
+      });
+  }
+
+  function requestPasswordReset(email) {
+    return _request('/v1/auth/password-reset/request', {
+      method: 'POST',
+      body: JSON.stringify({ email: email }),
+    });
+  }
+
+  function confirmPasswordReset(token, password) {
+    return _request('/v1/auth/password-reset/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ token: token, password: password }),
+    });
   }
 
   function current() {
@@ -91,10 +132,16 @@ DB.auth = (function () {
   }
 
   return {
+    init: init,
     login: login,
     signup: signup,
     logout: logout,
+    requestPasswordReset: requestPasswordReset,
+    confirmPasswordReset: confirmPasswordReset,
     current: current,
     onChange: onChange,
+    ready: function () { return _ready; },
   };
 }());
+
+DB.auth.init();

@@ -6,6 +6,8 @@ Licensed MLB valuation API. This service is intentionally separate from Draft Ki
 
 - `server.js` creates the Express app, health endpoint, rate limiter, and API route mounts.
 - `middleware/auth.js` enforces the `X-License-Key` header and optional IP allowlists.
+- `routes/auth.js` owns buyer signup, login, logout, password reset, and account session checks.
+- `lib/db.js` stores buyer accounts, sessions, password reset tokens, and per-account license keys in SQLite.
 - `routes/players.js` returns filtered player-pool data.
 - `routes/valuate.js` accepts stateless draft payloads and returns valuation dictionaries.
 - `routes/player-updates.js` owns global MLB/player update CRUD and SSE.
@@ -31,9 +33,23 @@ Commissioner notes are read from the request only. They affect that response but
 ```powershell
 npm install
 npm start
+npm run test:auth
 npm run test:api
 node scripts/test-mlb-depth-charts.js
 ```
+
+## Buyer Accounts And License Keys
+
+The valuation site uses `POST /v1/auth/signup`, `POST /v1/auth/login`,
+`GET /v1/auth/me`, and `POST /v1/auth/logout` for real buyer sessions. Signup
+creates a unique active license key for that account and returns it in the
+sanitized user payload. The same key can immediately authorize protected
+valuation endpoints through `X-License-Key`.
+
+Password reset uses hashed single-use reset tokens in SQLite. Production reset
+emails require SMTP settings. In local/test environments, set
+`MAIL_TRANSPORT=json` and `PASSWORD_RESET_EXPOSE_TOKEN=true` to validate the
+flow without sending real email.
 
 Regenerate the tracked player pool:
 

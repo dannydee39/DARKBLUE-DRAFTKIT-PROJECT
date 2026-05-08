@@ -7,6 +7,11 @@ const valuateRouter = require("./routes/valuate");
 const playersRouter = require("./routes/players");
 const playerUpdatesRouter = require("./routes/player-updates");
 const mlbDepthChartsRouter = require("./routes/mlb-depth-charts");
+const authRouter = require("./routes/auth");
+const {
+  deleteExpiredPasswordResetTokens,
+  deleteExpiredSessions,
+} = require("./lib/db");
 
 function createApp(options = {}) {
   const app = express();
@@ -28,7 +33,7 @@ function createApp(options = {}) {
         }
         return callback(new Error("Not allowed by CORS policy"));
       },
-      credentials: false,
+      credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "X-License-Key"],
     })
@@ -47,7 +52,20 @@ function createApp(options = {}) {
   // ── BODY PARSING ────────────────────────────────────────────────────────────
   app.use(express.json({ limit: "1mb" }));
 
+  const cleanupMs = Number(options.sessionCleanupMs ?? process.env.SESSION_CLEANUP_MS ?? 15 * 60 * 1000);
+  if (cleanupMs > 0) {
+    setInterval(() => {
+      try {
+        deleteExpiredSessions();
+        deleteExpiredPasswordResetTokens();
+      } catch (error) {
+        console.error("Valuation auth cleanup failed:", error.message);
+      }
+    }, cleanupMs).unref();
+  }
+
   // ── ROUTES ──────────────────────────────────────────────────────────────────
+  app.use("/v1/auth", authRouter);
   app.use("/v1/valuate", valuateRouter);
   app.use("/v1/players", playersRouter);
   app.use("/v1/player-updates", playerUpdatesRouter);

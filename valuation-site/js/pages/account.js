@@ -1,9 +1,8 @@
 /**
  * account.js — Buyer account/dashboard page.
  *
- * No separate backend auth exists for the valuation site today, so this page
- * behaves like a customer portal with browser-persisted buyer details and
- * live API health/integration checks.
+ * Buyer account/dashboard page backed by valuation-api auth, sessions, and
+ * per-account license keys.
  */
 
 window.DB = window.DB || {};
@@ -21,6 +20,13 @@ DB.pages.account = function (container) {
   profile = Object.assign({}, profile, {
     ownerName: user.displayName || profile.ownerName,
     email: user.email || profile.email,
+    accountId: user.license && user.license.accountId ? user.license.accountId : profile.accountId,
+    licenseKey: user.license && user.license.key ? user.license.key : profile.licenseKey,
+    plan: user.license && user.license.plan ? user.license.plan : profile.plan,
+    environment: user.license && user.license.environment ? user.license.environment : profile.environment,
+    requestsUsed: user.license && Number.isFinite(Number(user.license.requestsUsed)) ? Number(user.license.requestsUsed) : profile.requestsUsed,
+    requestsLimit: user.license && Number.isFinite(Number(user.license.requestsLimit)) ? Number(user.license.requestsLimit) : profile.requestsLimit,
+    renewsOn: user.license && user.license.renewsOn ? user.license.renewsOn : profile.renewsOn,
   });
   var KEY = profile.licenseKey || DB.DEMO_KEY;
   var DISPLAY = DB.API_DISPLAY;
@@ -81,7 +87,7 @@ DB.pages.account = function (container) {
             '</div>' +
             '<div class="account-note-stack">' +
               '<div class="account-note"><strong>Account ID:</strong> ' + _esc(profile.accountId) + '</div>' +
-              '<div class="account-note"><strong>Customize:</strong> Use Edit Buyer Details any time to update the owner, company, and plan shown on this account page.</div>' +
+              '<div class="account-note"><strong>License:</strong> This account has its own unique API key. The live checks below use that key, not the shared demo key.</div>' +
             '</div>' +
           '</article>' +
 
@@ -105,7 +111,7 @@ DB.pages.account = function (container) {
               '</div>' +
             '</div>' +
             '<div class="account-note-stack">' +
-              '<div class="account-note"><strong>Key mode:</strong> live test access is ready now. Production keys follow the same request format and rotate from this account area.</div>' +
+              '<div class="account-note"><strong>Key mode:</strong> this is the active key created for the signed-in buyer account.</div>' +
               '<div class="account-note"><strong>Rate window:</strong> 120 requests per minute per IP. Handle <code>429</code> with modest retry logic.</div>' +
             '</div>' +
             '<div class="code-block">' +
@@ -229,8 +235,8 @@ function _renderSignInPrompt(container) {
         '<div class="account-signin-gate">' +
           '<p class="license-kicker">Buyer Account</p>' +
           '<h1>Sign in to view your buyer dashboard.</h1>' +
-          '<p>Licensing, usage, and live API checks live behind a session so ' +
-          'the account view reflects a real buyer instead of a demo placeholder.</p>' +
+          '<p>Licensing, usage, password reset, and live API checks live behind a backend session so ' +
+          'the account view reflects a real buyer account instead of a demo placeholder.</p>' +
           '<div class="account-signin-actions">' +
             '<button class="btn btn-primary" type="button" id="account-gate-login">Sign In</button>' +
             '<button class="btn btn-secondary" type="button" id="account-gate-signup">Create Account</button>' +

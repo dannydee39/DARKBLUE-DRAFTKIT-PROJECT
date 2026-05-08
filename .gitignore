@@ -89,3 +89,6 @@ draftkit-api/data/draftkit-auth.db-shm
 draftkit-api/data/draftkit-auth.db-wal
 valuation-api/artifacts/
 valuation-api/data/player-updates.json
+valuation-api/data/valuation-auth.db
+valuation-api/data/valuation-auth.db-shm
+valuation-api/data/valuation-auth.db-wal

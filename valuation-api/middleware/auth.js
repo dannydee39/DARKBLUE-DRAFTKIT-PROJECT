@@ -1,9 +1,5 @@
 // middleware/auth.js - API key authentication and optional IP allowlisting.
-const VALID_KEYS = new Set(
-  (process.env.API_KEYS || "DB-2026-DEMO-0001").split(",").map((k) => k.trim())
-);
-const GLOBAL_IP_WHITELIST = parseRuleList(process.env.API_IP_WHITELIST);
-const KEY_IP_WHITELISTS = parsePerKeyWhitelist(process.env.API_KEY_IP_WHITELIST);
+const { findLicenseByKey } = require("../lib/db");
 
 /**
  * Validates X-License-Key against configured API keys, then enforces an
@@ -21,7 +17,10 @@ function requireApiKey(req, res, next) {
     });
   }
 
-  if (!VALID_KEYS.has(key)) {
+  const envKeys = getEnvKeys();
+  const envKeyAllowed = envKeys.has(key);
+  const license = envKeyAllowed ? null : findLicenseByKey(key);
+  if (!envKeyAllowed && !license) {
     return res.status(401).json({
       error: "Unauthorized",
       message: "Invalid license key. Verify your key at darkbluevalue.anythingavenue.com.",
@@ -30,7 +29,11 @@ function requireApiKey(req, res, next) {
   }
 
   const clientIp = getClientIp(req);
-  const whitelist = KEY_IP_WHITELISTS.get(key) || GLOBAL_IP_WHITELIST;
+  const keyWhitelists = parsePerKeyWhitelist(process.env.API_KEY_IP_WHITELIST);
+  const globalWhitelist = parseRuleList(process.env.API_IP_WHITELIST);
+  const licenseWhitelist = license ? parseRuleList(license.allowed_ips) : [];
+  const perKeyWhitelist = keyWhitelists.get(key);
+  const whitelist = perKeyWhitelist || (licenseWhitelist.length > 0 ? licenseWhitelist : globalWhitelist);
   if (whitelist.length > 0 && !isIpAllowed(clientIp, whitelist)) {
     return res.status(403).json({
       error: "Forbidden",
@@ -40,6 +43,15 @@ function requireApiKey(req, res, next) {
   }
 
   next();
+}
+
+function getEnvKeys() {
+  return new Set(
+    (process.env.API_KEYS || "DB-2026-DEMO-0001")
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean),
+  );
 }
 
 function parsePerKeyWhitelist(value = "") {

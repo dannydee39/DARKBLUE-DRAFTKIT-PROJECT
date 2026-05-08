@@ -35,6 +35,7 @@ Use `.env.example` as the template. Important values:
 - `VALUATION_API_BASE`
 - `VALUATION_API_KEY`
 - `AUTH_DB_PATH`
+- `TRUST_PROXY_HOPS`
 - `PASSWORD_RESET_BASE_URL`
 - `PASSWORD_RESET_TTL_MINUTES`
 - `SMTP_HOST`
@@ -48,3 +49,7 @@ Password reset is intentionally SMTP-backed in production. If SMTP is not
 configured, reset requests return `503 MAIL_NOT_CONFIGURED` instead of exposing
 tokens or pretending an email was sent. Tests use `MAIL_TRANSPORT=json` and
 `PASSWORD_RESET_EXPOSE_TOKEN=true` to verify the reset flow without real mail.
+
+Set `TRUST_PROXY_HOPS` to the known reverse-proxy hop count for deployment so
+Cloudflare/Tunnel headers work with rate limiting without enabling unrestricted
+proxy trust.

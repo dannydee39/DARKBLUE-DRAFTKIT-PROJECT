@@ -191,7 +191,7 @@ export default function App() {
   const [savedDrafts, setSavedDrafts] = useState([]);
   const [activeDraftId, setActiveDraftId] = useState(null);
   const [libraryReady, setLibraryReady] = useState(false);
-  const [storageMode, setStorageMode] = useState("local");
+  const [storageMode, setStorageMode] = useState("cloud");
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -353,17 +353,11 @@ export default function App() {
     };
   }
 
-  function readLocalDraftLibrary() {
+  function clearLocalDraftLibrary() {
     try {
-      const raw = window.localStorage.getItem(DRAFT_LIBRARY_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map((draft) => ({
-        ...draft,
-        source: draft.source || "local",
-      }));
+      window.localStorage.removeItem(DRAFT_LIBRARY_STORAGE_KEY);
     } catch {
-      return [];
+      // Browsers can block localStorage in private or restricted contexts.
     }
   }
 
@@ -386,11 +380,8 @@ export default function App() {
 
   async function refreshCloudDraftLibrary() {
     const cloudDrafts = await fetchCloudDraftLibrary();
-    const localDrafts = readLocalDraftLibrary().filter(
-      (localDraft) => !cloudDrafts.some((cloudDraft) => cloudDraft.id === localDraft.id),
-    );
     setStorageMode("cloud");
-    setSavedDrafts([...cloudDrafts, ...localDrafts]);
+    setSavedDrafts(cloudDrafts);
     return cloudDrafts;
   }
 
@@ -440,17 +431,15 @@ export default function App() {
   // Draft library hydration + persistence
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    setSavedDrafts(readLocalDraftLibrary());
+    clearLocalDraftLibrary();
+    setSavedDrafts([]);
     setLibraryReady(true);
   }, []);
 
   useEffect(() => {
     if (!libraryReady) return;
-    window.localStorage.setItem(
-      DRAFT_LIBRARY_STORAGE_KEY,
-      JSON.stringify(savedDrafts.filter((draft) => (draft.source || "local") !== "cloud")),
-    );
-  }, [savedDrafts, libraryReady]);
+    clearLocalDraftLibrary();
+  }, [libraryReady, savedDrafts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -464,12 +453,14 @@ export default function App() {
           await refreshCloudDraftLibrary();
         } else {
           setUser(null);
-          setStorageMode("local");
+          setStorageMode("cloud");
+          setSavedDrafts([]);
         }
       } catch {
         if (!cancelled) {
           setUser(null);
-          setStorageMode("local");
+          setStorageMode("cloud");
+          setSavedDrafts([]);
         }
       } finally {
         if (!cancelled) {
@@ -502,6 +493,7 @@ export default function App() {
     if (!libraryReady || !activeDraftId || screen !== "main") return;
     const current = savedDrafts.find((draft) => draft.id === activeDraftId);
     if (!current) return;
+    if (!user || current.source !== "cloud") return;
 
     const nextRecord = {
       ...current,
@@ -522,22 +514,20 @@ export default function App() {
       window.clearTimeout(cloudSaveTimeoutRef.current);
     }
 
-    if (user && nextRecord.source === "cloud") {
-      cloudSaveTimeoutRef.current = window.setTimeout(async () => {
-        try {
-          const persisted = await persistCloudDraftRecord({
-            ...nextRecord,
-            source: "cloud",
-          });
-          setCloudSyncMessage("Cloud draft saved.");
-          upsertDraftInLibrary(persisted);
-        } catch (error) {
-          setCloudSyncMessage(
-            error?.message || "Cloud save failed. Keeping the local in-memory draft open.",
-          );
-        }
-      }, CLOUD_SAVE_DEBOUNCE_MS);
-    }
+    cloudSaveTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        const persisted = await persistCloudDraftRecord({
+          ...nextRecord,
+          source: "cloud",
+        });
+        setCloudSyncMessage("Cloud draft saved.");
+        upsertDraftInLibrary(persisted);
+      } catch (error) {
+        setCloudSyncMessage(
+          error?.message || "Cloud save failed. This draft is not saved locally.",
+        );
+      }
+    }, CLOUD_SAVE_DEBOUNCE_MS);
 
     return () => {
       if (cloudSaveTimeoutRef.current) {
@@ -553,7 +543,6 @@ export default function App() {
     notes,
     players,
     screen,
-    storageMode,
     user,
   ]);
 
@@ -836,27 +825,20 @@ export default function App() {
     try {
       await logoutFromCloud();
       setUser(null);
-      setStorageMode("local");
-      setSavedDrafts((prev) => {
-        const localDrafts = readLocalDraftLibrary();
-        if (!activeDraftId || screen !== "main") return localDrafts;
-
-        const snapshot = buildDraftRecord({
-          id: activeDraftId,
-          league,
-          players,
-          notes,
-          favorites,
-          currentOwnerIdx,
-        });
-
-        return [
-          { ...snapshot, source: "local" },
-          ...localDrafts.filter((draft) => draft.id !== activeDraftId),
-        ];
-      });
+      setStorageMode("cloud");
+      setSavedDrafts([]);
+      clearLocalDraftLibrary();
+      setActiveDraftId(null);
+      setLeague({ ...DEFAULT_LEAGUE });
+      setPlayers([]);
+      setNotes({});
+      setFavorites({});
+      setSelectedPlayer(null);
+      setCurrentOwnerIdx(0);
+      setScreen("setup");
+      clearDraftHistory();
       setShowAuthModal(false);
-      setCloudSyncMessage("Signed out. Current draft remains available locally in this browser.");
+      setCloudSyncMessage("Signed out. Draft saving requires an account.");
     } catch (error) {
       setAuthError(error?.message || "Sign out failed.");
     } finally {
@@ -872,6 +854,13 @@ export default function App() {
   // @param {Object} formLeague - League config collected from SetupScreen
   // ─────────────────────────────────────────────────────────────────────────
   async function initDraft(formLeague) {
+    if (!user) {
+      setAuthError("");
+      setShowAuthModal(true);
+      setCloudSyncMessage("Sign in before creating a saved draft.");
+      return;
+    }
+
     const normalized = cloneLeagueConfig(formLeague);
     const validation = validateLeagueConfig(normalized);
     if (validation.errors.length > 0) return;
@@ -883,21 +872,6 @@ export default function App() {
     const loadedPlayers = await fetchPlayers(lg);
     const draftId = createDraftId();
 
-    setActiveDraftId(draftId);
-    setLeague(lg);
-    setPlayers(loadedPlayers);
-    setNotes({});
-    setFavorites({});
-    setSelectedPlayer(null);
-    setScreen("main");
-    setActiveTab("board");
-    setCurrentOwnerIdx(0);
-    clearDraftHistory();
-    setBoardNotice({
-      tone: "info",
-      message: "New draft workspace initialized.",
-    });
-
     const record = buildDraftRecord({
       id: draftId,
       league: lg,
@@ -907,27 +881,32 @@ export default function App() {
       currentOwnerIdx: 0,
     });
 
-    upsertDraftInLibrary({
-      ...record,
-      source: "local",
-    });
-
-    if (user) {
-      try {
-        const persisted = await persistCloudDraftRecord({
-          ...record,
-          source: "cloud",
-        }, { forceCreate: true });
-        upsertDraftInLibrary(persisted);
-        setStorageMode("cloud");
-        setCloudSyncMessage("Draft created in your cloud library.");
-      } catch (error) {
-        setStorageMode("local");
-        upsertDraftInLibrary({ ...record, source: "local" });
-        setCloudSyncMessage(
-          error?.message || "Cloud save failed. This draft is local only for now.",
-        );
-      }
+    try {
+      const persisted = await persistCloudDraftRecord({
+        ...record,
+        source: "cloud",
+      }, { forceCreate: true });
+      setActiveDraftId(draftId);
+      setLeague(lg);
+      setPlayers(loadedPlayers);
+      setNotes({});
+      setFavorites({});
+      setSelectedPlayer(null);
+      setScreen("main");
+      setActiveTab("board");
+      setCurrentOwnerIdx(0);
+      clearDraftHistory();
+      upsertDraftInLibrary(persisted);
+      setStorageMode("cloud");
+      setCloudSyncMessage("Draft created in your cloud library.");
+      setBoardNotice({
+        tone: "info",
+        message: "New cloud draft workspace initialized.",
+      });
+    } catch (error) {
+      setCloudSyncMessage(
+        error?.message || "Cloud save failed. Sign in and try again before drafting.",
+      );
     }
   }
 
@@ -981,6 +960,13 @@ export default function App() {
   }
 
   async function duplicateDraft(draftId) {
+    if (!user) {
+      setAuthError("");
+      setShowAuthModal(true);
+      setCloudSyncMessage("Sign in before duplicating saved drafts.");
+      return;
+    }
+
     const draft = savedDrafts.find((entry) => entry.id === draftId);
     if (!draft) return;
 
@@ -1000,38 +986,31 @@ export default function App() {
       currentOwnerIdx: draft.currentOwnerIdx || 0,
     });
 
-    upsertDraftInLibrary({
-      ...copy,
-      source: user ? "local" : draft.source || storageMode,
-    });
-    setActiveDraftId(copyId);
-    setLeague(cloneLeagueConfig(copy.league));
-    setPlayers(clonePlayers(copy.players || duplicatedPlayers));
-    setNotes({ ...(copy.notes || {}) });
-    setFavorites({ ...(copy.favorites || {}) });
-    setSelectedPlayer(null);
-    setScreen("main");
-    setActiveTab("board");
-    setCurrentOwnerIdx(copy.currentOwnerIdx || 0);
-    clearDraftHistory();
-    setBoardNotice({
-      tone: "info",
-      message: `Opened duplicate workspace for ${copiedLeague.name}.`,
-    });
-
-    if (user) {
-      try {
-        const persisted = await persistCloudDraftRecord({
-          ...copy,
-          source: "cloud",
-        }, { forceCreate: true });
-        upsertDraftInLibrary(persisted);
-        setStorageMode("cloud");
-      } catch (error) {
-        setCloudSyncMessage(
-          error?.message || "Cloud duplicate failed. The copy is available locally.",
-        );
-      }
+    try {
+      const persisted = await persistCloudDraftRecord({
+        ...copy,
+        source: "cloud",
+      }, { forceCreate: true });
+      setActiveDraftId(copyId);
+      setLeague(cloneLeagueConfig(copy.league));
+      setPlayers(clonePlayers(copy.players || duplicatedPlayers));
+      setNotes({ ...(copy.notes || {}) });
+      setFavorites({ ...(copy.favorites || {}) });
+      setSelectedPlayer(null);
+      setScreen("main");
+      setActiveTab("board");
+      setCurrentOwnerIdx(copy.currentOwnerIdx || 0);
+      clearDraftHistory();
+      upsertDraftInLibrary(persisted);
+      setStorageMode("cloud");
+      setBoardNotice({
+        tone: "info",
+        message: `Opened duplicate workspace for ${copiedLeague.name}.`,
+      });
+    } catch (error) {
+      setCloudSyncMessage(
+        error?.message || "Cloud duplicate failed. Sign in and try again.",
+      );
     }
   }
 

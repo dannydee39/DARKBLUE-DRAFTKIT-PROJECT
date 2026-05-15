@@ -146,7 +146,11 @@ export default function SetupScreen({
   }
 
   async function handleInit() {
-    if (validation.errors.length > 0 || creating) return;
+    if (!authReady || validation.errors.length > 0 || creating) return;
+    if (!user) {
+      onOpenAuth?.();
+      return;
+    }
     setCreating(true);
     try {
       await onInit(form);
@@ -308,15 +312,19 @@ export default function SetupScreen({
 
           <button
             className="init-btn"
-            disabled={validation.errors.length > 0 || creating}
+            disabled={!authReady || validation.errors.length > 0 || creating}
             onClick={handleInit}
           >
-            {creating ? "INITIALIZING…" : "INITIALIZE DRAFT →"}
+            {creating
+              ? "INITIALIZING…"
+              : user
+                ? "INITIALIZE DRAFT →"
+                : "LOGIN TO INITIALIZE DRAFT"}
           </button>
           <p className="setup-hint">
             {user
               ? "Drafts created while signed in sync to your cloud library automatically."
-              : "Each guest draft is saved locally in this browser until you sign in."}
+              : "Draft creation now requires login so saved work stays in the cloud library."}
           </p>
         </div>
 
@@ -324,7 +332,7 @@ export default function SetupScreen({
           <div className="setup-library-header">
             <h2 className="setup-card-title">SAVED DRAFT LIBRARY</h2>
             <span className="setup-library-count">
-              {drafts.length} total · {storageMode === "cloud" ? "cloud" : "local"}
+              {drafts.length} total · cloud
             </span>
           </div>
 
@@ -340,7 +348,7 @@ export default function SetupScreen({
               <div className="setup-cloud-copy">
                 {user
                   ? "Saved drafts now stay with your Draft Kit account and reopen across devices."
-                  : "Guest mode still works locally, but account login unlocks cloud draft storage and account-based sync."}
+                  : "Draft saving requires an account. Local browser draft libraries are disabled."}
               </div>
             </div>
             <button
@@ -354,8 +362,9 @@ export default function SetupScreen({
 
           {drafts.length === 0 && (
             <p className="setup-library-empty">
-              No saved drafts yet. Create your first league setup to start a reusable{" "}
-              {storageMode === "cloud" ? "cloud" : "local"} draft library.
+              {user
+                ? "No saved drafts yet. Create your first league setup to start a reusable cloud draft library."
+                : "Sign in to create and save cloud drafts."}
             </p>
           )}
 

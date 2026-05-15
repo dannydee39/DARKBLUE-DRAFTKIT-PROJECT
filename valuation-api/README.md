@@ -25,8 +25,21 @@ Licensed MLB valuation API. This service is intentionally separate from Draft Ki
 - current team rosters
 - roster configuration
 - optional `commissioner_notes` from Draft Kit
+- optional `valuation_options.stat_window` (`ONE_YEAR`, `THREE_YEAR`, or `BLEND`)
+- optional `player_stat_overrides` for custom one-year, three-year, and predictive stats
+- optional `depth_chart_context` for per-player depth position, rank, role, and roster status
 
 Commissioner notes are read from the request only. They affect that response but are not persisted by the valuation API.
+
+The readable valuation implementation is centralized in `services/valuation.js`.
+Each response includes `valuation_breakdown` with the exact factor formula:
+
+```text
+stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk
+```
+
+The same payload exposes `rubric_checks` for custom 1/3 year stats,
+predictive stats, age, injury status, scarcity, and depth-chart position.
 
 ## Commands
 

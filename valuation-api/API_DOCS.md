@@ -14,6 +14,9 @@ The Dark Blue MLB Valuation API calculates real-time auction dollar values for f
 - Current draft state (remaining budgets, already-drafted players)
 - Position scarcity
 - Market inflation
+- Custom one-year or three-year stat windows
+- Predictive playing-time and production inputs
+- Age, injury/news risk, and depth-chart role context
 
 The valuation endpoint does **not** maintain draft session state — every valuation request must include the full draft state payload.
 
@@ -149,6 +152,27 @@ Calculates a valuation dictionary for the full player pool, given the current li
         "roster": [["Freddie Freeman", "LAD"]]
       }
     ],
+    "valuation_options": {
+      "stat_window": "THREE_YEAR"
+    },
+    "player_stat_overrides": {
+      "3": {
+        "player_id": 3,
+        "one_year": { "fpts": 720, "hr": 33, "rbi": 91, "r": 105, "sb": 12, "avg": 0.275 },
+        "three_year": { "fpts": 790, "hr": 37, "rbi": 97, "r": 113, "sb": 23, "avg": 0.281 },
+        "predictive": { "fpts": 820, "projected_games": 155, "projected_plate_appearances": 690 }
+      }
+    },
+    "depth_chart_context": {
+      "3": {
+        "player_id": 3,
+        "depth_position": "OF",
+        "depth_rank": 1,
+        "depth_role": "Starter",
+        "status": "Active",
+        "is_starter": true
+      }
+    },
     "roster_config": {
       "C": 2,
       "1B": 1,
@@ -181,6 +205,10 @@ Calculates a valuation dictionary for the full player pool, given the current li
 | `draft_state.teams[].budget_remaining` | number | Yes | Current remaining budget |
 | `draft_state.teams[].roster` | string[][] | Yes | Array of `[player_name, mlb_team]` tuples for already drafted players |
 | `draft_state.roster_config` | object | No | Slot counts per position |
+| `draft_state.valuation_options.stat_window` | string | No | `ONE_YEAR`, `THREE_YEAR`, or `BLEND`. Defaults to `THREE_YEAR` runtime weighted stats. |
+| `draft_state.player_stat_overrides` | object | No | Optional per-player one-year, three-year, and predictive stat overrides keyed by player id. |
+| `draft_state.depth_chart_context` | object | No | Optional per-player depth position, rank, role, status, and starter context keyed by player id. |
+| `draft_state.commissioner_notes` | array | No | Draft-local injury/news/role context that can change risk-adjusted values for this response only. |
 
 **Successful response (HTTP 200):**
 ```json
@@ -194,12 +222,25 @@ Calculates a valuation dictionary for the full player pool, given the current li
     "label": "Neutral",
     "delta_percent": 4.5
   },
+  "stat_window": "THREE_YEAR",
+  "rubric_coverage": {
+    "valuation_variation_test_cases": 5,
+    "custom_one_or_three_year_stats": "Supported through draft_state.player_stat_overrides and runtime weighted stats_window.",
+    "predictive_stats": "Projected playing time and FPTS feed predictive_adjustment.",
+    "age": "Player age feeds age_adjustment.",
+    "injury_status": "Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.",
+    "scarcity": "Roster config and undrafted pool feed position scarcity.",
+    "depth_chart_position": "draft_state.depth_chart_context, depth/tier, and projected volume feed depth_chart_adjustment.",
+    "draftkit_refresh": "Draft Kit posts the full draft_state after draft-state cache invalidation.",
+    "active_stat_window": "THREE_YEAR"
+  },
   "valuations": {
     "Juan Soto": {
       "player": "Juan Soto",
       "player_id": 3,
       "player_tier": "Elite",
       "base_value": 56,
+      "stat_baseline_value": 56,
       "true_dollar_value": 58,
       "max_bid_recommendation": 53,
       "market_inflation": 1.045,
@@ -214,6 +255,47 @@ Calculates a valuation dictionary for the full player pool, given the current li
       "draftability_score": 1.04,
       "value_delta": 2,
       "is_drafted": false,
+      "predictive_adjustment": {
+        "multiplier": 1.03,
+        "source": "predictive playing-time and production inputs",
+        "fpts_delta_percent": 0,
+        "volume_score": 82
+      },
+      "age_adjustment": {
+        "multiplier": 1.03,
+        "age": 27,
+        "band": "PRIME"
+      },
+      "depth_chart_adjustment": {
+        "multiplier": 1.05,
+        "depth": "Starter",
+        "depth_position": "OF",
+        "depth_rank": 1,
+        "status": "Active",
+        "volume_score": 82,
+        "role": "Everyday volume"
+      },
+      "stat_profile": {
+        "window": "THREE_YEAR",
+        "selected_source": "runtime weighted player stats",
+        "custom_one_year_available": false,
+        "custom_three_year_available": false,
+        "predictive_available": true,
+        "runtime_stats_window": "2023-2025 weighted"
+      },
+      "valuation_breakdown": {
+        "formula": "stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk",
+        "stat_baseline_value": 56,
+        "scoring_multiplier": 1,
+        "scarcity_multiplier": 1.2,
+        "predictive_multiplier": 1.03,
+        "age_multiplier": 1.03,
+        "depth_chart_multiplier": 1.05,
+        "market_inflation_multiplier": 1.045,
+        "injury_risk_multiplier": 1,
+        "true_dollar_value": 58,
+        "max_bid_recommendation": 53
+      },
       "reasoning": "OF scarce — high demand in pool. Market inflation +4.5%. Player tier: Elite. Scarcity: HIGH. TDV: $58.",
       "stats": {
         "tier": "Elite",
@@ -240,6 +322,13 @@ Calculates a valuation dictionary for the full player pool, given the current li
 | `valuations[<name>].true_dollar_value` | number | Live auction value for that player under the supplied draft state |
 | `valuations[<name>].max_bid_recommendation` | number | Recommended max bid (92% of TDV) |
 | `valuations[<name>].position_scarcity` | object | Map of position → scarcity level |
+| `valuations[<name>].stat_profile` | object | Selected stat window/source and whether custom/predictive stats were available |
+| `valuations[<name>].predictive_adjustment` | object | Predictive FPTS and playing-time factor |
+| `valuations[<name>].age_adjustment` | object | Age curve factor |
+| `valuations[<name>].depth_chart_adjustment` | object | Depth rank/role/status and projected volume factor |
+| `valuations[<name>].risk_adjustment` | object | Injury/news risk factor |
+| `valuations[<name>].valuation_breakdown` | object | Numeric factor-by-factor formula used to produce the value |
+| `valuations[<name>].rubric_checks` | object | Boolean evidence that the rubric factors were evaluated for this player |
 | `valuations[<name>].reasoning` | string | Human-readable explanation of the valuation |
 | `valuations[<name>].stats` | object | Tier, positions, team, and league metadata for that player |
 
@@ -481,10 +570,16 @@ Resolve drafted players from the supplied `[player_name, mlb_team]` tuples. The 
 ### Step 2 — Build the Undrafted Pool
 Filter out all players whose `(name, team)` pair appears in `draft_state.teams[].roster`.
 
-### Step 3 — Start From Precomputed Base Value
-Each player already has a `baseValue` calculated from projected fantasy output and points above replacement during the data-generation step. Live valuation starts from that baseline instead of recomputing the entire player pool from scratch on every request.
+### Step 3 — Select The Stat Window
+The runtime player pool contains a weighted `2023-2025` baseline. Clients can optionally send `player_stat_overrides` with one-year, three-year, or blended stat inputs. The API uses `valuation_options.stat_window` to select the requested window without mutating the licensed player pool.
 
-### Step 4 — Position Scarcity Multiplier
+### Step 4 — Build The Stat Baseline
+The live calculation starts from `baseValue` unless custom stats are supplied. Custom `baseValue`, custom `fpts`, or category stats can move the `stat_baseline_value`, and the response exposes this in `stat_profile` and `valuation_breakdown`.
+
+### Step 5 — Scoring Format Multiplier
+The enabled scoring categories determine whether a player's active category profile is stronger or weaker than the default role profile.
+
+### Step 6 — Position Scarcity Multiplier
 Counts how many teams still need this position vs. how many undrafted players fill it.
 
 | Demand/Supply Ratio | Scarcity Level | Multiplier |
@@ -494,21 +589,27 @@ Counts how many teams still need this position vs. how many undrafted players fi
 | ≥ 0.7 | MEDIUM | ×1.08 |
 | < 0.7 | LOW | ×1.00 |
 
-### Step 5 — Market Inflation Factor
+### Step 7 — Predictive Stats, Age, Depth, And Injury
+Predictive projected games, plate appearances, innings, or FPTS influence `predictive_adjustment`. Player age influences `age_adjustment`. `depth_chart_context` and projected volume influence `depth_chart_adjustment`. Player updates, static injury status, and commissioner notes influence `risk_adjustment`.
+
+### Step 8 — Market Inflation Factor
 Tracks how much of the draft budget has been spent vs. how much was expected at this point. Clamped between 0.85 and 1.45.
 
-### Step 6 — Final Value
+### Step 9 — Final Value
 ```
-TDV = round(baseValue × scarcityMultiplier × inflationFactor)
+pre_injury = round(stat_baseline_value × scoring × scarcity × predictive × age × depth_chart × inflation)
+TDV = round(pre_injury × injury_risk)
 TDV = clamp(TDV, $1, $120)
 max_bid_recommendation = round(TDV × 0.92)
 ```
 
-### Step 7 — Explain The Result
+### Step 10 — Explain The Result
 The API returns:
 
 - `player_tier` from the precomputed player dataset
 - `market_context` with a human-readable inflation label such as `Hot`, `Neutral`, or `Cold`
+- `valuation_breakdown`, the exact factor-by-factor math
+- `rubric_checks`, per-player evidence that stat window, predictive stats, age, injury, scarcity, and depth context were evaluated
 - `reasoning`, a short text explanation tying scarcity, inflation, and final value together
 
 ---

@@ -139,17 +139,67 @@ export function buildRosterPositions(roster) {
  */
 export function buildDraftState(league, players = []) {
   const { playerById, playerByName } = buildPlayerIndexes(players);
+  const depthChartContext = Object.fromEntries(
+    (players || []).map((player) => [
+      player.id,
+      {
+        player_id: player.id,
+        depth_position: Array.isArray(player.pos) ? player.pos[0] : null,
+        depth_role: player.depth || player.tier || null,
+        depth_rank: player.tier_rank || player.overall_rank || null,
+        status: player.injury_status || player.injury || "Active",
+        is_starter: player.depth === "Elite" || player.tier === "Elite",
+      },
+    ]),
+  );
+  const playerStatOverrides = Object.fromEntries(
+    (players || []).map((player) => [
+      player.id,
+      {
+        player_id: player.id,
+        three_year: {
+          fpts: player.fpts,
+          hr: player.hr,
+          rbi: player.rbi,
+          r: player.r,
+          sb: player.sb,
+          avg: player.avg,
+          so: player.so,
+          w: player.w,
+          sv: player.sv,
+          era: player.era,
+          whip: player.whip,
+        },
+        predictive: {
+          fpts: player.fpts,
+          projected_games: player.projected_games,
+          projected_plate_appearances: player.projected_plate_appearances,
+          projected_innings: player.projected_innings,
+        },
+      },
+    ]),
+  );
 
   return {
     total_teams: league.owners,
     budget_per_team: league.budget,
+    valuation_options: {
+      stat_window: "THREE_YEAR",
+    },
     scoring_categories: Object.entries(league.scoring)
       .filter(([, v]) => v)   // only enabled categories
       .map(([k]) => k),
-    teams: (league.teams || []).map((team) => ({
-      id: team.id,
-      budget_remaining: team.budget_remaining,
-      roster: (team.roster || [])
+    teams: (league.teams || []).map((team) => {
+      const unavailableEntries = [
+        ...(team.roster || []),
+        ...(team.taxiSquad || []),
+        ...(team.minorLeague || []),
+      ];
+
+      return {
+        id: team.id,
+        budget_remaining: team.budget_remaining,
+        roster: unavailableEntries
         .map((entry) => {
           if (Array.isArray(entry) && entry.length >= 2) {
             if (typeof entry[0] === "string" && typeof entry[1] === "string") {
@@ -178,8 +228,11 @@ export function buildDraftState(league, players = []) {
           return fallbackName ? fallbackName : null;
         })
         .filter(Boolean),
-    })),
+      };
+    }),
     roster_config: league.roster,
+    depth_chart_context: depthChartContext,
+    player_stat_overrides: playerStatOverrides,
   };
 }
 

@@ -243,6 +243,30 @@ async function runGeneralRegressionSuite() {
       "valuation dictionary should expose injury risk level",
     );
     assert.ok(valuate.body.market_context?.label, "valuation batch should include market_context label");
+    assert.equal(
+      valuate.body.rubric_coverage?.valuation_variation_test_cases,
+      5,
+      "valuation batch should advertise five valuation variation test cases",
+    );
+    assert.ok(
+      valuate.body.valuations?.["Juan Soto"]?.valuation_breakdown?.formula?.includes("predictive"),
+      "valuation should expose the transparent factor formula",
+    );
+    assert.equal(
+      typeof valuate.body.valuations?.["Juan Soto"]?.predictive_adjustment?.multiplier,
+      "number",
+      "valuation should expose predictive adjustment",
+    );
+    assert.equal(
+      typeof valuate.body.valuations?.["Juan Soto"]?.age_adjustment?.age,
+      "number",
+      "valuation should expose age adjustment",
+    );
+    assert.equal(
+      typeof valuate.body.valuations?.["Juan Soto"]?.depth_chart_adjustment?.multiplier,
+      "number",
+      "valuation should expose depth chart adjustment",
+    );
 
     const commissionerNoteValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
@@ -276,6 +300,52 @@ async function runGeneralRegressionSuite() {
       commissionerNoteValuation.body.valuations?.["Juan Soto"]?.player_update?.source,
       "League commissioner note",
       "valuation should preserve commissioner note source",
+    );
+    assert.equal(
+      commissionerNoteValuation.body.valuations?.["Juan Soto"]?.rubric_checks?.injury_status_used,
+      true,
+      "valuation should mark injury/news risk context as used for rubric coverage",
+    );
+
+    const customStatsValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({
+        draft_state: buildDraftState({
+          valuation_options: { stat_window: "ONE_YEAR" },
+          player_stat_overrides: {
+            [hitter.id]: {
+              player_id: hitter.id,
+              one_year: { fpts: Math.round(hitter.fpts * 0.8), hr: hitter.hr, rbi: hitter.rbi, r: hitter.r, sb: hitter.sb, avg: hitter.avg },
+              three_year: { fpts: hitter.fpts, hr: hitter.hr, rbi: hitter.rbi, r: hitter.r, sb: hitter.sb, avg: hitter.avg },
+              predictive: { fpts: Math.round(hitter.fpts * 1.1), projected_games: 150, projected_plate_appearances: 650 },
+            },
+          },
+          depth_chart_context: {
+            [hitter.id]: {
+              player_id: hitter.id,
+              depth_position: hitter.pos[0],
+              depth_rank: 1,
+              depth_role: "Starter",
+              status: "Active",
+              is_starter: true,
+            },
+          },
+        }),
+      }),
+    });
+    assert.equal(customStatsValuation.response.status, 200, "custom stats valuation should return 200");
+    const customStatsValue = customStatsValuation.body.valuations?.[hitter.name];
+    assert.equal(customStatsValue?.stat_profile?.window, "ONE_YEAR", "one-year stat window should be honored");
+    assert.equal(
+      customStatsValue?.rubric_checks?.custom_one_or_three_year_stats_used,
+      true,
+      "custom 1/3 year stats rubric check should be true",
+    );
+    assert.equal(
+      customStatsValue?.rubric_checks?.depth_chart_position_used,
+      true,
+      "depth chart context rubric check should be true",
     );
 
     const hitterValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {

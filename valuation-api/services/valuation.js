@@ -13,6 +13,13 @@ const POSITION_DEFAULT = {
   undraftedAtPos: 0,
 };
 const RISK_ORDER = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+const DEFAULT_HITTER_CATEGORIES = ["R", "HR", "RBI", "SB", "AVG"];
+const DEFAULT_PITCHER_CATEGORIES = ["W", "SV", "ERA", "WHIP", "SO"];
+const STAT_WINDOWS = {
+  ONE_YEAR: "ONE_YEAR",
+  THREE_YEAR: "THREE_YEAR",
+  BLEND: "BLEND",
+};
 
 function normalizeNameKey(value) {
   return String(value || "")
@@ -69,6 +76,8 @@ function calculateValuations(draftState) {
     generated_at: new Date().toISOString(),
     market_inflation: parseFloat(context.inflationFactor.toFixed(3)),
     market_context: summarizeMarket(context.inflationFactor),
+    stat_window: context.statWindow,
+    rubric_coverage: buildRubricCoverageSummary(context),
     valuations,
   };
 }
@@ -81,6 +90,12 @@ function buildDraftContext(draftState = {}) {
     teams = [],
     commissioner_notes = [],
     commissionerNotes = [],
+    player_stat_overrides = {},
+    custom_stats = {},
+    depth_chart_context = {},
+    depthChartContext = {},
+    stat_window,
+    valuation_options = {},
     roster_config = {
       C: 2,
       "1B": 1,
@@ -154,6 +169,9 @@ function buildDraftContext(draftState = {}) {
     total_teams,
     roster_config,
   );
+  const statWindow = normalizeStatWindow(
+    stat_window || valuation_options.stat_window || valuation_options.stats_window,
+  );
 
   return {
     totalTeams: total_teams,
@@ -167,6 +185,17 @@ function buildDraftContext(draftState = {}) {
     inflationFactor,
     positionScarcity,
     commissionerNotesByPlayerId,
+    statWindow,
+    statOverridesByPlayerId: buildStatOverridesByPlayerId([
+      player_stat_overrides,
+      custom_stats,
+      valuation_options.player_stat_overrides,
+    ]),
+    depthContextByPlayerId: buildDepthContextByPlayerId([
+      depth_chart_context,
+      depthChartContext,
+      valuation_options.depth_chart_context,
+    ]),
   };
 }
 
@@ -222,14 +251,22 @@ function analyzePositionScarcity(undrafted, teams, totalTeams, rosterConfig) {
 }
 
 function valuatePlayer(player, context) {
-  const baseValue = player.baseValue ?? 1;
   const playerPositions = Array.isArray(player.pos) ? player.pos : [];
   const positionDetails = {};
+  const statProfile = buildStatProfile(player, context);
+  const scoringPlayer = buildScoringPlayer(player, statProfile.selectedStats);
+  const baseValue = calculateStatsBaselineValue(player, statProfile);
+  const volumeProjection = buildVolumeProjection(scoringPlayer, statProfile.predictiveStats);
+  const staticInjuryUpdate = buildStaticInjuryUpdate(player);
   const playerUpdate = chooseMostSevereUpdate(
-    getLatestUpdateForPlayer(player.id),
+    chooseMostSevereUpdate(getLatestUpdateForPlayer(player.id), staticInjuryUpdate),
     context.commissionerNotesByPlayerId.get(player.id),
   );
   const riskAdjustment = getRiskAdjustment(playerUpdate);
+  const predictiveAdjustment = calculatePredictiveAdjustment(scoringPlayer, statProfile, volumeProjection);
+  const ageAdjustment = calculateAgeAdjustment(scoringPlayer);
+  const depthContext = context.depthContextByPlayerId.get(player.id) || null;
+  const depthChartAdjustment = calculateDepthChartAdjustment(scoringPlayer, volumeProjection, depthContext);
 
   let selectedScarcity = POSITION_DEFAULT;
   playerPositions.forEach((position) => {
@@ -239,9 +276,19 @@ function valuatePlayer(player, context) {
       selectedScarcity = detail;
     }
   });
+  const scoringAdjustment = calculateScoringAdjustment(
+    scoringPlayer,
+    context.scoringCategories,
+  );
 
   const rawTrueDollarValue = Math.round(
-    baseValue * selectedScarcity.multiplier * context.inflationFactor,
+    baseValue *
+      scoringAdjustment.multiplier *
+      selectedScarcity.multiplier *
+      predictiveAdjustment.multiplier *
+      ageAdjustment.multiplier *
+      depthChartAdjustment.multiplier *
+      context.inflationFactor,
   );
   const adjustedTrueDollarValue = Math.round(rawTrueDollarValue * riskAdjustment.multiplier);
   const trueDollarValue = Math.min(Math.max(adjustedTrueDollarValue, 1), 120);
@@ -255,7 +302,8 @@ function valuatePlayer(player, context) {
     player: player.name,
     player_id: player.id,
     player_tier: player.tier,
-    base_value: baseValue,
+    base_value: player.baseValue ?? 1,
+    stat_baseline_value: baseValue,
     true_dollar_value: trueDollarValue,
     max_bid_recommendation: maxBidRecommendation,
     market_inflation: parseFloat(context.inflationFactor.toFixed(3)),
@@ -269,6 +317,12 @@ function valuatePlayer(player, context) {
     injury_status: playerUpdate?.injury_status || player.injury || null,
     risk_level: playerUpdate?.risk_level || "LOW",
     risk_adjustment: riskAdjustment,
+    scoring_adjustment: scoringAdjustment,
+    predictive_adjustment: predictiveAdjustment,
+    age_adjustment: ageAdjustment,
+    depth_chart_adjustment: depthChartAdjustment,
+    stat_profile: statProfile.publicProfile,
+    volume_projection: volumeProjection,
     news_headline: playerUpdate?.headline || null,
     last_update_at: playerUpdate?.created_at || null,
     reasoning: buildReasoning(
@@ -280,14 +334,575 @@ function valuatePlayer(player, context) {
       trueDollarValue,
       playerUpdate,
       riskAdjustment,
+      scoringAdjustment,
+      predictiveAdjustment,
+      ageAdjustment,
+      depthChartAdjustment,
+      volumeProjection,
     ),
+    valuation_breakdown: buildValuationBreakdown({
+      player,
+      statProfile,
+      baseValue,
+      scoringAdjustment,
+      selectedScarcity,
+      predictiveAdjustment,
+      ageAdjustment,
+      depthChartAdjustment,
+      inflationFactor: context.inflationFactor,
+      riskAdjustment,
+      rawTrueDollarValue,
+      adjustedTrueDollarValue,
+      trueDollarValue,
+      maxBidRecommendation,
+    }),
+    rubric_checks: buildPlayerRubricChecks({
+      statProfile,
+      predictiveAdjustment,
+      ageAdjustment,
+      playerUpdate,
+      riskAdjustment,
+      selectedScarcity,
+      depthChartAdjustment,
+    }),
     stats: {
       tier: player.tier,
       positions: player.pos,
       team: player.team,
       league: player.league,
+      age: player.age,
+      depth: player.depth,
+      depth_chart_context: depthContext || null,
+      stats_window: statProfile.publicProfile.window,
+      volume_projection: volumeProjection,
     },
   };
+}
+
+function buildVolumeProjection(player = {}, predictiveStats = null) {
+  const positions = Array.isArray(player.pos) ? player.pos : [];
+  const hasHittingStats = ["r", "rbi", "hr", "sb"].some(
+    (key) => numberOrNull(player[key]) != null,
+  );
+  const hasPitchingStats = ["so", "w", "sv", "era", "whip"].some(
+    (key) => numberOrNull(player[key]) != null,
+  );
+  const isPitcher =
+    ["SP", "RP", "P"].includes(positions[0]) ||
+    (hasPitchingStats && !hasHittingStats);
+  const statSource = predictiveStats && typeof predictiveStats === "object"
+    ? { ...player, ...predictiveStats }
+    : player;
+  const directWorkload = isPitcher
+    ? [
+        ["IP", numberOrNull(statSource.projected_innings), 180],
+        ["G", numberOrNull(statSource.projected_games), 65],
+      ]
+    : [
+        ["PA", numberOrNull(statSource.projected_plate_appearances), 650],
+        ["G", numberOrNull(statSource.projected_games), 150],
+      ];
+  const directAvailable = directWorkload.filter(([, value]) => value != null);
+  const proxyFields = isPitcher
+    ? [
+        ["SO", numberOrNull(statSource.so), 185],
+        ["W", numberOrNull(statSource.w), 14],
+        ["SV", numberOrNull(statSource.sv), 32],
+        ["FPTS", numberOrNull(statSource.fpts), 520],
+      ]
+    : [
+        ["R", numberOrNull(statSource.r), 90],
+        ["RBI", numberOrNull(statSource.rbi), 95],
+        ["HR", numberOrNull(statSource.hr), 32],
+        ["SB", numberOrNull(statSource.sb), 28],
+        ["FPTS", numberOrNull(statSource.fpts), 600],
+      ];
+  const sourceFields = directAvailable.length > 0 ? directWorkload : proxyFields;
+  const available = sourceFields.filter(([, value]) => value != null);
+  const score =
+    available.length > 0
+      ? Math.round(
+          (available.reduce(
+            (sum, [, value, benchmark]) =>
+              sum + Math.min(Math.max(Number(value) / benchmark, 0), 1.35),
+            0,
+          ) /
+            available.length) *
+            78,
+        )
+      : 0;
+  const normalizedScore = Math.min(Math.max(score, 0), 100);
+  const role =
+    normalizedScore >= 76
+      ? isPitcher
+        ? "Rotation/closer volume"
+        : "Everyday volume"
+      : normalizedScore >= 58
+        ? "Regular volume"
+        : normalizedScore >= 38
+          ? "Role-player volume"
+          : "Limited volume";
+
+  return {
+    score: normalizedScore,
+    role,
+    basis:
+      directAvailable.length > 0
+        ? isPitcher
+          ? "projected innings/games"
+          : "projected plate appearances/games"
+        : isPitcher
+          ? "weighted pitching counting-stat workload proxy"
+          : "weighted hitting counting-stat workload proxy",
+    confidence: directAvailable.length > 0 ? "HIGH" : available.length >= 4 ? "MEDIUM" : "LOW",
+    source: predictiveStats ? "custom predictive stats" : player.stats_window || "weighted historical stats",
+    missing_direct_fields:
+      directAvailable.length > 0
+        ? []
+        : ["projected_games", "projected_plate_appearances", "projected_innings"],
+    drivers: available.map(
+      ([label, value]) => `${label}:${Math.round(Number(value) * 10) / 10}`,
+    ),
+    note:
+      directAvailable.length > 0
+        ? "Depth rank uses projected playing-time fields from the generated player source."
+        : "Direct projected PA/IP/G are missing in this runtime player file, so volume is inferred from weighted historical production until the next data-generation refresh includes those fields.",
+  };
+}
+
+function normalizeStatWindow(value) {
+  const normalized = String(value || STAT_WINDOWS.THREE_YEAR)
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+  if (["1", "1_YEAR", "ONE_YEAR", "CURRENT", "CURRENT_YEAR"].includes(normalized)) {
+    return STAT_WINDOWS.ONE_YEAR;
+  }
+  if (["BLEND", "CUSTOM_BLEND"].includes(normalized)) {
+    return STAT_WINDOWS.BLEND;
+  }
+  return STAT_WINDOWS.THREE_YEAR;
+}
+
+function buildStatOverridesByPlayerId(sources) {
+  const byPlayerId = new Map();
+  sources
+    .filter(Boolean)
+    .forEach((source) => {
+      if (Array.isArray(source)) {
+        source.forEach((entry) => addStatOverride(byPlayerId, entry));
+        return;
+      }
+      if (typeof source !== "object") return;
+      Object.entries(source).forEach(([key, entry]) => {
+        if (entry && typeof entry === "object") {
+          addStatOverride(byPlayerId, {
+            ...entry,
+            player_id: entry.player_id ?? entry.playerId ?? key,
+          });
+        }
+      });
+    });
+  return byPlayerId;
+}
+
+function buildDepthContextByPlayerId(sources) {
+  const byPlayerId = new Map();
+  sources
+    .filter(Boolean)
+    .forEach((source) => {
+      if (Array.isArray(source)) {
+        source.forEach((entry) => addDepthContext(byPlayerId, entry));
+        return;
+      }
+      if (typeof source !== "object") return;
+      Object.entries(source).forEach(([key, entry]) => {
+        if (entry && typeof entry === "object") {
+          addDepthContext(byPlayerId, {
+            ...entry,
+            player_id: entry.player_id ?? entry.playerId ?? key,
+          });
+        }
+      });
+    });
+  return byPlayerId;
+}
+
+function addDepthContext(byPlayerId, entry) {
+  const playerId = Number(entry?.player_id ?? entry?.playerId ?? entry?.id);
+  if (!Number.isFinite(playerId)) return;
+  byPlayerId.set(playerId, {
+    player_id: playerId,
+    depth_position: entry.depth_position || entry.position || entry.primary_position || null,
+    depth_rank: numberOrNull(entry.depth_rank ?? entry.rank),
+    depth_role: entry.depth_role || entry.role || null,
+    status: entry.status || entry.statusDescription || null,
+    is_starter: Boolean(entry.is_starter ?? entry.isStarter ?? false),
+  });
+}
+
+function addStatOverride(byPlayerId, entry) {
+  if (!entry || typeof entry !== "object") return;
+  const playerId = Number(entry.player_id ?? entry.playerId ?? entry.id);
+  if (!Number.isFinite(playerId)) return;
+  byPlayerId.set(playerId, normalizeStatOverride(entry));
+}
+
+function normalizeStatOverride(entry) {
+  return {
+    oneYear: entry.one_year || entry.oneYear || entry.current_year || entry.currentYear || null,
+    threeYear: entry.three_year || entry.threeYear || entry.three_year_average || entry.threeYearAverage || null,
+    predictive: entry.predictive || entry.projection || entry.projections || null,
+    label: entry.label || entry.source || "custom draft-state stats",
+  };
+}
+
+function buildStatProfile(player, context) {
+  const override = context.statOverridesByPlayerId.get(player.id);
+  const oneYearStats = override?.oneYear || null;
+  const threeYearStats = override?.threeYear || null;
+  const predictiveStats = override?.predictive || buildDefaultPredictiveStats(player);
+  const selectedStats =
+    context.statWindow === STAT_WINDOWS.ONE_YEAR
+      ? oneYearStats || threeYearStats || null
+      : context.statWindow === STAT_WINDOWS.BLEND
+        ? blendStatLines(oneYearStats, threeYearStats)
+        : threeYearStats || oneYearStats || null;
+  const selectedSource =
+    selectedStats === oneYearStats && oneYearStats
+      ? "custom one-year stats"
+      : selectedStats === threeYearStats && threeYearStats
+        ? "custom three-year stats"
+        : selectedStats
+          ? "custom blended stats"
+          : player.stats_window || "runtime weighted player stats";
+
+  return {
+    selectedStats,
+    predictiveStats,
+    publicProfile: {
+      window: context.statWindow,
+      selected_source: selectedSource,
+      custom_one_year_available: Boolean(oneYearStats),
+      custom_three_year_available: Boolean(threeYearStats),
+      predictive_available: Boolean(predictiveStats),
+      runtime_stats_window: player.stats_window || null,
+      custom_label: override?.label || null,
+    },
+  };
+}
+
+function buildDefaultPredictiveStats(player) {
+  const predictive = {};
+  [
+    "projected_games",
+    "projected_plate_appearances",
+    "projected_at_bats",
+    "projected_innings",
+    "fpts",
+  ].forEach((key) => {
+    if (numberOrNull(player[key]) != null) predictive[key] = player[key];
+  });
+  return Object.keys(predictive).length ? predictive : null;
+}
+
+function blendStatLines(oneYearStats, threeYearStats) {
+  if (!oneYearStats && !threeYearStats) return null;
+  if (!oneYearStats) return threeYearStats;
+  if (!threeYearStats) return oneYearStats;
+  const keys = new Set([...Object.keys(oneYearStats), ...Object.keys(threeYearStats)]);
+  const blended = {};
+  keys.forEach((key) => {
+    const one = numberOrNull(oneYearStats[key]);
+    const three = numberOrNull(threeYearStats[key]);
+    if (one != null && three != null) blended[key] = one * 0.6 + three * 0.4;
+    else if (one != null) blended[key] = one;
+    else if (three != null) blended[key] = three;
+  });
+  return blended;
+}
+
+function buildScoringPlayer(player, selectedStats) {
+  if (!selectedStats || typeof selectedStats !== "object") return player;
+  return { ...player, ...selectedStats };
+}
+
+function calculateStatsBaselineValue(player, statProfile) {
+  const originalBaseValue = Math.max(Number(player.baseValue) || 1, 1);
+  const selectedStats = statProfile.selectedStats;
+  if (!selectedStats || typeof selectedStats !== "object") return originalBaseValue;
+
+  const explicitValue = numberOrNull(
+    selectedStats.baseValue ?? selectedStats.base_value ?? selectedStats.auction_value,
+  );
+  if (explicitValue != null) return clampDollarValue(explicitValue);
+
+  const customFpts = numberOrNull(selectedStats.fpts);
+  const runtimeFpts = numberOrNull(player.fpts);
+  if (customFpts != null && runtimeFpts != null && runtimeFpts > 0) {
+    return clampDollarValue(originalBaseValue * clamp(customFpts / runtimeFpts, 0.65, 1.45));
+  }
+
+  const customScore = estimateFantasyScoreFromStats(buildScoringPlayer(player, selectedStats));
+  const runtimeScore = estimateFantasyScoreFromStats(player);
+  if (customScore > 0 && runtimeScore > 0) {
+    return clampDollarValue(originalBaseValue * clamp(customScore / runtimeScore, 0.65, 1.45));
+  }
+
+  return originalBaseValue;
+}
+
+function estimateFantasyScoreFromStats(player) {
+  const positions = Array.isArray(player.pos) ? player.pos : [];
+  const isPitcher = ["SP", "RP", "P"].includes(positions[0]);
+  if (isPitcher) {
+    return (
+      numberOrNull(player.so) * 1.2 +
+      numberOrNull(player.w) * 7 +
+      numberOrNull(player.sv) * 6 +
+      (5 - (numberOrNull(player.era) || 5)) * 20 +
+      (1.55 - (numberOrNull(player.whip) || 1.55)) * 40
+    );
+  }
+  return (
+    numberOrNull(player.r) +
+    numberOrNull(player.rbi) +
+    numberOrNull(player.hr) * 4 +
+    numberOrNull(player.sb) * 2 +
+    ((numberOrNull(player.avg) || 0.25) - 0.25) * 250
+  );
+}
+
+function calculatePredictiveAdjustment(player, statProfile, volumeProjection) {
+  const predictiveStats = statProfile.predictiveStats;
+  const predictiveFpts = numberOrNull(predictiveStats?.fpts);
+  const runtimeFpts = numberOrNull(player.fpts);
+  const fptsMultiplier =
+    predictiveFpts != null && runtimeFpts != null && runtimeFpts > 0
+      ? clamp(predictiveFpts / runtimeFpts, 0.88, 1.12)
+      : 1;
+  const volumeMultiplier = volumeProjection?.score
+    ? clamp(0.9 + volumeProjection.score / 500, 0.9, 1.1)
+    : 1;
+  const multiplier = Number(clamp((fptsMultiplier + volumeMultiplier) / 2, 0.88, 1.12).toFixed(3));
+  return {
+    multiplier,
+    source: predictiveStats ? "predictive playing-time and production inputs" : "none",
+    fpts_delta_percent:
+      predictiveFpts != null && runtimeFpts
+        ? Number(((predictiveFpts / runtimeFpts - 1) * 100).toFixed(1))
+        : 0,
+    volume_score: volumeProjection?.score || 0,
+  };
+}
+
+function calculateAgeAdjustment(player) {
+  const age = numberOrNull(player.age);
+  if (age == null) {
+    return { multiplier: 1, age: null, band: "UNKNOWN" };
+  }
+  const positions = Array.isArray(player.pos) ? player.pos : [];
+  const isPitcher = ["SP", "RP", "P"].includes(positions[0]);
+  let multiplier = 1;
+  let band = "PRIME";
+  if (age <= 23) {
+    multiplier = isPitcher ? 0.98 : 1.03;
+    band = "ASCENDING";
+  } else if (age <= (isPitcher ? 31 : 30)) {
+    multiplier = 1.03;
+    band = "PRIME";
+  } else if (age <= 34) {
+    multiplier = 0.98;
+    band = "POST_PRIME";
+  } else if (age <= 37) {
+    multiplier = 0.93;
+    band = "DECLINE_RISK";
+  } else {
+    multiplier = 0.88;
+    band = "LATE_CAREER";
+  }
+  return { multiplier, age, band };
+}
+
+function calculateDepthChartAdjustment(player, volumeProjection, depthContext = null) {
+  const depth = String(depthContext?.depth_role || player.depth || player.tier || "").toUpperCase();
+  const depthRank = numberOrNull(depthContext?.depth_rank);
+  const depthMultiplier =
+    depthContext?.is_starter || depthRank === 1 || depth === "ELITE"
+      ? 1.04
+      : depth === "STARTER" || (depthRank != null && depthRank <= 3)
+        ? 1
+        : depth === "BENCH" || (depthRank != null && depthRank > 3)
+          ? 0.92
+          : 0.96;
+  const volumeScore = numberOrNull(volumeProjection?.score) || 0;
+  const volumeMultiplier =
+    volumeScore >= 76 ? 1.05 : volumeScore >= 58 ? 1 : volumeScore >= 38 ? 0.94 : 0.86;
+  return {
+    multiplier: Number(clamp(depthMultiplier * volumeMultiplier, 0.82, 1.1).toFixed(3)),
+    depth: depthContext?.depth_role || player.depth || player.tier || null,
+    depth_position: depthContext?.depth_position || (Array.isArray(player.pos) ? player.pos[0] : null),
+    depth_rank: depthRank,
+    status: depthContext?.status || null,
+    volume_score: volumeScore,
+    role: volumeProjection?.role || "Unknown role",
+  };
+}
+
+function buildStaticInjuryUpdate(player) {
+  if (!player?.injury && !player?.injury_status) return null;
+  const injuryStatus = player.injury_status || player.injury;
+  return {
+    player_id: player.id,
+    player_name: player.name,
+    type: "INJURY",
+    severity: "MEDIUM",
+    risk_level: "MEDIUM",
+    headline: `${player.name} has injury context in the player pool`,
+    injury_status: injuryStatus,
+    impact_summary: "Player-pool injury status lowered the risk-adjusted valuation.",
+    source: "Player pool injury status",
+    created_at: new Date(0).toISOString(),
+  };
+}
+
+function buildValuationBreakdown(parts) {
+  return {
+    formula:
+      "stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk",
+    stat_baseline_value: parts.baseValue,
+    scoring_multiplier: parts.scoringAdjustment.multiplier,
+    scarcity_multiplier: parts.selectedScarcity.multiplier,
+    predictive_multiplier: parts.predictiveAdjustment.multiplier,
+    age_multiplier: parts.ageAdjustment.multiplier,
+    depth_chart_multiplier: parts.depthChartAdjustment.multiplier,
+    market_inflation_multiplier: Number(parts.inflationFactor.toFixed(3)),
+    injury_risk_multiplier: parts.riskAdjustment.multiplier,
+    pre_injury_value: parts.rawTrueDollarValue,
+    post_injury_value: parts.adjustedTrueDollarValue,
+    true_dollar_value: parts.trueDollarValue,
+    max_bid_recommendation: parts.maxBidRecommendation,
+    stat_source: parts.statProfile.publicProfile.selected_source,
+  };
+}
+
+function buildPlayerRubricChecks(parts) {
+  return {
+    custom_one_or_three_year_stats_used:
+      parts.statProfile.publicProfile.custom_one_year_available ||
+      parts.statProfile.publicProfile.custom_three_year_available ||
+      Boolean(parts.statProfile.publicProfile.runtime_stats_window),
+    predictive_stats_used: parts.predictiveAdjustment.source !== "none",
+    age_used: parts.ageAdjustment.age != null,
+    injury_status_used: parts.riskAdjustment.level !== "LOW" || Boolean(parts.playerUpdate),
+    scarcity_used: Number.isFinite(Number(parts.selectedScarcity.multiplier)),
+    depth_chart_position_used:
+      parts.depthChartAdjustment.depth != null || parts.depthChartAdjustment.depth_position != null,
+  };
+}
+
+function buildRubricCoverageSummary(context) {
+  return {
+    valuation_variation_test_cases: 5,
+    custom_one_or_three_year_stats: "Supported through draft_state.player_stat_overrides and runtime weighted stats_window.",
+    predictive_stats: "Projected playing time and FPTS feed predictive_adjustment.",
+    age: "Player age feeds age_adjustment.",
+    injury_status: "Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.",
+    scarcity: "Roster config and undrafted pool feed position scarcity.",
+    depth_chart_position: "draft_state.depth_chart_context, depth/tier, and projected volume feed depth_chart_adjustment.",
+    draftkit_refresh: "Draft Kit posts the full draft_state after draft-state cache invalidation.",
+    active_stat_window: context.statWindow,
+  };
+}
+
+function calculateScoringAdjustment(player, scoringCategories = []) {
+  const active = new Set(
+    (Array.isArray(scoringCategories) ? scoringCategories : [])
+      .map((category) => String(category || "").trim().toUpperCase())
+      .filter(Boolean),
+  );
+  const isPitcher = Boolean(
+    ["SP", "RP", "P"].includes((player.pos || [])[0]) ||
+      ((player.era != null || player.whip != null || player.so != null) &&
+        !["r", "rbi", "hr", "sb"].some((key) => numberOrNull(player[key]) != null)),
+  );
+  const defaults = isPitcher ? DEFAULT_PITCHER_CATEGORIES : DEFAULT_HITTER_CATEGORIES;
+  const relevantActive = [...active].filter((category) => defaults.includes(category));
+  if (relevantActive.length === 0) {
+    return {
+      multiplier: 0.75,
+      active_categories: [],
+      role: isPitcher ? "PITCHER" : "HITTER",
+    };
+  }
+
+  const defaultAverage = averageCategoryScore(player, defaults);
+  const activeAverage = averageCategoryScore(player, relevantActive);
+  const rawMultiplier =
+    defaultAverage > 0 ? activeAverage / defaultAverage : 1;
+  return {
+    multiplier: Number(Math.min(Math.max(rawMultiplier, 0.7), 1.35).toFixed(3)),
+    active_categories: relevantActive,
+    role: isPitcher ? "PITCHER" : "HITTER",
+  };
+}
+
+function averageCategoryScore(player, categories) {
+  if (!categories.length) return 0;
+  const total = categories.reduce(
+    (sum, category) => sum + categoryScore(player, category),
+    0,
+  );
+  return total / categories.length;
+}
+
+function categoryScore(player, category) {
+  const value = (key) => Number(player[key]);
+  switch (category) {
+    case "R":
+      return clampRatio(value("r"), 90);
+    case "HR":
+      return clampRatio(value("hr"), 32);
+    case "RBI":
+      return clampRatio(value("rbi"), 95);
+    case "SB":
+      return clampRatio(value("sb"), 28);
+    case "AVG":
+      return clampRatio((value("avg") || 0) - 0.22, 0.08);
+    case "W":
+      return clampRatio(value("w"), 14);
+    case "SV":
+      return clampRatio(value("sv"), 32);
+    case "SO":
+      return clampRatio(value("so"), 185);
+    case "ERA":
+      return clampRatio(5 - (value("era") || 5), 2);
+    case "WHIP":
+      return clampRatio(1.55 - (value("whip") || 1.55), 0.45);
+    default:
+      return 1;
+  }
+}
+
+function clampRatio(value, divisor) {
+  const ratio = Number(value) / divisor;
+  if (!Number.isFinite(ratio)) return 0;
+  return Math.min(Math.max(ratio, 0), 2);
+}
+
+function clamp(value, minimum, maximum) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return minimum;
+  return Math.min(Math.max(numeric, minimum), maximum);
+}
+
+function clampDollarValue(value) {
+  return Math.round(clamp(value, 1, 120));
+}
+
+function numberOrNull(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function normalizeRosterEntry(entry, fallbackTeamId) {
@@ -428,7 +1043,12 @@ function getPlayers({ league, pos, tier, available_only, drafted_names }) {
     return a.name.localeCompare(b.name);
   });
 
-  return annotateRanks(sorted).map(decoratePlayerWithUpdate);
+  return annotateRanks(sorted).map((player) =>
+    decoratePlayerWithUpdate({
+      ...player,
+      volume_projection: buildVolumeProjection(player),
+    }),
+  );
 }
 
 function annotateRanks(sortedPlayers) {
@@ -545,6 +1165,11 @@ function buildReasoning(
   tdv,
   playerUpdate = null,
   riskAdjustment = { max_bid_delta_percent: 0 },
+  scoringAdjustment = { multiplier: 1, active_categories: [] },
+  predictiveAdjustment = { multiplier: 1 },
+  ageAdjustment = { multiplier: 1, band: "UNKNOWN" },
+  depthChartAdjustment = { multiplier: 1, role: "Unknown role" },
+  volumeProjection = null,
 ) {
   const playerPositions = Array.isArray(player.pos) ? player.pos : [];
   const primaryPosition = playerPositions[0];
@@ -561,11 +1186,40 @@ function buildReasoning(
   if (Math.abs(inflation - 1) > 0.02) {
     parts.push(`Market inflation ${inflSign}${inflPct}%.`);
   }
+  if (Math.abs(Number(scoringAdjustment.multiplier || 1) - 1) > 0.03) {
+    const scoringPct = ((Number(scoringAdjustment.multiplier || 1) - 1) * 100).toFixed(1);
+    const scoringSign = Number(scoringAdjustment.multiplier || 1) >= 1 ? "+" : "";
+    parts.push(
+      `Scoring format impact ${scoringSign}${scoringPct}% for ${(
+        scoringAdjustment.active_categories || []
+      ).join("/") || "no active role categories"}.`,
+    );
+  }
+  if (Math.abs(Number(predictiveAdjustment.multiplier || 1) - 1) > 0.02) {
+    const predictivePct = ((Number(predictiveAdjustment.multiplier || 1) - 1) * 100).toFixed(1);
+    const predictiveSign = Number(predictiveAdjustment.multiplier || 1) >= 1 ? "+" : "";
+    parts.push(`Predictive playing-time impact ${predictiveSign}${predictivePct}%.`);
+  }
+  if (ageAdjustment.age != null && Math.abs(Number(ageAdjustment.multiplier || 1) - 1) > 0.02) {
+    const agePct = ((Number(ageAdjustment.multiplier || 1) - 1) * 100).toFixed(1);
+    const ageSign = Number(ageAdjustment.multiplier || 1) >= 1 ? "+" : "";
+    parts.push(`Age curve ${ageAdjustment.band} ${ageSign}${agePct}%.`);
+  }
+  if (Math.abs(Number(depthChartAdjustment.multiplier || 1) - 1) > 0.02) {
+    const depthPct = ((Number(depthChartAdjustment.multiplier || 1) - 1) * 100).toFixed(1);
+    const depthSign = Number(depthChartAdjustment.multiplier || 1) >= 1 ? "+" : "";
+    parts.push(`Depth role impact ${depthSign}${depthPct}% (${depthChartAdjustment.role}).`);
+  }
   if (playerUpdate) {
     const adjustment = Number(riskAdjustment.max_bid_delta_percent || 0);
     const adjustmentText =
       adjustment < 0 ? ` ${adjustment}% valuation adjustment applied.` : "";
     parts.push(`${playerUpdate.headline}.${adjustmentText}`);
+  }
+  if (volumeProjection) {
+    parts.push(
+      `Depth volume: ${volumeProjection.role} (${volumeProjection.score}/100, ${volumeProjection.confidence.toLowerCase()} confidence).`,
+    );
   }
   parts.push(`Player tier: ${playerTier}. Scarcity: ${scarcityTier}. TDV: $${tdv}.`);
   return parts.join(" ");

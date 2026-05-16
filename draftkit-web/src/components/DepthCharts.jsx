@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { posColor } from "../utils/helpers.js";
 import { sortOwnerRankings } from "../utils/teamInsights.js";
+import PlayerCard from "./PlayerCard.jsx";
 
 const POSITION_GROUPS = [
   ["Hitters", ["C", "1B", "2B", "3B", "SS", "OF", "DH"]],
@@ -32,19 +33,19 @@ function formatAssignment(player) {
 }
 
 function roleSourceLabel(player) {
-  if (player.officialRoster?.active) return "MLB roster";
+  if (player.officialRoster?.active) return "Active MLB roster";
   if (player.volumeProjection?.missing_direct_fields?.length === 0) return "Workload projection";
-  return "Projection estimate";
+  return "Stat-based estimate";
 }
 
 function roleSourceDetail(player) {
   if (player.officialRoster?.active) {
-    return player.officialRoster.statusDescription || "Listed on current MLB active roster";
+    return player.officialRoster.statusDescription || "Confirmed on current MLB roster";
   }
   if (player.volumeProjection?.missing_direct_fields?.length === 0) {
     return player.volumeProjection.basis || "Projected workload fields";
   }
-  return "Estimated from production and fantasy-value signals";
+  return "Role estimated from production and fantasy-value signals";
 }
 
 function roleTone(player) {
@@ -53,6 +54,47 @@ function roleTone(player) {
   if (score >= 58) return "steady";
   if (score >= 38) return "thin";
   return "limited";
+}
+
+function displayRole(player) {
+  return player.volumeProjection?.role || "Role estimate";
+}
+
+function getValuationForPlayer(valuationCache, player) {
+  return player?.id != null ? valuationCache?.[player.id] || null : null;
+}
+
+function getDepthPrice(player, valuationCache, valuationLoading) {
+  const valuation = getValuationForPlayer(valuationCache, player);
+  if (valuation && !valuation.error && valuation.max_bid_recommendation != null) {
+    return {
+      label: "Live Max",
+      value: valuation.max_bid_recommendation,
+      source: "live",
+    };
+  }
+  return {
+    label: valuationLoading ? "Refreshing" : "Base",
+    value: player.baseValue ?? player.base_value ?? player.value,
+    source: valuationLoading ? "refreshing" : "base",
+  };
+}
+
+function getCardPlayer(player) {
+  if (!player) return null;
+  return {
+    ...player,
+    volume_projection: player.volume_projection || player.volumeProjection || null,
+  };
+}
+
+function rosterSourceTitle(depthCharts, liveDepthLoading) {
+  if (liveDepthLoading) return "Refreshing MLB active roster";
+  const source = String(depthCharts?.summary?.source || "").toLowerCase();
+  if (source.includes("fallback") || depthCharts?.summary?.warning) {
+    return "Draft Kit Player Pool";
+  }
+  return "MLB Active Roster Feed";
 }
 
 function getTeamByCode(depthCharts, selectedTeam) {
@@ -101,6 +143,14 @@ export default function DepthCharts({
   league = {},
   selectedPlayer,
   setSelectedPlayer,
+  notes = {},
+  favorites = {},
+  saveNote,
+  toggleFavorite,
+  valuationCache = {},
+  valuationLoading = false,
+  valuationError = "",
+  requestValuation,
   liveDepthLoading = false,
   liveDepthError = "",
   onRefreshLiveDepth,
@@ -121,6 +171,11 @@ export default function DepthCharts({
       setSelectedTeam(teamOptions[0]);
     }
   }, [selectedTeam, teamOptions]);
+
+  useEffect(() => {
+    if (Object.keys(valuationCache || {}).length > 0 || valuationLoading) return;
+    requestValuation?.();
+  }, [requestValuation, valuationCache, valuationLoading]);
 
   const selectedTeamData = useMemo(
     () => getTeamByCode(depthCharts, selectedTeam),
@@ -153,6 +208,17 @@ export default function DepthCharts({
     }));
   }
 
+  function handleSelectDepthPlayer(player) {
+    setSelectedPlayer?.(getCardPlayer(player));
+  }
+
+  function getDisplayedValuation(player) {
+    if (!player) return null;
+    const valuation = getValuationForPlayer(valuationCache, player);
+    if (valuation) return valuation;
+    return valuationLoading ? "loading" : null;
+  }
+
   return (
     <div className="depth-redesign">
       <section className="depth-workspace">
@@ -174,11 +240,11 @@ export default function DepthCharts({
 
         <section className={`depth-source-card ${depthCharts?.summary?.warning || liveDepthError ? "warning" : ""}`}>
           <div>
-            <span>Current source</span>
+            <span>Roster source</span>
             <strong>
               {liveDepthLoading
-                ? "Refreshing MLB roster feed"
-                : depthCharts?.summary?.source || "Draft Kit projection model"}
+                ? "Refreshing MLB active roster"
+                : rosterSourceTitle(depthCharts, liveDepthLoading)}
             </strong>
             <small>
               {depthCharts?.summary?.generatedAt
@@ -189,7 +255,8 @@ export default function DepthCharts({
           <p>
             {liveDepthError ||
               depthCharts?.summary?.warning ||
-              "This view combines the MLB roster feed with Draft Kit role and volume estimates. It is a draft research chart, not an official club depth chart."}
+              "Depth order uses Draft Kit live valuations, active roster matches, and role estimates for draft decisions."}
+            {valuationError ? ` Valuation note: ${valuationError}` : ""}
           </p>
           <button type="button" onClick={onRefreshLiveDepth} disabled={liveDepthLoading}>
             {liveDepthLoading ? "Refreshing..." : "Refresh MLB Feed"}
@@ -290,39 +357,42 @@ export default function DepthCharts({
                     </div>
 
                     <div className="depth-card-list">
-                      {position.players.map((player) => (
-                        <button
-                          key={`${player.id}-${position.position}`}
-                          type="button"
-                          className={`depth-card-row ${roleTone(player)} ${
-                            selectedPlayer?.id === player.id ? "active" : ""
-                          }`}
-                          onClick={() => setSelectedPlayer?.(player)}
-                        >
-                          <span className="depth-card-rank">#{player.depthRank}</span>
-                          <span className="depth-card-player">
-                            <strong>{player.name}</strong>
-                            <small>{player.pos?.join("/")} · age {player.age || "N/A"}</small>
-                          </span>
-                          <span className={`depth-role-pill ${roleTone(player)}`}>
-                            {player.volumeProjection?.role || "Role estimate"}
-                          </span>
-                          <span className="depth-card-source">
-                            <strong>{roleSourceLabel(player)}</strong>
-                            <small>{roleSourceDetail(player)}</small>
-                          </span>
-                          <span className="depth-card-value">
-                            <strong>{formatMoney(player.value)}</strong>
-                            <small>value</small>
-                          </span>
-                          <span className={`depth-card-draft ${player.assignment ? "drafted" : "available"}`}>
-                            {formatAssignment(player)}
-                          </span>
-                          <span className={`depth-risk risk-${player.riskLevel.toLowerCase()}`}>
-                            {player.riskLevel}
-                          </span>
-                        </button>
-                      ))}
+                      {position.players.map((player) => {
+                        const price = getDepthPrice(player, valuationCache, valuationLoading);
+                        return (
+                          <button
+                            key={`${player.id}-${position.position}`}
+                            type="button"
+                            className={`depth-card-row ${roleTone(player)} ${
+                              selectedPlayer?.id === player.id ? "active" : ""
+                            }`}
+                            onClick={() => handleSelectDepthPlayer(player)}
+                          >
+                            <span className="depth-card-rank">#{player.depthRank}</span>
+                            <span className="depth-card-player">
+                              <strong>{player.name}</strong>
+                              <small>{player.pos?.join("/")} · age {player.age || "N/A"}</small>
+                            </span>
+                            <span className={`depth-role-pill ${roleTone(player)}`}>
+                              {displayRole(player)}
+                            </span>
+                            <span className="depth-card-source">
+                              <strong>{roleSourceLabel(player)}</strong>
+                              <small>{roleSourceDetail(player)}</small>
+                            </span>
+                            <span className={`depth-card-value ${price.source}`}>
+                              <strong>{formatMoney(price.value)}</strong>
+                              <small>{price.label}</small>
+                            </span>
+                            <span className={`depth-card-draft ${player.assignment ? "drafted" : "available"}`}>
+                              {formatAssignment(player)}
+                            </span>
+                            <span className={`depth-risk risk-${player.riskLevel.toLowerCase()}`}>
+                              {player.riskLevel}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </section>
                 ))}
@@ -335,6 +405,24 @@ export default function DepthCharts({
       </section>
 
       <aside className="depth-context-rail">
+        <section className="depth-selected-card">
+          <span className="depth-eyebrow">Selected player</span>
+          {selectedPlayer ? (
+            <PlayerCard
+              player={getCardPlayer(selectedPlayer)}
+              valuation={getDisplayedValuation(selectedPlayer)}
+              notes={notes}
+              favorites={favorites}
+              saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
+            />
+          ) : (
+            <div className="depth-selected-empty">
+              Select a row to inspect the full player card and live valuation drivers.
+            </div>
+          )}
+        </section>
+
         <section className="depth-help-card">
           <span className="depth-eyebrow">How to use this</span>
           <h3>Draft flow</h3>

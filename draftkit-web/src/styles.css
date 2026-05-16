@@ -6398,6 +6398,7 @@ a {
 .depth-source-card,
 .depth-controls-panel,
 .depth-team-shell,
+.depth-selected-card,
 .depth-help-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -6699,6 +6700,18 @@ a {
   line-height: 1.25;
 }
 
+.depth-card-value.live strong {
+  color: #86efac;
+}
+
+.depth-card-value.refreshing strong {
+  color: #bfdbfe;
+}
+
+.depth-card-value.base strong {
+  color: #fcd34d;
+}
+
 .depth-role-pill,
 .depth-card-draft,
 .depth-risk {
@@ -6745,6 +6758,27 @@ a {
 .depth-help-card {
   padding: 12px;
   margin-bottom: 12px;
+}
+
+.depth-selected-card {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.depth-selected-card .player-card {
+  box-shadow: none;
+}
+
+.depth-selected-empty {
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+  color: var(--muted2);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 14px;
 }
 
 .depth-help-card ol {

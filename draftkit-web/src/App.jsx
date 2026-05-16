@@ -3706,6 +3706,14 @@ export default function App() {
             league={league}
             selectedPlayer={selectedPlayer}
             setSelectedPlayer={setSelectedPlayer}
+            notes={notes}
+            favorites={favorites}
+            saveNote={saveNote}
+            toggleFavorite={toggleFavorite}
+            valuationCache={valuationCache}
+            valuationLoading={valuationLoading}
+            valuationError={valuationError}
+            requestValuation={requestValuation}
             liveDepthLoading={liveDepthLoading}
             liveDepthError={liveDepthError}
             onRefreshLiveDepth={() => fetchLiveDepthCharts({ refresh: true })}

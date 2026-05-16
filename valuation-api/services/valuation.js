@@ -533,13 +533,19 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
   const role =
     normalizedScore >= 76
       ? isPitcher
-        ? "Rotation/closer volume"
-        : "Everyday volume"
+        ? "Rotation or closer role"
+        : "Everyday role"
       : normalizedScore >= 58
-        ? "Regular volume"
+        ? isPitcher
+          ? "Regular pitching role"
+          : "Regular role"
         : normalizedScore >= 38
-          ? "Role-player volume"
-          : "Limited volume";
+          ? isPitcher
+            ? "Swing or setup role"
+            : "Part-time role"
+          : isPitcher
+            ? "Depth arm"
+            : "Depth or bench role";
 
   return {
     score: normalizedScore,

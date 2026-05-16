@@ -135,7 +135,7 @@ function findLiveRosterEntry(player, lookup) {
 }
 
 export function getPlayerValue(player = {}) {
-  return Math.max(0, asNumber(player.baseValue ?? player.value, 0));
+  return Math.max(0, asNumber(player.baseValue ?? player.base_value ?? player.value, 0));
 }
 
 function numberOrNull(value) {
@@ -198,13 +198,19 @@ export function getPlayerVolumeProjection(player = {}) {
   const role =
     normalizedScore >= 76
       ? isPitcher
-        ? "Rotation/closer volume"
-        : "Everyday volume"
+        ? "Rotation or closer role"
+        : "Everyday role"
       : normalizedScore >= 58
-        ? "Regular volume"
+        ? isPitcher
+          ? "Regular pitching role"
+          : "Regular role"
         : normalizedScore >= 38
-          ? "Role-player volume"
-          : "Limited volume";
+          ? isPitcher
+            ? "Swing or setup role"
+            : "Part-time role"
+          : isPitcher
+            ? "Depth arm"
+            : "Depth or bench role";
 
   return {
     score: normalizedScore,

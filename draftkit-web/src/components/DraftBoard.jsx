@@ -1766,7 +1766,6 @@ export default function DraftBoard({
                     recValue={valuationCache[p.id]?.max_bid_recommendation}
                     recLoading={valuationLoading && !valuationCache[p.id]}
                     actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
-                    onSelect={() => handleSelectPlayer(p)}
                     onOpenCard={() => openPlayerCard(p)}
                     onRecord={() =>
                       activeCellSearch
@@ -2330,7 +2329,6 @@ function SearchResult({
   recLoading,
   contextTag,
   actionLabel = "Record Sale",
-  onSelect,
   onOpenCard,
   onRecord,
   onToggleFavorite,
@@ -2348,10 +2346,10 @@ function SearchResult({
   return (
     <div
       className="search-result"
-      onClick={onSelect}
+      onClick={onOpenCard}
       onMouseEnter={(e) => onPreviewStart?.(e.currentTarget)}
       onMouseLeave={() => onPreviewEnd?.()}
-      title={`Pin ${player.name} in the scouting rail`}
+      title={`Open ${player.name}'s full card`}
     >
       <PlayerAvatar name={player.name} size={40} photoUrl={player.photoUrl} />
       <div className="sr-copy">

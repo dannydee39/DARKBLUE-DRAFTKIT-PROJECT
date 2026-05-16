@@ -36,7 +36,7 @@ export default function ProspectRosters({
       .slice(0, 12);
   }, [players, query]);
 
-  const totalProspects = (league.teams || []).reduce(
+  const totalMinorLeaguers = (league.teams || []).reduce(
     (total, team) => total + (team.minorLeague || []).length,
     0,
   );
@@ -65,7 +65,7 @@ export default function ProspectRosters({
         <div className="taxi-header-row">
           <h2 className="taxi-mode-title">MINOR LEAGUE ROSTERS</h2>
           <span className="prospect-badge">
-            Prospects are protected and removed from the auction pool
+            Minor league players are protected and removed from the auction pool
           </span>
           <span className="taxi-hint" style={{ marginLeft: "auto" }}>
             Use this before draft day or for commissioner corrections.
@@ -78,8 +78,8 @@ export default function ProspectRosters({
             <strong>{activeTeam?.name || "No team selected"}</strong>
           </div>
           <div className="prospect-summary-card">
-            <span>Protected Prospects</span>
-            <strong>{totalProspects}</strong>
+            <span>Protected Minor League</span>
+            <strong>{totalMinorLeaguers}</strong>
           </div>
           <div className="prospect-summary-card">
             <span>Draft Pool Rule</span>
@@ -99,7 +99,7 @@ export default function ProspectRosters({
               className="search-input"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search available players to protect as prospects"
+              placeholder="Search available players to protect on minor league rosters"
             />
             {query.length >= 2 && (
               <div className="search-dropdown">
@@ -157,7 +157,7 @@ export default function ProspectRosters({
                 >
                   <span>{team.name}</span>
                   <strong>
-                    {prospects.length} prospect{prospects.length !== 1 ? "s" : ""}
+                    {prospects.length} minor leaguer{prospects.length !== 1 ? "s" : ""}
                   </strong>
                 </button>
 
@@ -225,15 +225,15 @@ export default function ProspectRosters({
         <div className="prospect-rule-list">
           <div>
             <strong>Minor league entry</strong>
-            <span>Owners can assign prospects directly to protected rosters.</span>
+            <span>Owners can assign minor league players directly to protected rosters.</span>
           </div>
           <div>
             <strong>Draft eligibility block</strong>
-            <span>Rostered prospects are marked unavailable in the main auction pool.</span>
+            <span>Rostered minor league players are marked unavailable in the main auction pool.</span>
           </div>
           <div>
             <strong>Team movement</strong>
-            <span>Commissioner can transfer prospects between fantasy teams.</span>
+            <span>Commissioner can transfer minor league players between fantasy teams.</span>
           </div>
         </div>
 
@@ -241,7 +241,7 @@ export default function ProspectRosters({
           ACTIVE TEAM PROSPECTS
         </div>
         {(activeTeam?.minorLeague || []).length === 0 && (
-          <div className="taxi-side-empty">No prospects assigned to this team.</div>
+          <div className="taxi-side-empty">No minor league players assigned to this team.</div>
         )}
         {(activeTeam?.minorLeague || []).map((prospect, index) => (
           <div key={prospect.playerId} className="taxi-roster-row">

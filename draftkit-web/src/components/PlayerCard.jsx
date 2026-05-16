@@ -20,9 +20,208 @@ import {
   formatAdjustmentPercent,
   formatValuationSource,
   getValuationSource,
-  summarizeValuationSnapshot,
   makeValuationSnapshot,
 } from "../utils/draftHistory.js";
+
+const HITTER_STAT_META = {
+  R: { key: "r", label: "Runs", benchmark: 90 },
+  HR: { key: "hr", label: "Power", benchmark: 32 },
+  RBI: { key: "rbi", label: "RBI", benchmark: 95 },
+  SB: { key: "sb", label: "Speed", benchmark: 28 },
+  AVG: { key: "avg", label: "Average", benchmark: 0.28, baseline: 0.22 },
+};
+
+const PITCHER_STAT_META = {
+  W: { key: "w", label: "Wins", benchmark: 14 },
+  SV: { key: "sv", label: "Saves", benchmark: 32 },
+  SO: { key: "so", label: "Strikeouts", benchmark: 185 },
+  ERA: { key: "era", label: "ERA", benchmark: 3.6, lowerIsBetter: true },
+  WHIP: { key: "whip", label: "WHIP", benchmark: 1.18, lowerIsBetter: true },
+};
+
+function numberOrNull(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeCategoryList(categories, isPitcher) {
+  const meta = isPitcher ? PITCHER_STAT_META : HITTER_STAT_META;
+  const defaults = isPitcher ? ["W", "SV", "SO", "ERA", "WHIP"] : ["R", "HR", "RBI", "SB", "AVG"];
+  const normalized = (Array.isArray(categories) ? categories : [])
+    .map((category) => String(category || "").trim().toUpperCase())
+    .filter((category) => meta[category]);
+  return normalized.length ? normalized : defaults;
+}
+
+function scoreStat(value, meta) {
+  const numeric = numberOrNull(value);
+  if (numeric == null) return 0;
+  if (meta.lowerIsBetter) {
+    return Math.min(Math.max(meta.benchmark / Math.max(numeric, 0.01), 0), 1.4);
+  }
+  if (meta.baseline != null) {
+    return Math.min(Math.max((numeric - meta.baseline) / (meta.benchmark - meta.baseline), 0), 1.4);
+  }
+  return Math.min(Math.max(numeric / meta.benchmark, 0), 1.4);
+}
+
+function statTone(score) {
+  if (score >= 1.05) return "strength";
+  if (score >= 0.78) return "useful";
+  return "weakness";
+}
+
+function statSummary(score) {
+  if (score >= 1.05) return "Strong driver";
+  if (score >= 0.78) return "Counts well";
+  return "Needs help";
+}
+
+function buildStatRows(player, isPitcher, activeCategories) {
+  const meta = isPitcher ? PITCHER_STAT_META : HITTER_STAT_META;
+  return normalizeCategoryList(activeCategories, isPitcher).map((category) => {
+    const stat = meta[category];
+    const rawValue = player[stat.key];
+    const score = scoreStat(rawValue, stat);
+    return {
+      category,
+      label: stat.label,
+      value: formatStat(rawValue, category),
+      tone: statTone(score),
+      summary: statSummary(score),
+    };
+  });
+}
+
+function impactTone(multiplier) {
+  const numeric = numberOrNull(multiplier);
+  if (numeric == null) return "neutral";
+  if (numeric >= 1.025) return "positive";
+  if (numeric <= 0.975) return "negative";
+  return "neutral";
+}
+
+function impactLabel(multiplier) {
+  const tone = impactTone(multiplier);
+  const percent = formatAdjustmentPercent(multiplier);
+  if (!percent) return "No adjustment";
+  if (tone === "positive") return `Boost ${percent}`;
+  if (tone === "negative") return `Penalty ${percent}`;
+  return "Neutral";
+}
+
+function readableBand(value) {
+  return String(value || "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function listText(values, fallback = "not specified") {
+  const cleaned = (Array.isArray(values) ? values : [])
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  return cleaned.length ? cleaned.join(", ") : fallback;
+}
+
+function buildValuationDrivers({
+  player,
+  valuation,
+  valuationSnapshot,
+  statRows,
+  volumeProjection,
+  riskLevel,
+  injuryStatus,
+}) {
+  if (!valuationSnapshot || !valuation || valuation === "loading" || valuation.error) {
+    return [];
+  }
+
+  const scoringAdjustment = valuation.scoring_adjustment || {};
+  const scarcityDetail =
+    valuation.position_scarcity && typeof valuation.position_scarcity === "object"
+      ? Object.entries(valuation.position_scarcity)[0]
+      : null;
+  const predictiveAdjustment = valuation.predictive_adjustment || {};
+  const ageAdjustment = valuation.age_adjustment || {};
+  const depthAdjustment = valuation.depth_chart_adjustment || {};
+  const riskAdjustment = valuation.risk_adjustment || {};
+  const strongestStats = statRows
+    .filter((row) => row.tone === "strength")
+    .map((row) => row.category)
+    .slice(0, 3);
+  const weakerStats = statRows
+    .filter((row) => row.tone === "weakness")
+    .map((row) => row.category)
+    .slice(0, 3);
+  const scoringDetail = [
+    `League categories: ${listText(scoringAdjustment.active_categories)}`,
+    strongestStats.length ? `Strengths: ${strongestStats.join(", ")}` : "",
+    weakerStats.length ? `Watch: ${weakerStats.join(", ")}` : "",
+  ].filter(Boolean).join(" · ");
+  const predictiveDetail = [
+    predictiveAdjustment.source && predictiveAdjustment.source !== "none"
+      ? predictiveAdjustment.source
+      : "projection/volume signal",
+    predictiveAdjustment.fpts_delta_percent
+      ? `FPTS vs pool ${predictiveAdjustment.fpts_delta_percent > 0 ? "+" : ""}${predictiveAdjustment.fpts_delta_percent}%`
+      : "",
+    `Volume ${predictiveAdjustment.volume_score || volumeProjection?.score || 0}/100`,
+  ].filter(Boolean).join(" · ");
+  const depthDetail = [
+    depthAdjustment.depth_position || player.pos?.[0] || "Role",
+    depthAdjustment.depth_rank ? `rank ${depthAdjustment.depth_rank}` : "",
+    depthAdjustment.role || volumeProjection?.role || "role inferred from volume",
+    `${depthAdjustment.volume_score || volumeProjection?.score || 0}/100 volume`,
+  ].filter(Boolean).join(" · ");
+
+  return [
+    {
+      label: "Baseline Stats",
+      value: valuationSnapshot.statBaselineValue != null ? `$${valuationSnapshot.statBaselineValue}` : `$${player.baseValue}`,
+      tone: "neutral",
+      detail: `${readableBand(valuation.stat_profile?.window || "runtime")} window · ${valuation.stat_profile?.selected_source || "player-pool stats"}`,
+    },
+    {
+      label: "Scoring Fit",
+      value: impactLabel(scoringAdjustment.multiplier),
+      tone: impactTone(scoringAdjustment.multiplier),
+      detail: scoringDetail,
+    },
+    {
+      label: "Position Scarcity",
+      value: impactLabel(valuationSnapshot.factors?.scarcity),
+      tone: impactTone(valuationSnapshot.factors?.scarcity),
+      detail: `${scarcityDetail?.[0] || player.pos?.[0] || "Position"} · ${scarcityDetail?.[1] || valuation.scarcity_tier || "scarcity measured from remaining pool"}`,
+    },
+    {
+      label: "Predictive Signal",
+      value: impactLabel(predictiveAdjustment.multiplier),
+      tone: impactTone(predictiveAdjustment.multiplier),
+      detail: predictiveDetail,
+    },
+    {
+      label: "Age Curve",
+      value: impactLabel(ageAdjustment.multiplier),
+      tone: impactTone(ageAdjustment.multiplier),
+      detail: ageAdjustment.age != null
+        ? `Age ${ageAdjustment.age} · ${readableBand(ageAdjustment.band)}`
+        : "Age unavailable",
+    },
+    {
+      label: "Role & Volume",
+      value: impactLabel(depthAdjustment.multiplier),
+      tone: impactTone(depthAdjustment.multiplier),
+      detail: depthDetail,
+    },
+    {
+      label: "Risk",
+      value: impactLabel(riskAdjustment.multiplier),
+      tone: impactTone(riskAdjustment.multiplier),
+      detail: `${riskLevel || "LOW"} risk${injuryStatus ? ` · ${injuryStatus}` : ""}`,
+    },
+  ];
+}
 
 /**
  * PlayerCard
@@ -110,30 +309,6 @@ export default function PlayerCard({
   // handles two-way-player edge cases (e.g. Ohtani has both SP and batting stats).
   const isPitcher = player.era !== null && player.era !== undefined;
 
-  // ── Stats to display ─────────────────────────────────────────────────────
-  // Show 3 key stats relevant to the player's type. We display at most 3.
-  const rawStats = isPitcher
-    ? [
-        { label: "ERA",  val: player.era  },
-        { label: "SO",   val: player.so   },
-        { label: "WHIP", val: player.whip },
-      ]
-    : [
-        { label: "HR",  val: player.hr  },
-        { label: "RBI", val: player.rbi },
-        { label: "SB",  val: player.sb  },
-      ];
-
-  // Append AVG for hitters that have it (most will)
-  if (!isPitcher && player.avg) {
-    rawStats.push({ label: "AVG", val: player.avg });
-  }
-
-  // Format for display and limit to 3 visible stats
-  const displayStats = rawStats
-    .slice(0, 3)
-    .map((s) => ({ ...s, val: formatStat(s.val, s.label) }));
-
   // ── API Scarcity Label ─────────────────────────────────────────────────
   // Build a human-readable scarcity badge from the API response.
   const scarcityLabel =
@@ -183,17 +358,22 @@ export default function PlayerCard({
     valuation && valuation !== "loading" && !valuationFailed
       ? makeValuationSnapshot(player, valuation)
       : null;
-  // The player card mirrors the API rubric: TDV is the true dollar value,
-  // factorRows show each multiplier, and context pills show which inputs moved it.
-  const factorRows = summarizeValuationSnapshot(valuationSnapshot);
   const statProfile =
     valuation && valuation !== "loading" ? valuation.stat_profile : null;
-  const predictiveAdjustment =
-    valuation && valuation !== "loading" ? valuation.predictive_adjustment : null;
-  const ageAdjustment =
-    valuation && valuation !== "loading" ? valuation.age_adjustment : null;
-  const depthChartAdjustment =
-    valuation && valuation !== "loading" ? valuation.depth_chart_adjustment : null;
+  const activeScoringCategories =
+    valuation && valuation !== "loading"
+      ? valuation.scoring_adjustment?.active_categories
+      : null;
+  const statRows = buildStatRows(player, isPitcher, activeScoringCategories);
+  const valuationDrivers = buildValuationDrivers({
+    player,
+    valuation,
+    valuationSnapshot,
+    statRows,
+    volumeProjection,
+    riskLevel,
+    injuryStatus,
+  });
 
   const storedNote = notes?.[player.id] ?? player.note ?? "";
   const isDirty = localNote !== storedNote;
@@ -276,32 +456,57 @@ export default function PlayerCard({
 
       {/* ── Key Stats ───────────────────────────────────────────────────── */}
       <div className="pc-section-label">
-        {valuation === "loading" ? "FETCHING VALUATION…" : "STATISTICS"}
+        {valuation === "loading" ? "FETCHING VALUATION…" : "SCORING STAT PROFILE"}
       </div>
-      <div className="pc-stats">
-        {displayStats.map((s) => (
-          <div key={s.label} className="pc-stat">
-            <div className="pcs-label">{s.label}</div>
-            <div className="pcs-val">{s.val}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── FPTS (fantasy points) ─────────────────────────────────────── */}
-      {player.fpts != null && (
-        <div style={{ fontSize: 10, color: "var(--muted)", marginTop: -4 }}>
-          Projected FPTS: <strong style={{ color: "var(--white)" }}>{player.fpts}</strong>
-          {" "}· Base Value: <strong style={{ color: "var(--green)" }}>${player.baseValue}</strong>
+      <div className="pc-stat-panel">
+        <div className="pc-stat-panel-head">
+          <span>{statProfile?.window ? readableBand(statProfile.window) : "Player Pool"} Stats</span>
+          <strong>
+            {activeScoringCategories?.length
+              ? `${activeScoringCategories.length} league cats`
+              : "Default cats"}
+          </strong>
         </div>
-      )}
+        <div className="pc-stat-grid">
+          {statRows.map((stat) => (
+            <div key={stat.category} className={`pc-stat-card ${stat.tone}`}>
+              <div>
+                <span>{stat.category}</span>
+                <strong>{stat.value}</strong>
+              </div>
+              <small>{stat.summary}</small>
+            </div>
+          ))}
+        </div>
+        {player.fpts != null && (
+          <div className="pc-stat-footer">
+            <span>Projected FPTS</span>
+            <strong>{player.fpts}</strong>
+            <span>Base value</span>
+            <strong>${player.baseValue}</strong>
+          </div>
+        )}
+      </div>
 
       {volumeProjection && (
-        <div className="pc-news">
-          <span className="news-tag">[DEPTH]</span>{" "}
-          {volumeProjection.role} · {volumeProjection.score}/100 · {volumeProjection.confidence} confidence.
-          <span style={{ display: "block", marginTop: 4 }}>
-            Basis: {volumeProjection.basis}. Drivers: {(volumeProjection.drivers || []).join(", ") || "not available"}.
-          </span>
+        <div className="pc-role-panel">
+          <div className="pc-role-head">
+            <span>Role & Playing Time</span>
+            <strong>{volumeProjection.score}/100</strong>
+          </div>
+          <div className="pc-role-copy">
+            <strong>{volumeProjection.role}</strong>
+            <span>{volumeProjection.confidence} confidence · {volumeProjection.basis}</span>
+          </div>
+          <div className="pc-role-drivers">
+            {(volumeProjection.drivers || []).slice(0, 5).map((driver) => (
+              <span key={driver}>{driver}</span>
+            ))}
+            {(volumeProjection.drivers || []).length === 0 && <span>No workload drivers</span>}
+          </div>
+          {volumeProjection.note && (
+            <p>{volumeProjection.note}</p>
+          )}
         </div>
       )}
 
@@ -309,33 +514,23 @@ export default function PlayerCard({
         <div className="pc-valuation-panel">
           <div className="pc-valuation-top">
             <span>Live valuation</span>
-            <strong>TDV ${valuationSnapshot.trueDollarValue}</strong>
+            <strong>TDV ${valuationSnapshot.trueDollarValue} · Max ${valuationSnapshot.maxBidRecommendation}</strong>
           </div>
-          <div className="pc-factor-grid">
-            {factorRows.map(([label, value]) => (
-              <div key={label} className="pc-factor">
-                <span>{label}</span>
-                <strong>{value}</strong>
+          <div className="pc-valuation-summary">
+            <span>{valuationSnapshot.marketContext?.label || "Neutral market"}</span>
+            <span>{valuationSnapshot.scarcityTier || "Scarcity measured"}</span>
+            <span>{valuationSnapshot.riskLevel || riskLevel} risk</span>
+          </div>
+          <div className="pc-driver-list">
+            {valuationDrivers.map((driver) => (
+              <div key={driver.label} className={`pc-driver-row ${driver.tone}`}>
+                <div className="pc-driver-main">
+                  <span>{driver.label}</span>
+                  <p>{driver.detail}</p>
+                </div>
+                <strong>{driver.value}</strong>
               </div>
             ))}
-          </div>
-          <div className="pc-valuation-context">
-            {statProfile?.window && <span>{statProfile.window}</span>}
-            {predictiveAdjustment && (
-              <span>
-                Predictive {formatAdjustmentPercent(predictiveAdjustment.multiplier)}
-              </span>
-            )}
-            {ageAdjustment?.band && (
-              <span>
-                {ageAdjustment.band} age {formatAdjustmentPercent(ageAdjustment.multiplier)}
-              </span>
-            )}
-            {depthChartAdjustment?.depth_position && (
-              <span>
-                {depthChartAdjustment.depth_position} depth {formatAdjustmentPercent(depthChartAdjustment.multiplier)}
-              </span>
-            )}
           </div>
         </div>
       )}

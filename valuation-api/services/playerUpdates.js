@@ -5,7 +5,7 @@ const players = require("../data/players.json");
 
 const PLAYER_BY_ID = new Map(players.map((player) => [player.id, player]));
 const RISK_ORDER = { LOW: 0, MEDIUM: 1, HIGH: 2 };
-const UPDATE_TYPES = new Set(["INJURY", "NEWS", "LINEUP", "ROLE"]);
+const UPDATE_TYPES = new Set(["INJURY", "TRANSACTION", "NEWS", "LINEUP", "ROLE"]);
 const UPDATE_SEVERITIES = new Set(["LOW", "MEDIUM", "HIGH"]);
 const DEFAULT_UPDATES_FILE = path.join(__dirname, "..", "data", "player-updates.json");
 const UPDATES_FILE = process.env.PLAYER_UPDATES_FILE || DEFAULT_UPDATES_FILE;
@@ -210,12 +210,18 @@ function defaultHeadline(player, type, severity) {
   if (type === "INJURY") {
     return `${player.name} moved to ${severity.toLowerCase()} injury risk`;
   }
+  if (type === "TRANSACTION") {
+    return `${player.name} transaction status updated`;
+  }
   return `${player.name} status updated`;
 }
 
 function defaultBody(player, type, severity) {
   if (type === "INJURY") {
     return `${player.name} is carrying a ${severity.toLowerCase()} injury risk flag for draft review.`;
+  }
+  if (type === "TRANSACTION") {
+    return `${player.name} has updated transaction context for draft-day volume review.`;
   }
   return `${player.name} has an updated draft-day status note.`;
 }
@@ -232,6 +238,9 @@ function defaultImpactSummary(type, severity) {
   }
   if (type === "INJURY") {
     return "Keep the player visible, but review injury risk before bidding.";
+  }
+  if (type === "TRANSACTION") {
+    return "Review role and playing-time volume before bidding.";
   }
   return "Player context updated for draft decisions.";
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const UPDATE_TYPES = [
   { value: "INJURY", label: "Injury" },
-  { value: "NEWS", label: "News" },
+  { value: "TRANSACTION", label: "Transaction" },
   { value: "LINEUP", label: "Lineup" },
   { value: "ROLE", label: "Role" },
 ];
@@ -53,7 +53,7 @@ export default function PlayerUpdateCenter({
     ? latest.headline
     : targetPlayer
       ? `Ready to add a league note for ${targetPlayer.name}`
-      : "No active player alerts";
+      : "No active transactions";
   const updateCountLabel =
     updates.length === 1 ? "1 update" : `${updates.length} updates`;
 
@@ -68,7 +68,7 @@ export default function PlayerUpdateCenter({
   return (
     <section
       className={`player-update-center ${isOpen ? "is-open" : "is-collapsed"}`}
-      aria-label="Player updates"
+      aria-label="Player transactions and updates"
     >
       <div className="puc-compact">
         <button
@@ -77,7 +77,7 @@ export default function PlayerUpdateCenter({
           onClick={() => setIsOpen((open) => !open)}
           aria-expanded={isOpen}
         >
-          <span className="puc-eyebrow">Player updates</span>
+          <span className="puc-eyebrow">Transactions</span>
           <strong>{compactHeadline}</strong>
           <span>{latest ? `${formatUpdateSource(latest)} - ${updateCountLabel}` : updateCountLabel}</span>
         </button>
@@ -104,8 +104,8 @@ export default function PlayerUpdateCenter({
         <>
           <div className="puc-header">
             <div>
-              <div className="puc-eyebrow">League note center</div>
-              <h2>Player news and risk notes</h2>
+              <div className="puc-eyebrow">League transaction center</div>
+              <h2>Transactions and risk notes</h2>
             </div>
             <div className={`puc-status ${statusTone}`}>
               {statusLabel}
@@ -122,7 +122,7 @@ export default function PlayerUpdateCenter({
               </strong>
               <p>
                 {latest?.impact_summary ||
-                  "Use this only for notification-worthy context. The board stays clean when there is nothing to review."}
+                  "Use this only for transaction-worthy context. The board stays clean when there is nothing to review."}
               </p>
               {latest && (
                 <div className="puc-primary-actions">
@@ -242,7 +242,7 @@ export default function PlayerUpdateCenter({
             </div>
           ) : (
             <div className="puc-empty">
-              No active player notes. Select a player only when there is real
+              No active transactions. Select a player only when there is real
               draft context to publish.
             </div>
           )}

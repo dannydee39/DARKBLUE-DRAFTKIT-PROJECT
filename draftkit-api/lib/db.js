@@ -341,9 +341,9 @@ function cleanText(value) {
 
 function normalizeNoteType(value) {
   const normalized = cleanText(value).toUpperCase();
-  return ["INJURY", "NEWS", "LINEUP", "ROLE"].includes(normalized)
+  return ["INJURY", "TRANSACTION", "NEWS", "LINEUP", "ROLE"].includes(normalized)
     ? normalized
-    : "NEWS";
+    : "TRANSACTION";
 }
 
 function normalizeSeverity(value) {

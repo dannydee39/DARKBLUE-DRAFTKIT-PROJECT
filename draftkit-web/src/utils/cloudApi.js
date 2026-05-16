@@ -11,7 +11,13 @@ async function parseResponse(response) {
       payload?.message ||
       payload?.error ||
       (typeof payload === "string" ? payload : "Request failed.");
-    throw new Error(message);
+    const error = new Error(message);
+    if (payload && typeof payload === "object") {
+      error.code = payload.code;
+      error.status = response.status;
+      error.payload = payload;
+    }
+    throw error;
   }
 
   return payload;

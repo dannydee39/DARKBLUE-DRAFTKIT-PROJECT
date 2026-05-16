@@ -32,22 +32,6 @@ function formatAssignment(player) {
   return "Available";
 }
 
-function roleSourceLabel(player) {
-  if (player.officialRoster?.active) return "Active MLB roster";
-  if (player.volumeProjection?.missing_direct_fields?.length === 0) return "Workload projection";
-  return "Stat-based estimate";
-}
-
-function roleSourceDetail(player) {
-  if (player.officialRoster?.active) {
-    return player.officialRoster.statusDescription || "Confirmed on current MLB roster";
-  }
-  if (player.volumeProjection?.missing_direct_fields?.length === 0) {
-    return player.volumeProjection.basis || "Projected workload fields";
-  }
-  return "Role estimated from production and fantasy-value signals";
-}
-
 function roleTone(player) {
   const score = Number(player.volumeScore || player.volumeProjection?.score || 0);
   if (score >= 76) return "strong";
@@ -58,6 +42,15 @@ function roleTone(player) {
 
 function displayRole(player) {
   return player.volumeProjection?.role || "Role estimate";
+}
+
+function playerContext(player) {
+  const position = player.pos?.join("/") || player.depthPosition || "POS";
+  const age = player.age ? `age ${player.age}` : "age N/A";
+  const handedness = [player.bats ? `B:${player.bats}` : "", player.throws ? `T:${player.throws}` : ""]
+    .filter(Boolean)
+    .join(" ");
+  return [position, age, handedness].filter(Boolean).join(" · ");
 }
 
 function getValuationForPlayer(valuationCache, player) {
@@ -86,15 +79,6 @@ function getCardPlayer(player) {
     ...player,
     volume_projection: player.volume_projection || player.volumeProjection || null,
   };
-}
-
-function rosterSourceTitle(depthCharts, liveDepthLoading) {
-  if (liveDepthLoading) return "Refreshing MLB active roster";
-  const source = String(depthCharts?.summary?.source || "").toLowerCase();
-  if (source.includes("fallback") || depthCharts?.summary?.warning) {
-    return "Draft Kit Player Pool";
-  }
-  return "MLB Active Roster Feed";
 }
 
 function getTeamByCode(depthCharts, selectedTeam) {
@@ -149,11 +133,7 @@ export default function DepthCharts({
   toggleFavorite,
   valuationCache = {},
   valuationLoading = false,
-  valuationError = "",
   requestValuation,
-  liveDepthLoading = false,
-  liveDepthError = "",
-  onRefreshLiveDepth,
 }) {
   const teamOptions = depthCharts?.teamOptions || [];
   const positionOptions = depthCharts?.positionOptions || [];
@@ -237,31 +217,6 @@ export default function DepthCharts({
             <span>{activeScoring || "Default"} scoring</span>
           </div>
         </header>
-
-        <section className={`depth-source-card ${depthCharts?.summary?.warning || liveDepthError ? "warning" : ""}`}>
-          <div>
-            <span>Roster source</span>
-            <strong>
-              {liveDepthLoading
-                ? "Refreshing MLB active roster"
-                : rosterSourceTitle(depthCharts, liveDepthLoading)}
-            </strong>
-            <small>
-              {depthCharts?.summary?.generatedAt
-                ? `Updated ${new Date(depthCharts.summary.generatedAt).toLocaleString()}`
-                : "Local player pool context"}
-            </small>
-          </div>
-          <p>
-            {liveDepthError ||
-              depthCharts?.summary?.warning ||
-              "Depth order uses Draft Kit live valuations, active roster matches, and role estimates for draft decisions."}
-            {valuationError ? ` Valuation note: ${valuationError}` : ""}
-          </p>
-          <button type="button" onClick={onRefreshLiveDepth} disabled={liveDepthLoading}>
-            {liveDepthLoading ? "Refreshing..." : "Refresh MLB Feed"}
-          </button>
-        </section>
 
         <section className="depth-controls-panel">
           <label>
@@ -371,14 +326,10 @@ export default function DepthCharts({
                             <span className="depth-card-rank">#{player.depthRank}</span>
                             <span className="depth-card-player">
                               <strong>{player.name}</strong>
-                              <small>{player.pos?.join("/")} · age {player.age || "N/A"}</small>
+                              <small>{playerContext(player)}</small>
                             </span>
                             <span className={`depth-role-pill ${roleTone(player)}`}>
                               {displayRole(player)}
-                            </span>
-                            <span className="depth-card-source">
-                              <strong>{roleSourceLabel(player)}</strong>
-                              <small>{roleSourceDetail(player)}</small>
                             </span>
                             <span className={`depth-card-value ${price.source}`}>
                               <strong>{formatMoney(price.value)}</strong>

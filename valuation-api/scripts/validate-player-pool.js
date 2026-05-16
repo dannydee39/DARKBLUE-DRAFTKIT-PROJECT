@@ -6,6 +6,18 @@ function assertFiniteNumber(value, label) {
   assert.ok(Number.isFinite(value), `${label} should be finite`);
 }
 
+function assertWorkloadField(player, key) {
+  /*
+   * These fields are the generated playing-time inputs used by the valuation
+   * depth/role math. They are not third-party future projections; they are
+   * derived by scripts/generate-players.js from the weighted MLB stat line.
+   * Keeping this as a validation requirement prevents the app from silently
+   * showing weaker proxy-only role estimates for the main player pool.
+   */
+  assertFiniteNumber(player[key], `${player.name} ${key}`);
+  assert.ok(player[key] >= 0, `${player.name} ${key} should not be negative`);
+}
+
 function main() {
   assert.ok(Array.isArray(players), "players.json should export an array");
   assert.ok(players.length > 500, "real player pool should contain a substantial set of players");
@@ -46,6 +58,8 @@ function main() {
     const isPitcher = ["SP", "RP"].includes(player.pos[0]);
     if (isPitcher) {
       pitchers += 1;
+      assertWorkloadField(player, "projected_games");
+      assertWorkloadField(player, "projected_innings");
       assert.ok(player.era !== null, `${player.name} should have pitcher ERA`);
       assert.ok(player.whip !== null, `${player.name} should have pitcher WHIP`);
       assertFiniteNumber(player.so, `${player.name} so`);
@@ -53,6 +67,9 @@ function main() {
       assertFiniteNumber(player.sv, `${player.name} sv`);
     } else {
       hitters += 1;
+      assertWorkloadField(player, "projected_games");
+      assertWorkloadField(player, "projected_plate_appearances");
+      assertWorkloadField(player, "projected_at_bats");
       assertFiniteNumber(player.hr, `${player.name} hr`);
       assertFiniteNumber(player.rbi, `${player.name} rbi`);
       assertFiniteNumber(player.r, `${player.name} r`);

@@ -569,8 +569,8 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
     ),
     note:
       directAvailable.length > 0
-        ? "Depth rank uses projected playing-time fields from the generated player source."
-        : "Using a stat-based volume estimate because dedicated workload projections are not loaded for this player.",
+        ? "Depth rank uses generated playing-time fields from the player pool."
+        : "Role estimate uses available production because playing-time fields are unavailable for this player.",
   };
 }
 

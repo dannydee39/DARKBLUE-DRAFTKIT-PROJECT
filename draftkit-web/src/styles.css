@@ -6395,7 +6395,6 @@ a {
 }
 
 .depth-hero,
-.depth-source-card,
 .depth-controls-panel,
 .depth-team-shell,
 .depth-selected-card,
@@ -6460,28 +6459,6 @@ a {
   white-space: nowrap;
 }
 
-.depth-source-card {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.7fr) minmax(260px, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  border-color: rgba(34, 197, 94, 0.28);
-  background: rgba(34, 197, 94, 0.07);
-  padding: 11px 12px;
-  margin-bottom: 12px;
-}
-
-.depth-source-card.warning {
-  border-color: rgba(245, 158, 11, 0.38);
-  background: rgba(245, 158, 11, 0.08);
-}
-
-.depth-source-card div {
-  display: grid;
-  gap: 2px;
-}
-
-.depth-source-card span,
 .depth-controls-panel span,
 .depth-team-overview span,
 .depth-position-jump span {
@@ -6492,21 +6469,6 @@ a {
   text-transform: uppercase;
 }
 
-.depth-source-card strong {
-  font-size: 13px;
-}
-
-.depth-source-card small,
-.depth-source-card p {
-  color: var(--muted2);
-  font-size: 11px;
-}
-
-.depth-source-card p {
-  margin: 0;
-}
-
-.depth-source-card button,
 .depth-clear-filter,
 .depth-position-jump button {
   border: 1px solid rgba(34, 197, 94, 0.42);
@@ -6517,11 +6479,6 @@ a {
   font-weight: 850;
   padding: 8px 10px;
   white-space: nowrap;
-}
-
-.depth-source-card button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .depth-controls-panel {
@@ -6643,8 +6600,8 @@ a {
 .depth-card-row {
   display: grid;
   grid-template-columns:
-    42px minmax(170px, 1.1fr) minmax(150px, 0.9fr)
-    minmax(175px, 1fr) 74px minmax(120px, 0.8fr) 68px;
+    42px minmax(190px, 1.25fr) minmax(165px, 0.95fr)
+    74px minmax(130px, 0.85fr) 68px;
   align-items: center;
   gap: 9px;
   width: 100%;
@@ -6678,22 +6635,19 @@ a {
 }
 
 .depth-card-player,
-.depth-card-source,
 .depth-card-value {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.depth-card-player strong,
-.depth-card-source strong {
+.depth-card-player strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .depth-card-player small,
-.depth-card-source small,
 .depth-card-value small {
   color: var(--muted2);
   font-size: 10px;
@@ -6948,66 +6902,6 @@ a {
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
-}
-
-.depth-source-banner {
-  display: grid;
-  grid-template-columns: minmax(210px, 0.65fr) minmax(260px, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid rgba(34, 197, 94, 0.28);
-  background: rgba(34, 197, 94, 0.075);
-  border-radius: var(--radius);
-  padding: 11px 12px;
-  margin-bottom: 12px;
-}
-
-.depth-source-banner.warning {
-  border-color: rgba(245, 158, 11, 0.38);
-  background: rgba(245, 158, 11, 0.085);
-}
-
-.depth-source-banner div {
-  display: grid;
-  gap: 2px;
-}
-
-.depth-source-banner span {
-  color: var(--muted2);
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.depth-source-banner strong {
-  font-size: 13px;
-}
-
-.depth-source-banner small,
-.depth-source-banner p {
-  color: var(--muted2);
-  font-size: 11px;
-}
-
-.depth-source-banner p {
-  margin: 0;
-}
-
-.depth-source-banner button {
-  border: 1px solid rgba(34, 197, 94, 0.45);
-  background: rgba(34, 197, 94, 0.13);
-  color: var(--green);
-  border-radius: var(--radius);
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 850;
-  white-space: nowrap;
-}
-
-.depth-source-banner button:disabled {
-  opacity: 0.52;
-  cursor: not-allowed;
 }
 
 .insights-toolbar {
@@ -7310,10 +7204,8 @@ a {
 
 @media (max-width: 1180px) {
   .depth-redesign,
-  .depth-source-card,
   .depth-position-jump,
   .ranked-team-banner,
-  .depth-source-banner,
   .insights-layout {
     grid-template-columns: 1fr;
   }
@@ -7339,7 +7231,6 @@ a {
   }
 
   .depth-role-pill,
-  .depth-card-source,
   .depth-card-draft,
   .depth-risk {
     grid-column: 2 / -1;

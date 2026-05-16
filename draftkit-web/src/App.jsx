@@ -603,7 +603,28 @@ export default function App() {
       return `${team.id}:${team.budget_remaining}:${rosterNames}:${taxiNames}:${minorLeagueNames}`;
     })
     .join(";");
-  const draftStateKey = `${leagueSettingsStateKey}::${teamDraftStateKey}`;
+  const liveDepthStateKey = [
+    liveDepthData?.source || "",
+    liveDepthData?.generated_at || "",
+    ...(liveDepthData?.teams || []).map((team) =>
+      [
+        team.team || "",
+        (team.roster || [])
+          .map((entry) =>
+            [
+              entry.name || "",
+              entry.active ? 1 : 0,
+              entry.statusCode || "",
+              entry.statusDescription || "",
+              entry.positionCode || "",
+            ].join(":"),
+          )
+          .sort()
+          .join(","),
+      ].join("="),
+    ),
+  ].join("|");
+  const draftStateKey = `${leagueSettingsStateKey}::${teamDraftStateKey}::${liveDepthStateKey}`;
   useEffect(() => {
     cacheVersionRef.current += 1;
     valuationRequestRef.current = { key: null, inFlight: false };
@@ -659,7 +680,7 @@ export default function App() {
     setValuationError("");
 
     try {
-      const draftState = buildDraftState(league, players);
+      const draftState = buildDraftState(league, players, depthCharts);
       draftState.commissioner_notes = getCommissionerNotesForValuation();
 
       const r = await fetch(`${DRAFTKIT_API_BASE}/v1/valuate`, {

@@ -42,6 +42,83 @@ function buildPlayerIndexes(players = []) {
   return { playerById, playerByName };
 }
 
+function asFiniteNumber(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function primaryPosition(player = {}) {
+  return Array.isArray(player.pos) && player.pos.length > 0 ? player.pos[0] : null;
+}
+
+function normalizeDepthContext(row, team, position) {
+  const playerId = asFiniteNumber(row?.id ?? row?.player_id);
+  if (playerId == null) return null;
+
+  const volumeProjection = row.volumeProjection || {};
+  const depthRank = asFiniteNumber(row.depthRank ?? row.depth_rank);
+
+  return {
+    player_id: playerId,
+    mlb_team: team?.team || row.team || null,
+    depth_position: row.depthPosition || position?.position || primaryPosition(row),
+    depth_rank: depthRank,
+    depth_role: volumeProjection.role || row.depth || row.tier || null,
+    status:
+      row.officialRoster?.statusDescription ||
+      row.injury_status ||
+      row.injury ||
+      "Active",
+    is_starter: depthRank === 1,
+    active_roster: Boolean(row.officialRoster?.active),
+    role_confidence: volumeProjection.confidence || null,
+    volume_score: asFiniteNumber(row.volumeScore ?? volumeProjection.score, 0),
+  };
+}
+
+function isBetterDepthContext(candidate, current, player) {
+  if (!current) return true;
+
+  const playerPrimaryPosition = primaryPosition(player);
+  const candidatePrimaryMatch = candidate.depth_position === playerPrimaryPosition;
+  const currentPrimaryMatch = current.depth_position === playerPrimaryPosition;
+  if (candidatePrimaryMatch !== currentPrimaryMatch) return candidatePrimaryMatch;
+
+  const candidateRank = asFiniteNumber(candidate.depth_rank, Number.MAX_SAFE_INTEGER);
+  const currentRank = asFiniteNumber(current.depth_rank, Number.MAX_SAFE_INTEGER);
+  if (candidateRank !== currentRank) return candidateRank < currentRank;
+
+  return asFiniteNumber(candidate.volume_score, 0) > asFiniteNumber(current.volume_score, 0);
+}
+
+function buildDepthChartContext(players = [], depthCharts = null) {
+  const playerById = new Map((players || []).map((player) => [Number(player.id), player]));
+  const contextByPlayerId = new Map();
+
+  /*
+   * The depth chart page already ranks each real MLB team/position group using
+   * projected workload, fantasy value, and active-roster status. Feeding that
+   * same ranking into valuation keeps the card value, live valuation panel, and
+   * depth chart page aligned after each draft edit.
+   */
+  (depthCharts?.teams || []).forEach((team) => {
+    (team.positions || []).forEach((position) => {
+      (position.players || []).forEach((row) => {
+        const context = normalizeDepthContext(row, team, position);
+        if (!context) return;
+
+        const player = playerById.get(context.player_id) || row;
+        const current = contextByPlayerId.get(context.player_id);
+        if (isBetterDepthContext(context, current, player)) {
+          contextByPlayerId.set(context.player_id, context);
+        }
+      });
+    });
+  });
+
+  return Object.fromEntries(contextByPlayerId);
+}
+
 // ── posColor ──────────────────────────────────────────────────────────────────
 /**
  * Returns the hex color string for a given position code.
@@ -134,24 +211,16 @@ export function buildRosterPositions(roster) {
  * format. Used when POSTing to POST /v1/valuate.
  *
  * @param {Object} league - Full league state from App component
- * @param {Object[]} players - Current player pool used to resolve legacy name-only roster entries
+ * @param {Object[]} players - Current player pool used to resolve roster entries
+ * @param {Object|null} depthCharts - Current MLB depth chart snapshot from buildMlbDepthCharts
  * @returns {Object} draft_state payload ready to send to the valuation API
  */
-export function buildDraftState(league, players = []) {
+export function buildDraftState(league, players = [], depthCharts = null) {
   const { playerById, playerByName } = buildPlayerIndexes(players);
-  const depthChartContext = Object.fromEntries(
-    (players || []).map((player) => [
-      player.id,
-      {
-        player_id: player.id,
-        depth_position: Array.isArray(player.pos) ? player.pos[0] : null,
-        depth_role: player.depth || player.tier || null,
-        depth_rank: player.tier_rank || player.overall_rank || null,
-        status: player.injury_status || player.injury || "Active",
-        is_starter: player.depth === "Elite" || player.tier === "Elite",
-      },
-    ]),
-  );
+  const depthContextPayload = buildDepthChartContext(players, depthCharts);
+  const scoringCategories = Object.entries(league.scoring || {})
+    .filter(([, enabled]) => enabled)
+    .map(([category]) => category);
   const playerStatOverrides = Object.fromEntries(
     (players || []).map((player) => [
       player.id,
@@ -186,9 +255,10 @@ export function buildDraftState(league, players = []) {
     valuation_options: {
       stat_window: "THREE_YEAR",
     },
-    scoring_categories: Object.entries(league.scoring)
-      .filter(([, v]) => v)   // only enabled categories
-      .map(([k]) => k),
+    scoring_categories:
+      scoringCategories.length > 0
+        ? scoringCategories
+        : ["R", "HR", "RBI", "SB", "AVG", "W", "SV", "ERA", "WHIP", "SO"],
     teams: (league.teams || []).map((team) => {
       const unavailableEntries = [
         ...(team.roster || []),
@@ -206,8 +276,8 @@ export function buildDraftState(league, players = []) {
               return [entry[0], entry[1]];
             }
 
-            const legacyPlayerId = Number(entry[0]);
-            const matchedPlayer = playerById.get(legacyPlayerId);
+            const rosterPlayerId = Number(entry[0]);
+            const matchedPlayer = playerById.get(rosterPlayerId);
             return matchedPlayer ? [matchedPlayer.name, matchedPlayer.team] : null;
           }
 
@@ -231,7 +301,7 @@ export function buildDraftState(league, players = []) {
       };
     }),
     roster_config: league.roster,
-    depth_chart_context: depthChartContext,
+    depth_chart_context: depthContextPayload,
     player_stat_overrides: playerStatOverrides,
   };
 }

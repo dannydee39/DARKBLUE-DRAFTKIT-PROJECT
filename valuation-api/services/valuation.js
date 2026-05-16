@@ -5,7 +5,6 @@ const {
 } = require("./playerUpdates");
 
 const PLAYER_TIER_ORDER = { Elite: 0, Core: 1, Depth: 2 };
-const LEGACY_TIER_ALIASES = { Starter: "Core", Bench: "Depth" };
 const PLAYER_BY_ID = new Map(players.map((player) => [player.id, player]));
 const POSITION_DEFAULT = {
   multiplier: 1.0,
@@ -114,7 +113,6 @@ function buildDraftContext(draftState = {}) {
     player_stat_overrides = {},
     custom_stats = {},
     depth_chart_context = {},
-    depthChartContext = {},
     stat_window,
     valuation_options = {},
     roster_config = {
@@ -214,7 +212,6 @@ function buildDraftContext(draftState = {}) {
     ]),
     depthContextByPlayerId: buildDepthContextByPlayerId([
       depth_chart_context,
-      depthChartContext,
       valuation_options.depth_chart_context,
     ]),
   };
@@ -625,7 +622,7 @@ function buildDepthContextByPlayerId(sources) {
         if (entry && typeof entry === "object") {
           addDepthContext(byPlayerId, {
             ...entry,
-            player_id: entry.player_id ?? entry.playerId ?? key,
+            player_id: entry.player_id ?? key,
           });
         }
       });
@@ -634,7 +631,7 @@ function buildDepthContextByPlayerId(sources) {
 }
 
 function addDepthContext(byPlayerId, entry) {
-  const playerId = Number(entry?.player_id ?? entry?.playerId ?? entry?.id);
+  const playerId = Number(entry?.player_id ?? entry?.id);
   if (!Number.isFinite(playerId)) return;
   byPlayerId.set(playerId, {
     player_id: playerId,
@@ -642,7 +639,11 @@ function addDepthContext(byPlayerId, entry) {
     depth_rank: numberOrNull(entry.depth_rank ?? entry.rank),
     depth_role: entry.depth_role || entry.role || null,
     status: entry.status || entry.statusDescription || null,
-    is_starter: Boolean(entry.is_starter ?? entry.isStarter ?? false),
+    is_starter: normalizeBoolean(entry.is_starter),
+    mlb_team: entry.mlb_team || entry.team || null,
+    active_roster: normalizeBoolean(entry.active_roster),
+    role_confidence: entry.role_confidence || null,
+    volume_score: numberOrNull(entry.volume_score),
   });
 }
 
@@ -868,7 +869,8 @@ function calculateAgeAdjustment(player) {
 }
 
 function calculateDepthChartAdjustment(player, volumeProjection, depthContext = null) {
-  const depth = String(depthContext?.depth_role || player.depth || player.tier || "").toUpperCase();
+  const hasDepthContext = depthContext && typeof depthContext === "object";
+  const depth = String(depthContext?.depth_role || "").toUpperCase();
   const depthRank = numberOrNull(depthContext?.depth_rank);
 
   /*
@@ -877,23 +879,31 @@ function calculateDepthChartAdjustment(player, volumeProjection, depthContext = 
    * roles get a haircut. The separate volumeMultiplier then checks whether the
    * projected PA/IP/G supports that role.
    */
-  const depthMultiplier =
-    depthContext?.is_starter || depthRank === 1 || depth === "ELITE"
-      ? 1.04
-      : ["CORE", "STARTER"].includes(depth) || (depthRank != null && depthRank <= 3)
-        ? 1
-        : ["DEPTH", "BENCH"].includes(depth) || (depthRank != null && depthRank > 3)
-          ? 0.92
-          : 0.96;
-  const volumeScore = numberOrNull(volumeProjection?.score) || 0;
+  let depthMultiplier = 1;
+  if (hasDepthContext) {
+    if (depthContext?.is_starter || depthRank === 1 || depth === "ELITE") {
+      depthMultiplier = 1.04;
+    } else if (depth === "CORE" || (depthRank != null && depthRank <= 3)) {
+      depthMultiplier = 1;
+    } else if (depth === "DEPTH" || (depthRank != null && depthRank > 3)) {
+      depthMultiplier = 0.92;
+    } else {
+      depthMultiplier = 0.96;
+    }
+  }
+  const volumeScore =
+    numberOrNull(depthContext?.volume_score) ?? numberOrNull(volumeProjection?.score) ?? 0;
   const volumeMultiplier =
     volumeScore >= 76 ? 1.05 : volumeScore >= 58 ? 1 : volumeScore >= 38 ? 0.94 : 0.86;
   return {
     multiplier: Number(clamp(depthMultiplier * volumeMultiplier, 0.82, 1.1).toFixed(3)),
-    depth: depthContext?.depth_role || player.depth || player.tier || null,
-    depth_position: depthContext?.depth_position || (Array.isArray(player.pos) ? player.pos[0] : null),
+    depth: depthContext?.depth_role || null,
+    depth_position: depthContext?.depth_position || null,
     depth_rank: depthRank,
     status: depthContext?.status || null,
+    mlb_team: depthContext?.mlb_team || player.team || null,
+    active_roster: Boolean(depthContext?.active_roster),
+    role_confidence: depthContext?.role_confidence || null,
     volume_score: volumeScore,
     role: volumeProjection?.role || "Unknown role",
   };
@@ -952,7 +962,8 @@ function buildPlayerRubricChecks(parts) {
     injury_status_used: parts.riskAdjustment.level !== "LOW" || Boolean(parts.playerUpdate),
     scarcity_used: Number.isFinite(Number(parts.selectedScarcity.multiplier)),
     depth_chart_position_used:
-      parts.depthChartAdjustment.depth != null || parts.depthChartAdjustment.depth_position != null,
+      parts.depthChartAdjustment.depth_position != null &&
+      parts.depthChartAdjustment.depth_rank != null,
   };
 }
 
@@ -964,7 +975,7 @@ function buildRubricCoverageSummary(context) {
     age: "Player age feeds age_adjustment.",
     injury_status: "Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.",
     scarcity: "Roster config and undrafted pool feed position scarcity.",
-    depth_chart_position: "draft_state.depth_chart_context, depth/tier, and projected volume feed depth_chart_adjustment.",
+    depth_chart_position: "draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.",
     draftkit_refresh: "Draft Kit posts the full draft_state after draft-state cache invalidation.",
     active_stat_window: context.statWindow,
   };
@@ -1064,6 +1075,16 @@ function clampDollarValue(value) {
 function numberOrNull(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeBoolean(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes"].includes(normalized)) return true;
+    if (["false", "0", "no", ""].includes(normalized)) return false;
+  }
+  return Boolean(value);
 }
 
 function normalizeRosterEntry(entry, fallbackTeamId) {
@@ -1182,9 +1203,8 @@ function getPlayers({ league, pos, tier, available_only, drafted_names }) {
   if (pos && pos !== "ALL") {
     result = result.filter((player) => player.pos.includes(pos));
   }
-  const normalizedTier = normalizeTier(tier);
-  if (normalizedTier && normalizedTier !== "ALL") {
-    result = result.filter((player) => player.tier === normalizedTier);
+  if (tier && tier !== "ALL") {
+    result = result.filter((player) => player.tier === tier);
   }
   if (available_only && drafted_names) {
     const draftedSet = new Set(drafted_names);
@@ -1264,11 +1284,6 @@ function getRiskAdjustment(playerUpdate) {
     return { level: "MEDIUM", multiplier: 0.94, max_bid_delta_percent: -6 };
   }
   return { level: "LOW", multiplier: 1, max_bid_delta_percent: 0 };
-}
-
-function normalizeTier(tier) {
-  if (!tier) return tier;
-  return LEGACY_TIER_ALIASES[tier] || tier;
 }
 
 function normalizeRiskLevel(value) {

@@ -184,6 +184,20 @@ async function main() {
               three_year: threeYearStats,
             },
           },
+          depth_chart_context: {
+            [target.id]: {
+              player_id: target.id,
+              mlb_team: target.team,
+              depth_position: target.pos[0],
+              depth_rank: 1,
+              depth_role: "Everyday hitter",
+              status: "Active",
+              is_starter: true,
+              active_roster: true,
+              role_confidence: "HIGH",
+              volume_score: 92,
+            },
+          },
         }),
       },
       {

@@ -42,7 +42,7 @@ DB.pages.license = function (container) {
     '        }\n' +
     '      },\n' +
     '      "depth_chart_context": {\n' +
-    '        "3": { "player_id": 3, "depth_position": "OF", "depth_rank": 1, "depth_role": "Starter", "status": "Active", "is_starter": true }\n' +
+    '        "3": { "player_id": 3, "mlb_team": "NYY", "depth_position": "OF", "depth_rank": 1, "depth_role": "Everyday hitter", "status": "Active", "is_starter": true, "active_roster": true, "role_confidence": "HIGH", "volume_score": 92 }\n' +
     '      },\n' +
     '      "roster_config": {\n' +
     '        "C":2, "1B":1, "2B":1, "CI":1, "3B":1, "SS":1,\n' +
@@ -67,7 +67,7 @@ DB.pages.license = function (container) {
         age: 'Player age feeds age_adjustment.',
         injury_status: 'Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.',
         scarcity: 'Roster config and undrafted pool feed position scarcity.',
-        depth_chart_position: 'draft_state.depth_chart_context, depth/tier, and projected volume feed depth_chart_adjustment.',
+        depth_chart_position: 'draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.',
       },
       valuations: {
         'Juan Soto': {
@@ -87,7 +87,7 @@ DB.pages.license = function (container) {
           is_drafted: false,
           predictive_adjustment: { multiplier: 1.03, source: 'predictive playing-time and production inputs', volume_score: 82 },
           age_adjustment: { multiplier: 1.03, age: 27, band: 'PRIME' },
-          depth_chart_adjustment: { multiplier: 1.05, depth_position: 'OF', depth_rank: 1, depth: 'Starter' },
+          depth_chart_adjustment: { multiplier: 1.05, depth_position: 'OF', depth_rank: 1, depth: 'Everyday hitter', mlb_team: 'NYY', active_roster: true, role_confidence: 'HIGH', volume_score: 92 },
           valuation_breakdown: {
             formula: 'stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk',
             stat_baseline_value: 56,

@@ -150,16 +150,6 @@ async function runGeneralRegressionSuite() {
     assert.ok(corePlayers.body.players.length > 0, "Core tier should include players");
     assert.ok(corePlayers.body.players.every((player) => player.tier === "Core"), "Core filter should return Core players");
 
-    const legacyStarterPlayers = await jsonFetch(`${baseUrl}/v1/players?tier=Starter`, {
-      headers: { "X-License-Key": API_KEY },
-    });
-    assert.equal(legacyStarterPlayers.response.status, 200, "legacy Starter tier query should remain compatible");
-    assert.equal(
-      legacyStarterPlayers.body.count,
-      corePlayers.body.count,
-      "legacy Starter tier query should map to Core",
-    );
-
     const updates = await jsonFetch(`${baseUrl}/v1/player-updates?limit=5`, {
       headers: { "X-License-Key": API_KEY },
     });
@@ -348,9 +338,13 @@ async function runGeneralRegressionSuite() {
               player_id: hitter.id,
               depth_position: hitter.pos[0],
               depth_rank: 1,
-              depth_role: "Starter",
+              depth_role: "Everyday hitter",
               status: "Active",
               is_starter: true,
+              mlb_team: hitter.team,
+              active_roster: true,
+              role_confidence: "HIGH",
+              volume_score: 92,
             },
           },
         }),
@@ -369,6 +363,53 @@ async function runGeneralRegressionSuite() {
       true,
       "depth chart context rubric check should be true",
     );
+    assert.equal(
+      customStatsValue?.depth_chart_adjustment?.mlb_team,
+      hitter.team,
+      "depth chart context should preserve MLB team context",
+    );
+    assert.equal(
+      customStatsValue?.depth_chart_adjustment?.volume_score,
+      92,
+      "depth chart context volume score should drive the depth adjustment response",
+    );
+    assert.equal(
+      customStatsValue?.depth_chart_adjustment?.active_roster,
+      true,
+      "depth chart context should preserve active-roster status",
+    );
+
+    const stringBooleanDepthValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({
+        draft_state: buildDraftState({
+          depth_chart_context: {
+            [hitter.id]: {
+              player_id: hitter.id,
+              depth_position: hitter.pos[0],
+              depth_rank: 5,
+              depth_role: "Reserve role",
+              status: "Active",
+              is_starter: "false",
+              active_roster: "false",
+              volume_score: 0,
+            },
+          },
+        }),
+      }),
+    });
+    const stringBooleanDepthValue = stringBooleanDepthValuation.body.valuations?.[hitter.name];
+    assert.equal(
+      stringBooleanDepthValue?.depth_chart_adjustment?.active_roster,
+      false,
+      "string false active_roster should normalize to false",
+    );
+    assert.equal(
+      stringBooleanDepthValue?.depth_chart_adjustment?.multiplier,
+      0.82,
+      "string false is_starter should not receive a starter depth bump",
+    );
 
     const hitterValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
@@ -379,6 +420,11 @@ async function runGeneralRegressionSuite() {
     assert.ok(
       hitterValuation.body.valuations?.[hitter.name]?.stats?.positions?.length > 0,
       "hitter valuation batch should expose hitter positions",
+    );
+    assert.equal(
+      hitterValuation.body.valuations?.[hitter.name]?.rubric_checks?.depth_chart_position_used,
+      false,
+      "depth chart rubric should require supplied depth_chart_context",
     );
 
     const pitcherValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {

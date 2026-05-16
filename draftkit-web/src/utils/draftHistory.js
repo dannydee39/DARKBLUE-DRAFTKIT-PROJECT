@@ -335,10 +335,10 @@ export function normalizeHistoryRow(event = {}, fallbackNumber = 1) {
     prePickValueLabel: formatMoneyValue(event.prePickValue),
     valuationSnapshot: event.valuationSnapshot || null,
     valuationSource:
-      event.valuationSnapshot?.source || (event.prePickValue ? "legacy_value" : "unknown"),
+      event.valuationSnapshot?.source || (event.prePickValue ? "recorded_value" : "unknown"),
     valuationSourceLabel:
       event.valuationSnapshot?.sourceLabel ||
-      (event.prePickValue ? "Legacy Value" : "Unknown"),
+      (event.prePickValue ? "Recorded Value" : "Unknown"),
     trueDollarValue: asNumber(event.valuationSnapshot?.trueDollarValue, null),
     trueDollarValueLabel: formatMoneyValue(event.valuationSnapshot?.trueDollarValue),
     scarcityTier: event.valuationSnapshot?.scarcityTier || "",

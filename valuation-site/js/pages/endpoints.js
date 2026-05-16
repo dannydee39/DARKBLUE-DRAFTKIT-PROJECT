@@ -85,7 +85,7 @@ DB.pages.endpoints = function (container) {
       age: 'Player age feeds age_adjustment.',
       injury_status: 'Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.',
       scarcity: 'Roster config and undrafted pool feed position scarcity.',
-      depth_chart_position: 'draft_state.depth_chart_context, depth/tier, and projected volume feed depth_chart_adjustment.',
+      depth_chart_position: 'draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.',
       draftkit_refresh: 'Draft Kit posts the full draft_state after draft-state cache invalidation.',
     },
     valuations: {
@@ -106,7 +106,7 @@ DB.pages.endpoints = function (container) {
         is_drafted:             false,
         predictive_adjustment:  { multiplier: 1.03, source: 'predictive playing-time and production inputs', fpts_delta_percent: 0, volume_score: 82 },
         age_adjustment:         { multiplier: 1.03, age: 27, band: 'PRIME' },
-        depth_chart_adjustment: { multiplier: 1.05, depth: 'Starter', depth_position: 'OF', depth_rank: 1, status: 'Active', volume_score: 82, role: 'Everyday volume' },
+        depth_chart_adjustment: { multiplier: 1.05, depth: 'Everyday hitter', depth_position: 'OF', depth_rank: 1, status: 'Active', mlb_team: 'NYY', active_roster: true, role_confidence: 'HIGH', volume_score: 82, role: 'Everyday volume' },
         stat_profile:           { window: 'THREE_YEAR', selected_source: 'runtime weighted player stats', predictive_available: true, runtime_stats_window: '2023-2025 weighted' },
         valuation_breakdown: {
           formula:                    'stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk',
@@ -166,7 +166,7 @@ DB.pages.endpoints = function (container) {
     '        }\n' +
     '      },\n' +
     '      "depth_chart_context": {\n' +
-    '        "3": { "player_id": 3, "depth_position": "OF", "depth_rank": 1, "depth_role": "Starter", "status": "Active", "is_starter": true }\n' +
+    '        "3": { "player_id": 3, "mlb_team": "NYY", "depth_position": "OF", "depth_rank": 1, "depth_role": "Everyday hitter", "status": "Active", "is_starter": true, "active_roster": true, "role_confidence": "HIGH", "volume_score": 92 }\n' +
     '      },\n' +
     '      "roster_config": {\n' +
     '        "C":2, "1B":1, "2B":1, "CI":1, "3B":1, "SS":1,\n' +
@@ -196,7 +196,7 @@ DB.pages.endpoints = function (container) {
         },
       },
       depth_chart_context: {
-        3: { player_id: 3, depth_position: 'OF', depth_rank: 1, depth_role: 'Starter', status: 'Active', is_starter: true },
+        3: { player_id: 3, mlb_team: 'NYY', depth_position: 'OF', depth_rank: 1, depth_role: 'Everyday hitter', status: 'Active', is_starter: true, active_roster: true, role_confidence: 'HIGH', volume_score: 92 },
       },
       roster_config: { C: 2, '1B': 1, '2B': 1, CI: 1, '3B': 1, SS: 1, MI: 1, OF: 5, SP: 0, RP: 0, P: 9, UTIL: 1, BN: 0, TAXI: 0 },
     },
@@ -290,7 +290,7 @@ DB.pages.endpoints = function (container) {
                     '<td><code>tier</code></td>' +
                     '<td>string</td>' +
                     '<td><code>ALL</code></td>' +
-                    '<td>Restrict the result to <code>Elite</code>, <code>Starter</code>, or <code>Bench</code>.</td>' +
+                    '<td>Restrict the result to <code>Elite</code>, <code>Core</code>, or <code>Depth</code>.</td>' +
                   '</tr>' +
                   '<tr>' +
                     '<td><code>drafted</code></td>' +

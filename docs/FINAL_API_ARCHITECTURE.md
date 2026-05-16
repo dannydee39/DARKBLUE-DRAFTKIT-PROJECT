@@ -365,7 +365,7 @@ Query parameters:
 |---|---|---:|---|---|
 | `league` | `AL`, `NL`, `ALL` | No | `ALL` | Filters by player league |
 | `pos` | position string | No | `ALL` | Examples: `C`, `1B`, `2B`, `3B`, `SS`, `OF`, `SP`, `RP` |
-| `tier` | `Elite`, `Starter`, `Bench` | No | `ALL` | Filters by player tier |
+| `tier` | `Elite`, `Core`, `Depth` | No | `ALL` | Filters by player tier |
 | `drafted` | comma-separated player names | No | none | Excludes/marks drafted players unavailable |
 | `group_by` | `tier` | No | none | Returns `groups` grouped by tier when set to `tier` |
 
@@ -559,4 +559,3 @@ The production deployment uses:
 - SMTP for production password reset emails.
 
 Do not commit `.env` values or generated SQLite runtime databases. The repo ignores `valuation-api/data/valuation-auth.db*`.
-

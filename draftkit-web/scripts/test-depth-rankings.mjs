@@ -5,6 +5,7 @@ import {
   buildOwnerRankings,
   sortOwnerRankings,
 } from "../src/utils/teamInsights.js";
+import { buildDraftState } from "../src/utils/helpers.js";
 
 const players = JSON.parse(
   await readFile(new URL("../../valuation-api/data/players.json", import.meta.url), "utf8"),
@@ -104,6 +105,7 @@ const rosterPositions = [
 ];
 const depthCharts = buildMlbDepthCharts(playerPool, league, liveDepthData);
 const rankings = buildOwnerRankings(league, playerPool, rosterPositions);
+const draftState = buildDraftState(league, playerPool, depthCharts);
 
 assert.ok(depthCharts.teams.length >= 20, "expected MLB teams to be grouped");
 assert.ok(depthCharts.positionOptions.includes("OF"), "expected OF depth option");
@@ -127,6 +129,30 @@ assert.ok(
       player.officialRoster?.active === true,
   ),
   "expected MLB active roster enrichment to appear in depth rows",
+);
+
+const judge = yankeesOutfield.players.find((player) => player.name === "Aaron Judge");
+assert.ok(judge, "expected Aaron Judge in NYY OF depth chart");
+const judgeDepthContext = draftState.depth_chart_context[judge.id];
+assert.equal(
+  judgeDepthContext.depth_rank,
+  judge.depthRank,
+  "valuation payload should use the depth chart rank",
+);
+assert.equal(
+  judgeDepthContext.depth_position,
+  "OF",
+  "valuation payload should include the depth chart position",
+);
+assert.equal(
+  judgeDepthContext.active_roster,
+  true,
+  "valuation payload should include active-roster context",
+);
+assert.equal(
+  judgeDepthContext.mlb_team,
+  "NYY",
+  "valuation payload should include MLB team context",
 );
 
 assert.equal(rankings.length, 3, "expected all fantasy teams ranked");

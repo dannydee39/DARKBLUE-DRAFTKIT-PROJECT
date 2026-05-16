@@ -168,9 +168,13 @@ Calculates a valuation dictionary for the full player pool, given the current li
         "player_id": 3,
         "depth_position": "OF",
         "depth_rank": 1,
-        "depth_role": "Starter",
+        "depth_role": "Everyday hitter",
         "status": "Active",
-        "is_starter": true
+        "is_starter": true,
+        "mlb_team": "NYY",
+        "active_roster": true,
+        "role_confidence": "HIGH",
+        "volume_score": 92
       }
     },
     "roster_config": {
@@ -207,7 +211,7 @@ Calculates a valuation dictionary for the full player pool, given the current li
 | `draft_state.roster_config` | object | No | Slot counts per position |
 | `draft_state.valuation_options.stat_window` | string | No | `ONE_YEAR`, `THREE_YEAR`, or `BLEND`. Defaults to `THREE_YEAR` runtime weighted stats. |
 | `draft_state.player_stat_overrides` | object | No | Optional per-player one-year, three-year, and predictive stat overrides keyed by player id. |
-| `draft_state.depth_chart_context` | object | No | Optional per-player depth position, rank, role, status, and starter context keyed by player id. |
+| `draft_state.depth_chart_context` | object | No | Optional per-player MLB team, depth position, rank, role, active-roster status, role confidence, and workload score keyed by player id. |
 | `draft_state.commissioner_notes` | array | No | Draft-local injury/news/role context that can change risk-adjusted values for this response only. |
 
 **Successful response (HTTP 200):**
@@ -230,7 +234,7 @@ Calculates a valuation dictionary for the full player pool, given the current li
     "age": "Player age feeds age_adjustment.",
     "injury_status": "Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.",
     "scarcity": "Roster config and undrafted pool feed position scarcity.",
-    "depth_chart_position": "draft_state.depth_chart_context, depth/tier, and projected volume feed depth_chart_adjustment.",
+    "depth_chart_position": "draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.",
     "draftkit_refresh": "Draft Kit posts the full draft_state after draft-state cache invalidation.",
     "active_stat_window": "THREE_YEAR"
   },
@@ -268,10 +272,13 @@ Calculates a valuation dictionary for the full player pool, given the current li
       },
       "depth_chart_adjustment": {
         "multiplier": 1.05,
-        "depth": "Starter",
+        "depth": "Everyday hitter",
         "depth_position": "OF",
         "depth_rank": 1,
         "status": "Active",
+        "mlb_team": "NYY",
+        "active_roster": true,
+        "role_confidence": "HIGH",
         "volume_score": 82,
         "role": "Everyday volume"
       },
@@ -352,7 +359,7 @@ Returns the full player pool with optional filters.
 |---|---|---|---|
 | `league` | `NL`, `AL`, `ALL` | `ALL` | Filter by conference |
 | `pos` | `C`, `1B`, `2B`, `3B`, `SS`, `OF`, `SP`, `RP` | `ALL` | Filter to players eligible at this position |
-| `tier` | `Elite`, `Starter`, `Bench` | `ALL` | Filter by tier |
+| `tier` | `Elite`, `Core`, `Depth` | `ALL` | Filter by tier |
 | `drafted` | comma-separated names | — | Exclude these players from results _(marks them unavailable)_ |
 
 **Example request:**
@@ -625,7 +632,7 @@ Each player object in `players.json`:
   team: string,         // MLB team abbreviation (e.g. "NYM")
   league: string,       // "NL" | "AL"
   pos: string[],        // Position eligibility (e.g. ["OF"] or ["SS", "2B"])
-  tier: string,         // "Elite" | "Starter" | "Bench"
+  tier: string,         // "Elite" | "Core" | "Depth"
   baseValue: number,    // Pre-calculated auction value ($1–$80)
 
   // Batting stats

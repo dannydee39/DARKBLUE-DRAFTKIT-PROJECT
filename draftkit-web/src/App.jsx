@@ -239,7 +239,6 @@ export default function App() {
   const cacheVersionRef = useRef(0); // incremented on cache invalidation
   const playerUpdateSignatureRef = useRef("");
   const playerUpdateStreamRef = useRef(null);
-  const draftNoteStreamRef = useRef(null);
   const playerUpdatesRef = useRef([]);
   const selectedPlayerRef = useRef(null);
 
@@ -681,7 +680,6 @@ export default function App() {
 
     try {
       const draftState = buildDraftState(league, players, depthCharts);
-      draftState.commissioner_notes = getCommissionerNotesForValuation();
 
       const r = await fetch(`${DRAFTKIT_API_BASE}/v1/valuate`, {
         method: "POST",
@@ -1229,7 +1227,7 @@ export default function App() {
         return {
           ...player,
           risk_level: "LOW",
-          injury_status: player.injury || null,
+          injury_status: null,
           news_headline: null,
           update_impact_summary: null,
           last_update_at: null,
@@ -1240,7 +1238,7 @@ export default function App() {
       return {
         ...player,
         risk_level: update.risk_level || update.severity || "LOW",
-        injury_status: update.injury_status || player.injury || null,
+        injury_status: update.injury_status || null,
         news_headline: update.headline || null,
         update_impact_summary: update.impact_summary || null,
         last_update_at: update.created_at || null,
@@ -1275,7 +1273,6 @@ export default function App() {
     }
 
     try {
-      const combinedUpdates = [];
       const response = await fetch(`${DRAFTKIT_API_BASE}/v1/player-updates?limit=10`);
       const data = await response.json();
 
@@ -1283,20 +1280,8 @@ export default function App() {
         throw new Error(data?.message || "Could not load player updates.");
       }
 
-      combinedUpdates.push(...data.updates);
-
-      if (activeDraftUsesCloud()) {
-        const draftNotes = await cloudRequest(
-          `/v1/drafts/${activeDraftId}/notes?limit=10`,
-          { method: "GET" },
-        );
-        if (Array.isArray(draftNotes?.updates)) {
-          combinedUpdates.push(...draftNotes.updates);
-        }
-      }
-
-      applyPlayerUpdates(combinedUpdates, { replace: true });
-      return combinedUpdates;
+      applyPlayerUpdates(data.updates, { replace: true });
+      return data.updates;
     } catch (error) {
       if (!silent) {
         setPlayerUpdatesError(
@@ -1309,35 +1294,6 @@ export default function App() {
         setPlayerUpdatesLoading(false);
       }
     }
-  }
-
-  function activeDraftUsesCloud() {
-    // Only cloud drafts have server-side note IDs and live note streams. Local
-    // demo drafts can still publish global Player API updates, but they cannot
-    // remove draft-scoped notes because no draft note row exists.
-    const draft = savedDrafts.find((entry) => entry.id === activeDraftId);
-    return Boolean(user && activeDraftId && draft?.source === "cloud");
-  }
-
-  function getCommissionerNotesForValuation() {
-    // Valuation API accepts draft-local commissioner notes as an overlay so the
-    // dollar values can react to injury/news context without changing base data.
-    return playerUpdates
-      .filter((update) =>
-        String(update?.source || "").toLowerCase().includes("league"),
-      )
-      .map((update) => ({
-        player_id: update.player_id,
-        player_name: update.player_name,
-        type: update.type,
-        severity: update.severity || update.risk_level,
-        risk_level: update.risk_level || update.severity,
-        headline: update.headline,
-        injury_status: update.injury_status,
-        impact_summary: update.impact_summary,
-        source: update.source,
-        created_at: update.created_at,
-      }));
   }
 
   async function fetchLiveDepthCharts(options = {}) {
@@ -1407,7 +1363,7 @@ export default function App() {
       const pushedUpdate = validUpdates[0];
       setBoardNotice({
         tone: "warning",
-        message: `${pushedUpdate.player_name} pushed live to connected draft boards.`,
+        message: `Valuation API alert: ${pushedUpdate.headline || pushedUpdate.player_name}`,
       });
     }
   }
@@ -1427,168 +1383,6 @@ export default function App() {
       .slice(0, 10);
   }
 
-  async function publishInjuryUpdate(options = {}) {
-    if (apiStatus !== "online") {
-      setPlayerUpdatesError("Player updates need the Draft Kit API to be online.");
-      return null;
-    }
-    if (!selectedPlayer) {
-      setPlayerUpdatesError("Select a player before publishing a league note.");
-      return null;
-    }
-
-    const allowedTypes = new Set(["INJURY", "NEWS", "LINEUP", "ROLE"]);
-    const allowedSeverities = new Set(["LOW", "MEDIUM", "HIGH"]);
-    const updateType = allowedTypes.has(options.type) ? options.type : "INJURY";
-    const severity = allowedSeverities.has(options.severity)
-      ? options.severity
-      : "HIGH";
-    const typeLabel = {
-      INJURY: "injury",
-      NEWS: "news",
-      LINEUP: "lineup",
-      ROLE: "role",
-    }[updateType];
-    const severityCopy = {
-      HIGH: "high-priority",
-      MEDIUM: "watch-list",
-      LOW: "low-risk",
-    }[severity];
-
-    setPlayerUpdatesLoading(true);
-    setPlayerUpdatesError("");
-
-    try {
-      const payload = {
-        player_id: selectedPlayer.id,
-        player_name: selectedPlayer.name,
-        team: selectedPlayer.team,
-        positions: selectedPlayer.pos || selectedPlayer.positions || [],
-        type: updateType,
-        severity,
-        headline: `${selectedPlayer.name} marked as ${severityCopy} ${typeLabel} context`,
-        body: `${selectedPlayer.name} has a ${severityCopy} ${typeLabel} note for draft review.`,
-        source: "League commissioner note",
-        created_by: user?.displayName || user?.display_name || "Draft Kit commissioner",
-      };
-      let data;
-
-      if (activeDraftUsesCloud()) {
-        data = await cloudRequest(`/v1/drafts/${activeDraftId}/notes?limit=10`, {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-      } else {
-        const response = await fetch(
-          `${DRAFTKIT_API_BASE}/v1/player-updates`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        );
-        data = await response.json();
-        if (!response.ok) {
-          throw new Error(data?.message || "Could not publish the player update.");
-        }
-      }
-
-      if (!data?.update) {
-        throw new Error("Could not publish the player update.");
-      }
-
-      const updates = Array.isArray(data.updates) ? data.updates : [data.update];
-      applyPlayerUpdates(updates);
-      openPlayerFromUpdate(data.update);
-      setBoardNotice({
-        tone: "warning",
-        message: `${data.update.player_name} league note published to the draft board.`,
-      });
-      return data.update;
-    } catch (error) {
-      setPlayerUpdatesError(error?.message || "Could not publish the league note.");
-      return null;
-    } finally {
-      setPlayerUpdatesLoading(false);
-    }
-  }
-
-  async function deletePlayerUpdate(update) {
-    // Remove is intentionally limited to league notes saved inside this cloud
-    // draft. Licensed/global Player API pushes remain append-only feed events.
-    if (!update?.id || !update?.draft_id) {
-      setPlayerUpdatesError("Only league notes saved to this draft can be removed.");
-      return;
-    }
-
-    if (!activeDraftUsesCloud() || update.draft_id !== activeDraftId) {
-      setPlayerUpdatesError("Open the cloud draft that owns this note before removing it.");
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Remove the league note for ${update.player_name || "this player"}?`,
-    );
-    if (!confirmed) return;
-
-    setPlayerUpdatesLoading(true);
-    setPlayerUpdatesError("");
-
-    try {
-      await deleteDraftNote(activeDraftId, update.id);
-      removePlayerUpdateFromState(update);
-      setBoardNotice({
-        tone: "success",
-        message: `${update.player_name || "Player"} league note removed.`,
-      });
-    } catch (error) {
-      setPlayerUpdatesError(error?.message || "Could not remove the league note.");
-    } finally {
-      setPlayerUpdatesLoading(false);
-    }
-  }
-
-  function removePlayerUpdateFromState(update) {
-    const removedPlayerId = Number(update?.player_id);
-    const remaining = playerUpdatesRef.current.filter((entry) => entry.id !== update?.id);
-    playerUpdatesRef.current = remaining;
-    setPlayerUpdates(remaining);
-    mergePlayerUpdatesIntoPool(remaining, {
-      force: true,
-      affectedPlayerIds: Number.isFinite(removedPlayerId) ? [removedPlayerId] : [],
-    });
-
-    const currentSelectedPlayer = selectedPlayerRef.current;
-    if (
-      currentSelectedPlayer &&
-      Number(currentSelectedPlayer.id) === removedPlayerId &&
-      currentSelectedPlayer.latest_update?.id === update?.id
-    ) {
-      const fallbackUpdate = remaining
-        .filter((entry) => Number(entry.player_id) === removedPlayerId)
-        .sort(comparePlayerUpdates)
-        .at(-1);
-      if (fallbackUpdate) {
-        openPlayerFromUpdate(fallbackUpdate);
-      } else {
-        setSelectedPlayer((prev) =>
-          prev
-            ? {
-                ...prev,
-                risk_level: "LOW",
-                injury_status: prev.injury || null,
-                news_headline: null,
-                update_impact_summary: null,
-                last_update_at: null,
-                latest_update: null,
-                updates_count: 0,
-              }
-            : prev,
-        );
-      }
-    }
-  }
-
   function openPlayerFromUpdate(update) {
     const matched = players.find(
       (player) => Number(player.id) === Number(update?.player_id),
@@ -1599,10 +1393,9 @@ export default function App() {
     setSelectedPlayer({
       ...matched,
       risk_level: update.risk_level || update.severity || matched.risk_level,
-      injury_status: update.injury_status || matched.injury_status || matched.injury,
-      news_headline: update.headline || matched.news_headline,
-      update_impact_summary:
-        update.impact_summary || matched.update_impact_summary,
+      injury_status: update.injury_status || null,
+      news_headline: update.headline || null,
+      update_impact_summary: update.impact_summary || null,
       last_update_at: update.created_at || matched.last_update_at,
       latest_update: update,
     });
@@ -1612,8 +1405,6 @@ export default function App() {
     if (apiStatus !== "online") {
       playerUpdateStreamRef.current?.close?.();
       playerUpdateStreamRef.current = null;
-      draftNoteStreamRef.current?.close?.();
-      draftNoteStreamRef.current = null;
       setPlayerPushStatus("offline");
       return undefined;
     }
@@ -1663,59 +1454,10 @@ export default function App() {
       setPlayerPushStatus("reconnecting");
     };
 
-    let draftNoteStream = null;
-    if (activeDraftUsesCloud()) {
-      // Draft-note SSE runs beside the global Player API stream. This lets rare
-      // injury/news notes stay hidden until needed, while still updating every
-      // open draft board immediately once a commissioner publishes one.
-      draftNoteStream = new EventSource(
-        `${DRAFTKIT_API_BASE}/v1/drafts/${activeDraftId}/notes/stream?limit=10`,
-        { withCredentials: true },
-      );
-      draftNoteStreamRef.current = draftNoteStream;
-
-      draftNoteStream.addEventListener("snapshot", (event) => {
-        try {
-          const payload = JSON.parse(event.data || "{}");
-          if (Array.isArray(payload?.updates)) {
-            applyPlayerUpdates(payload.updates);
-          }
-        } catch {
-          setPlayerUpdatesError("Could not read the draft note snapshot.");
-        }
-      });
-
-      draftNoteStream.addEventListener("draft-note", (event) => {
-        try {
-          const payload = JSON.parse(event.data || "{}");
-          if (payload?.update) {
-            applyPlayerUpdates([payload.update], { announce: true });
-          }
-        } catch {
-          setPlayerUpdatesError("Could not read a pushed draft note.");
-        }
-      });
-
-      draftNoteStream.addEventListener("draft-note-delete", (event) => {
-        try {
-          const payload = JSON.parse(event.data || "{}");
-          if (payload?.update) {
-            removePlayerUpdateFromState(payload.update);
-          }
-        } catch {
-          setPlayerUpdatesError("Could not read a draft note removal.");
-        }
-      });
-    }
-
     return () => {
       stream.close();
       if (playerUpdateStreamRef.current === stream) {
         playerUpdateStreamRef.current = null;
-      }
-      draftNoteStream?.close();
-      if (draftNoteStreamRef.current === draftNoteStream) {
-        draftNoteStreamRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3611,11 +3353,8 @@ export default function App() {
               error={playerUpdatesError}
               apiStatus={apiStatus}
               pushStatus={playerPushStatus}
-              targetPlayer={selectedPlayer}
               onRefresh={() => fetchPlayerUpdates()}
-              onPublishInjury={publishInjuryUpdate}
               onOpenPlayer={openPlayerFromUpdate}
-              onDeleteUpdate={deletePlayerUpdate}
             />
             <DraftBoard
               league={league}

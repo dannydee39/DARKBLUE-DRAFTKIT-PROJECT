@@ -212,7 +212,6 @@ Calculates a valuation dictionary for the full player pool, given the current li
 | `draft_state.valuation_options.stat_window` | string | No | `ONE_YEAR`, `THREE_YEAR`, or `BLEND`. Defaults to `THREE_YEAR` runtime weighted stats. |
 | `draft_state.player_stat_overrides` | object | No | Optional per-player one-year, three-year, and predictive stat overrides keyed by player id. |
 | `draft_state.depth_chart_context` | object | No | Optional per-player MLB team, depth position, rank, role, active-roster status, role confidence, and workload score keyed by player id. |
-| `draft_state.commissioner_notes` | array | No | Draft-local injury/news/role context that can change risk-adjusted values for this response only. |
 
 **Successful response (HTTP 200):**
 ```json
@@ -232,7 +231,7 @@ Calculates a valuation dictionary for the full player pool, given the current li
     "custom_one_or_three_year_stats": "Supported through draft_state.player_stat_overrides and runtime weighted stats_window.",
     "predictive_stats": "Projected playing time and FPTS feed predictive_adjustment.",
     "age": "Player age feeds age_adjustment.",
-    "injury_status": "Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.",
+    "injury_status": "Valuation API player updates feed risk_adjustment and player-card news.",
     "scarcity": "Roster config and undrafted pool feed position scarcity.",
     "depth_chart_position": "draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.",
     "draftkit_refresh": "Draft Kit posts the full draft_state after draft-state cache invalidation.",
@@ -444,8 +443,11 @@ GET /v1/player-updates?limit=10
       "body": "Aaron Judge has a high-risk injury flag for draft review.",
       "injury_status": "Questionable",
       "impact_summary": "Consider lowering the max bid or waiting for roster clarity.",
-      "source": "Commissioner update",
-      "created_by": "Draft Kit commissioner",
+      "source": "Dark Blue Valuation API demo",
+      "source_type": "MANUAL_DEMO",
+      "origin": "VALUATION_API",
+      "notification_worthy": true,
+      "created_by": "Dark Blue API website",
       "created_at": "2026-04-30T18:15:00.000Z"
     }
   ]
@@ -528,7 +530,7 @@ X-License-Key: DB-2026-DEMO-0001
 
 **Auth required** (`X-License-Key` header)
 
-Publishes a persisted player news/injury update and broadcasts it to every connected `/v1/player-updates/stream` subscriber. The Draft Kit uses this for commissioner-driven player context while preserving the production request path through the Draft Kit API proxy.
+Publishes a persisted Valuation API player news/injury/role update and broadcasts it to every connected `/v1/player-updates/stream` subscriber. Draft Kit does not create these updates; it reads and streams them through the Draft Kit API proxy.
 
 **Request body:**
 
@@ -539,8 +541,11 @@ Publishes a persisted player news/injury update and broadcasts it to every conne
   "severity": "HIGH",
   "headline": "Aaron Judge moved to high injury risk",
   "body": "Aaron Judge has a high-risk injury flag for draft review.",
-  "source": "Commissioner update",
-  "created_by": "Draft Kit commissioner"
+  "injury_status": "Questionable",
+  "impact_summary": "Consider lowering the max bid or waiting for roster clarity.",
+  "source": "Dark Blue live news feed",
+  "source_type": "LIVE_FEED",
+  "created_by": "Valuation API ingestion"
 }
 ```
 
@@ -550,20 +555,37 @@ Publishes a persisted player news/injury update and broadcasts it to every conne
 |---|---|---:|---|
 | `player_id` | number | Yes* | Player identifier from `/v1/players` |
 | `player_name` | string | Yes* | Alternative lookup when `player_id` is unavailable |
-| `type` | `INJURY`, `NEWS`, `LINEUP`, `ROLE` | No | Defaults to `NEWS` |
-| `severity` | `LOW`, `MEDIUM`, `HIGH` | No | Defaults to `LOW`; also drives `risk_level` |
-| `headline` | string | No | Defaults to a generated player status headline |
-| `body` | string | No | Longer internal update body |
-| `injury_status` | string | No | Defaults from severity for injury updates |
-| `impact_summary` | string | No | Defaults from type/severity |
-| `source` | string | No | Defaults to `Manual update` |
-| `created_by` | string | No | Defaults to `Draft Kit` |
+| `type` | `INJURY`, `TRANSACTION`, `CONTRACT`, `NEWS`, `LINEUP`, `ROLE` | Yes | Update class used by Draft Kit player-card surfaces |
+| `severity` | `LOW`, `MEDIUM`, `HIGH` | Yes | Drives `risk_level` |
+| `headline` | string | Yes | Notification headline supplied by the Valuation API news source |
+| `body` | string | Yes | Full update body supplied by the Valuation API news source |
+| `injury_status` | string | No | Injury-specific player status |
+| `transaction_status` | string | No | Transaction, lineup, or role status text |
+| `contract_status` | string | No | Contract-specific status text |
+| `depth_chart_note` | string | No | Depth-chart impact note |
+| `impact_summary` | string | No | Draft/valuation impact summary |
+| `source` | string | No | Human-readable source label |
+| `source_type` | `LIVE_FEED`, `MANUAL_DEMO` | Yes | Distinguishes production ingestion from operator demo pushes |
+| `created_by` | string | No | Ingestion actor label |
 
 *Provide either `player_id` or `player_name`.
 
 **Response:** HTTP `201` with the created `update` and the latest `updates` array.
 
 Player updates are persisted in `data/player-updates.json` by default. Set `PLAYER_UPDATES_FILE` to override that path in test or production deployments.
+
+### POST /v1/player-updates/demo
+
+**Auth required** (`X-License-Key` header)
+
+Creates an operator-triggered demo update through the same persisted player-update service used by live ingestion. The response shape matches `POST /v1/player-updates`, and the created update is marked with `source_type: "MANUAL_DEMO"` so Draft Kit can explain that the alert was demo-triggered.
+
+```http
+POST /v1/player-updates/demo
+X-License-Key: DB-2026-DEMO-0001
+```
+
+Use this endpoint from the valuation product site when demonstrating the push-notification workflow with Draft Kit open.
 
 ---
 
@@ -597,7 +619,7 @@ Counts how many teams still need this position vs. how many undrafted players fi
 | < 0.7 | LOW | ×1.00 |
 
 ### Step 7 — Predictive Stats, Age, Depth, And Injury
-Predictive projected games, plate appearances, innings, or FPTS influence `predictive_adjustment`. Player age influences `age_adjustment`. `depth_chart_context` and projected volume influence `depth_chart_adjustment`. Player updates, static injury status, and commissioner notes influence `risk_adjustment`.
+Predictive projected games, plate appearances, innings, or FPTS influence `predictive_adjustment`. Player age influences `age_adjustment`. `depth_chart_context` and projected volume influence `depth_chart_adjustment`. Persisted Valuation API player updates influence `risk_adjustment`.
 
 ### Step 8 — Market Inflation Factor
 Tracks how much of the draft budget has been spent vs. how much was expected at this point. Clamped between 0.85 and 1.45.

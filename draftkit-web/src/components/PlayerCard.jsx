@@ -316,38 +316,45 @@ export default function PlayerCard({
       ? Object.values(valuation.position_scarcity)[0]
       : null;
   const updateContext =
+    (valuation && valuation !== "loading" ? valuation.player_update : null) ||
     player.latest_update ||
-    (valuation && valuation !== "loading" ? valuation.player_update : null);
+    null;
   const riskLevel =
-    player.risk_level ||
+    updateContext?.risk_level ||
+    updateContext?.severity ||
     (valuation && valuation !== "loading" ? valuation.risk_level : null) ||
     "LOW";
   const injuryStatus =
-    player.injury_status ||
+    updateContext?.injury_status ||
     (valuation && valuation !== "loading" ? valuation.injury_status : null) ||
-    player.injury;
+    null;
   const updateHeadline =
-    player.news_headline ||
     updateContext?.headline ||
-    (valuation && valuation !== "loading" ? valuation.news_headline : null);
+    (valuation && valuation !== "loading" ? valuation.news_headline : null) ||
+    null;
   const riskAdjustmentDelta =
     valuation && valuation !== "loading"
       ? Number(valuation.risk_adjustment?.max_bid_delta_percent || 0)
       : 0;
   const updateImpact =
-    player.update_impact_summary ||
     updateContext?.impact_summary ||
     (riskAdjustmentDelta
       ? `${Math.abs(riskAdjustmentDelta)}% risk adjustment applied.`
       : null);
   const updateType =
-    player.latest_update?.type ||
     updateContext?.type ||
     (valuation && valuation !== "loading" ? valuation.player_update?.type : null);
   const transactionContext =
-    updateType === "TRANSACTION" || updateType === "LINEUP" || updateType === "ROLE"
+    updateType === "TRANSACTION" ||
+    updateType === "CONTRACT" ||
+    updateType === "LINEUP" ||
+    updateType === "ROLE"
       ? updateContext
       : null;
+  const apiNewsSource =
+    updateContext?.source_type === "MANUAL_DEMO"
+      ? "Valuation API demo"
+      : updateContext?.source || "Valuation API";
   const volumeProjection =
     player.volume_projection ||
     (valuation && valuation !== "loading"
@@ -543,15 +550,18 @@ export default function PlayerCard({
         </div>
       )}
 
-      {/* ── Live Update Alert ───────────────────────────────────────────── */}
+      {/* ── Valuation API News Alert ────────────────────────────────────── */}
       {(injuryStatus || updateHeadline) && (
         <div className={`pc-risk-panel risk-${String(riskLevel).toLowerCase()}`}>
           <div className="pc-risk-top">
             <span className="pc-risk-label">
-              {updateType === "TRANSACTION" ? "TRANSACTION" : "LIVE UPDATE"}
+              {updateType === "TRANSACTION" || updateType === "CONTRACT"
+                ? "API TRANSACTION"
+                : "VALUATION API ALERT"}
             </span>
             <span className="pc-risk-level">{riskLevel} RISK</span>
           </div>
+          <div className="pc-risk-source">Source: {apiNewsSource}</div>
           {injuryStatus && (
             <div className="pc-risk-status">Status: {injuryStatus}</div>
           )}
@@ -567,9 +577,11 @@ export default function PlayerCard({
       {transactionContext && (
         <div className="pc-news">
           <span className="news-tag">[{updateType}]</span>{" "}
-          {transactionContext.body ||
-            transactionContext.impact_summary ||
-            "Transaction context is active for draft review."}
+          {transactionContext.transaction_status ||
+            transactionContext.contract_status ||
+            transactionContext.body ||
+            transactionContext.impact_summary}
+          <span className="pc-api-source"> Source: {apiNewsSource}</span>
         </div>
       )}
 
@@ -594,7 +606,7 @@ export default function PlayerCard({
         </div>
       )}
 
-      {/* ── Scout Note (fallback when no API) ───────────────────────────── */}
+      {/* ── Local Scout Note ────────────────────────────────────────────── */}
       {!valuation && player.note && (
         <div className="pc-news">
           <span className="news-tag">[NOTE]</span> {player.note}

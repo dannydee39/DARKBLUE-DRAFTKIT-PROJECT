@@ -122,43 +122,6 @@ async function main() {
       throw new Error(`Draft update failed: ${JSON.stringify(updated.body)}`);
     }
 
-    const createdNote = await request(`/v1/drafts/${draft.id}/notes`, {
-      method: "POST",
-      body: JSON.stringify({
-        player_id: 2,
-        player_name: "Aaron Judge",
-        team: "NYY",
-        positions: ["OF"],
-        type: "ROLE",
-        severity: "MEDIUM",
-        headline: "Aaron Judge has a league note",
-        body: "Commissioner note for draft review.",
-      }),
-    });
-    if (
-      createdNote.response.status !== 201 ||
-      createdNote.body?.note?.draft_id !== draft.id ||
-      createdNote.body?.note?.type !== "ROLE" ||
-      createdNote.body?.note?.risk_level !== "MEDIUM"
-    ) {
-      throw new Error(`Draft note create failed: ${JSON.stringify(createdNote.body)}`);
-    }
-
-    const listedNotes = await request(`/v1/drafts/${draft.id}/notes`, {
-      method: "GET",
-    });
-    if (listedNotes.body?.count !== 1 || listedNotes.body?.notes?.[0]?.player_name !== "Aaron Judge") {
-      throw new Error(`Draft note list failed: ${JSON.stringify(listedNotes.body)}`);
-    }
-
-    const removedNote = await request(
-      `/v1/drafts/${draft.id}/notes/${createdNote.body.note.id}`,
-      { method: "DELETE" },
-    );
-    if (!removedNote.body?.ok) {
-      throw new Error(`Draft note delete failed: ${JSON.stringify(removedNote.body)}`);
-    }
-
     const removed = await request(`/v1/drafts/${draft.id}`, { method: "DELETE" });
     if (!removed.body?.ok) {
       throw new Error(`Draft delete failed: ${JSON.stringify(removed.body)}`);

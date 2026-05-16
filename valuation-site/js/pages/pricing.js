@@ -27,7 +27,7 @@ DB.pages.pricing = function (container) {
           '<div class="license-plans">' +
             _planCard('Test Access', 'Free', [
               'Shared live test key',
-              'All three endpoints',
+              'Valuation, player data, depth, and news demo endpoints',
               'For onboarding and contract validation',
             ], '<a class="btn btn-secondary btn-sm" href="#endpoints">Open Endpoints</a>', false) +
 

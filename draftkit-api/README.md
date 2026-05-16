@@ -6,7 +6,7 @@ Express backend for Draft Kit accounts, cloud draft persistence, per-draft leagu
 
 - `server.js` creates the Express app, CORS policy, rate limiter, health endpoint, and route mounts.
 - `routes/auth.js` owns signup, login, logout, password reset, and current-user session checks.
-- `routes/drafts.js` owns cloud drafts, open markers, per-draft league notes, and note SSE streams.
+- `routes/drafts.js` owns cloud drafts, open markers, and per-draft league notes.
 - `routes/valuation-proxy.js` proxies valuation API calls while keeping `VALUATION_API_KEY` server-side.
 - `lib/db.js` initializes SQLite tables and contains persistence helpers.
 - `middleware/session.js` attaches and requires session users.
@@ -14,8 +14,8 @@ Express backend for Draft Kit accounts, cloud draft persistence, per-draft leagu
 ## Data Ownership
 
 - Draft Kit account state and cloud drafts live in SQLite.
-- Per-draft commissioner notes live in `draft_notes` and are scoped by both `draft_id` and `user_id`.
-- Global MLB/player news remains owned by `valuation-api`.
+- Per-draft league notes live inside saved draft payloads and are scoped by draft ownership.
+- Global MLB/player news is owned only by `valuation-api`; this service proxies reads and SSE streams but does not create player news.
 
 ## Commands
 

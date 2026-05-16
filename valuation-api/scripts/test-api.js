@@ -163,7 +163,12 @@ async function runGeneralRegressionSuite() {
         player_name: "Aaron Judge",
         type: "INJURY",
         severity: "HIGH",
-        source: "Commissioner update",
+        headline: "Aaron Judge injury alert from Valuation API",
+        body: "Valuation API test update for Draft Kit notification handling.",
+        injury_status: "Questionable",
+        impact_summary: "Lower max bid until injury clarity improves.",
+        source: "Valuation API test feed",
+        source_type: "LIVE_FEED",
       }),
     });
     assert.equal(pushedUpdate.response.status, 201, "POST /v1/player-updates should create an update");
@@ -183,6 +188,10 @@ async function runGeneralRegressionSuite() {
             type: "NEWS",
             severity: "MEDIUM",
             headline: "Bobby Witt Jr. lineup status pushed",
+            body: "Valuation API test feed pushed a lineup-status update.",
+            impact_summary: "Review lineup context before bidding.",
+            source: "Valuation API test feed",
+            source_type: "LIVE_FEED",
           }),
         });
         assert.equal(response.response.status, 201, "POST should push to open SSE stream");
@@ -280,43 +289,73 @@ async function runGeneralRegressionSuite() {
       "valuation should expose depth chart adjustment",
     );
 
-    const commissionerNoteValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+    const apiOwnedRoleUpdate = await jsonFetch(`${baseUrl}/v1/player-updates`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
       body: JSON.stringify({
-        draft_state: buildDraftState({
-          commissioner_notes: [
-            {
-              player_id: playerPool.find((entry) => entry.name === "Juan Soto").id,
-              player_name: "Juan Soto",
-              type: "ROLE",
-              severity: "MEDIUM",
-              headline: "Juan Soto has a league-only role note",
-              source: "League commissioner note",
-            },
-          ],
-        }),
+        player_name: "Juan Soto",
+        type: "ROLE",
+        severity: "MEDIUM",
+        headline: "Juan Soto role update from Valuation API",
+        body: "Valuation API test feed created role context for valuation risk.",
+        transaction_status: "Role under review",
+        impact_summary: "Review lineup role before paying full projected value.",
+        source: "Valuation API test feed",
+        source_type: "LIVE_FEED",
       }),
     });
+    assert.equal(apiOwnedRoleUpdate.response.status, 201, "API-owned role update should be created");
+    const apiUpdateValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({ draft_state: buildDraftState() }),
+    });
     assert.equal(
-      commissionerNoteValuation.response.status,
+      apiUpdateValuation.response.status,
       200,
-      "commissioner note valuation should return 200",
+      "API update valuation should return 200",
     );
     assert.equal(
-      commissionerNoteValuation.body.valuations?.["Juan Soto"]?.risk_level,
+      apiUpdateValuation.body.valuations?.["Juan Soto"]?.risk_level,
       "MEDIUM",
-      "valuation should apply commissioner_notes as local-only risk context",
+      "valuation should apply API-owned role update as risk context",
     );
     assert.equal(
-      commissionerNoteValuation.body.valuations?.["Juan Soto"]?.player_update?.source,
-      "League commissioner note",
-      "valuation should preserve commissioner note source",
+      apiUpdateValuation.body.valuations?.["Juan Soto"]?.player_update?.origin,
+      "VALUATION_API",
+      "valuation should preserve Valuation API update origin",
     );
     assert.equal(
-      commissionerNoteValuation.body.valuations?.["Juan Soto"]?.rubric_checks?.injury_status_used,
+      apiUpdateValuation.body.valuations?.["Juan Soto"]?.rubric_checks?.injury_status_used,
       true,
-      "valuation should mark injury/news risk context as used for rubric coverage",
+      "valuation should mark API news/risk context as used for rubric coverage",
+    );
+
+    const ignoredDraftNoteState = buildDraftState({
+      commissioner_notes: [
+        {
+          player_name: "Mookie Betts",
+          type: "INJURY",
+          severity: "HIGH",
+          headline: "This draft-local note should be ignored",
+          body: "Valuation news must come from the Valuation API player-update feed.",
+        },
+      ],
+    });
+    const ignoredDraftNoteValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
+      body: JSON.stringify({ draft_state: ignoredDraftNoteState }),
+    });
+    assert.equal(
+      ignoredDraftNoteValuation.body.valuations?.["Mookie Betts"]?.risk_level,
+      "LOW",
+      "valuation should ignore draft_state.commissioner_notes as a player-news source",
+    );
+    assert.equal(
+      ignoredDraftNoteValuation.body.valuations?.["Mookie Betts"]?.player_update,
+      null,
+      "valuation should not convert draft-local notes into player_update data",
     );
 
     const customStatsValuation = await jsonFetch(`${baseUrl}/v1/valuate`, {

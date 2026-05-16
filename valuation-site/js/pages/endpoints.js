@@ -1,7 +1,7 @@
 /**
  * endpoints.js — Endpoints tab renderer.
  *
- * Three endpoint cards + a live Try It panel at the bottom.
+ * Endpoint cards, a Valuation API news demo push, and a live Try It panel.
  *
  * Each card shows:
  *   - Method badge + path + auth requirement
@@ -83,7 +83,7 @@ DB.pages.endpoints = function (container) {
       custom_one_or_three_year_stats: 'Supported through draft_state.player_stat_overrides and runtime weighted stats_window.',
       predictive_stats: 'Projected playing time and FPTS feed predictive_adjustment.',
       age: 'Player age feeds age_adjustment.',
-      injury_status: 'Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.',
+      injury_status: 'Valuation API player updates feed risk_adjustment and player-card news.',
       scarcity: 'Roster config and undrafted pool feed position scarcity.',
       depth_chart_position: 'draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.',
       draftkit_refresh: 'Draft Kit posts the full draft_state after draft-state cache invalidation.',
@@ -211,7 +211,7 @@ DB.pages.endpoints = function (container) {
         /* Header */
         '<header class="endpoints-header">' +
           '<p class="endpoints-kicker">API Reference</p>' +
-          '<h1>Three endpoints. Everything a draft product needs.</h1>' +
+          '<h1>Valuations, player data, and pushed news for draft products.</h1>' +
           '<p class="endpoints-lead">' +
             'Base URL: <code>' + DISPLAY + '</code>' +
           '</p>' +
@@ -369,9 +369,6 @@ DB.pages.endpoints = function (container) {
                   '<tr><td><code>depth_chart_context</code></td><td>object</td>' +
                     '<td>optional</td>' +
                     '<td>Per-player depth position, depth rank, role, active status, and starter flag keyed by player id.</td></tr>' +
-                  '<tr><td><code>commissioner_notes</code></td><td>object[]</td>' +
-                    '<td>optional</td>' +
-                    '<td>Draft-local injury/news/role context that can adjust risk without persisting to the licensed API.</td></tr>' +
                 '</tbody>' +
               '</table>' +
             '</div>' +
@@ -396,6 +393,28 @@ DB.pages.endpoints = function (container) {
                 '</tbody>' +
               '</table>' +
             '</div>' +
+          '</div>' +
+        '</article>' +
+
+        /* ── POST /v1/player-updates/demo ──────────────────────────────── */
+        '<article class="ep-card" id="ep-player-news-demo">' +
+          '<div class="ep-card-head">' +
+            '<span class="ep-method ep-post">POST</span>' +
+            '<code class="ep-path">/v1/player-updates/demo</code>' +
+            '<span class="ep-auth ep-auth-required">Key required</span>' +
+          '</div>' +
+          '<div class="ep-card-body">' +
+            '<p class="ep-desc">' +
+              'Creates a notification-worthy player update inside the Valuation API feed. Draft Kit listens to this feed through its backend proxy, so an open draft board receives the pushed alert without creating local news.' +
+            '</p>' +
+            '<div class="ep-callout">' +
+              'This button is for operator demonstrations. It writes through the same persisted player-update path that future live news ingestion uses, marked with <code>source_type: "MANUAL_DEMO"</code>.' +
+            '</div>' +
+            '<div class="ep-tryit-actions">' +
+              '<button class="btn btn-primary" id="demo-news-send">Push Demo News</button>' +
+            '</div>' +
+            '<div id="demo-news-status" class="ep-tryit-status"></div>' +
+            '<div id="demo-news-response"></div>' +
           '</div>' +
         '</article>' +
 
@@ -511,6 +530,53 @@ DB.pages.endpoints = function (container) {
       if (statusEl) { statusEl.textContent = ''; statusEl.className = 'ep-tryit-status'; }
       var respEl = document.getElementById('tryit-response');
       if (respEl) respEl.innerHTML = '';
+    });
+  }
+
+  /* Demo News Push */
+  var demoNewsBtn = document.getElementById('demo-news-send');
+  if (demoNewsBtn) {
+    demoNewsBtn.addEventListener('click', async function () {
+      var statusEl = document.getElementById('demo-news-status');
+      var responseEl = document.getElementById('demo-news-response');
+
+      demoNewsBtn.textContent = 'Pushing...';
+      demoNewsBtn.disabled = true;
+      statusEl.className = 'ep-tryit-status';
+      statusEl.textContent = '';
+      responseEl.innerHTML = '';
+
+      var t0 = performance.now();
+      try {
+        var res = await fetch(BASE + '/v1/player-updates/demo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-License-Key': KEY },
+          body: JSON.stringify({}),
+        });
+        var latency = Math.round(performance.now() - t0);
+        var json = await res.json();
+
+        statusEl.className = 'ep-tryit-status ' + (res.ok ? 'ep-tryit-ok' : 'ep-tryit-error');
+        statusEl.textContent = (res.ok ? 'Pushed ' : 'Failed ') +
+          res.status + ' ' + res.statusText + ' · ' + latency + 'ms';
+
+        responseEl.innerHTML =
+          '<div class="code-block" style="margin-top:0.75rem;">' +
+            '<div class="code-block-header">' +
+              '<span class="code-block-lang">Response · ' + latency + 'ms</span>' +
+            '</div>' +
+            '<pre class="code-pre" style="max-height:300px;overflow:auto;">' +
+              _esc(JSON.stringify(json, null, 2)) +
+            '</pre>' +
+          '</div>';
+      } catch (err) {
+        var ms = Math.round(performance.now() - t0);
+        statusEl.className = 'ep-tryit-status ep-tryit-error';
+        statusEl.textContent = 'Network error (' + ms + 'ms) — is the API running at ' + BASE + '?';
+      }
+
+      demoNewsBtn.textContent = 'Push Demo News';
+      demoNewsBtn.disabled = false;
     });
   }
 

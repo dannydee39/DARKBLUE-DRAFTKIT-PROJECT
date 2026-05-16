@@ -1,4 +1,11 @@
 const assert = require("assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dbvaluation-fixtures-"));
+process.env.PLAYER_UPDATES_FILE = path.join(tempDir, "player-updates.json");
+
 const { createApp } = require("../server");
 const playerPool = require("../data/players.json");
 
@@ -159,21 +166,6 @@ async function main() {
         }),
       },
       {
-        label: "injury-commissioner-note",
-        state: mergeDraftState(0, {
-          commissioner_notes: [
-            {
-              player_id: target.id,
-              player_name: target.name,
-              type: "INJURY",
-              severity: "HIGH",
-              headline: `${target.name} has a high-risk injury flag`,
-              injury_status: "Questionable",
-            },
-          ],
-        }),
-      },
-      {
         label: "custom-one-year-stats",
         state: mergeDraftState(0, {
           stat_window: "ONE_YEAR",
@@ -213,10 +205,37 @@ async function main() {
           },
         }),
       },
+      {
+        label: "api-owned-injury-news",
+        state: mergeDraftState(0),
+        setup: async () => {
+          const pushedInjury = await jsonFetch(`${baseUrl}/v1/player-updates`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-License-Key": API_KEY,
+            },
+            body: JSON.stringify({
+              player_id: target.id,
+              type: "INJURY",
+              severity: "HIGH",
+              headline: `${target.name} has a high-risk injury flag`,
+              body: `${target.name} is carrying an API-owned injury/news flag for this draft test.`,
+              injury_status: "Questionable",
+              impact_summary: "Fixture valuation should lower risk-adjusted value from the persisted API news feed.",
+              source: "Valuation API fixture feed",
+              source_type: "LIVE_FEED",
+              created_by: "test-api-fixtures",
+            }),
+          });
+          assert.equal(pushedInjury.response.status, 201, "API-owned injury update should be persisted");
+        },
+      },
     ];
 
     const values = [];
     for (const variation of variationCases) {
+      if (variation.setup) await variation.setup();
       const response = await jsonFetch(`${baseUrl}/v1/valuate`, {
         method: "POST",
         headers: {
@@ -268,7 +287,7 @@ async function main() {
       "depth chart rubric check should be true",
     );
 
-    const injuryCase = variationCases.find((entry) => entry.label === "injury-commissioner-note");
+    const injuryCase = variationCases.find((entry) => entry.label === "api-owned-injury-news");
     const injuryResponse = await jsonFetch(`${baseUrl}/v1/valuate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-License-Key": API_KEY },
@@ -277,7 +296,7 @@ async function main() {
     assert.equal(
       injuryResponse.body.valuations[target.name].rubric_checks.injury_status_used,
       true,
-      "injury status rubric check should be true when commissioner note supplies injury risk",
+      "injury status rubric check should be true when Valuation API news supplies injury risk",
     );
 
     assert.ok(

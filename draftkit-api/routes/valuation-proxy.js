@@ -166,27 +166,6 @@ router.get("/player-updates/stream", async (req, res) => {
   }
 });
 
-router.post("/player-updates", async (req, res) => {
-  try {
-    const payload =
-      req.body && typeof req.body === "object" ? { ...req.body } : {};
-    const response = await fetchUpstream("/v1/player-updates", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    const upstreamPayload = await readPayload(response);
-    return respond(res, response.status, upstreamPayload);
-  } catch (error) {
-    return res.status(502).json({
-      error: "Bad Gateway",
-      message:
-        error?.name === "AbortError"
-          ? "Valuation service timed out while publishing a player update."
-          : "Could not reach the valuation service.",
-    });
-  }
-});
-
 router.post("/valuate", async (req, res) => {
   try {
     const payload =

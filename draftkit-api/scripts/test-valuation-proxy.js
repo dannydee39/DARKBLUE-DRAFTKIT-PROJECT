@@ -91,6 +91,22 @@ async function readSseEvent(url, eventName, trigger) {
   throw new Error(`Timed out waiting for proxy SSE event ${eventName}`);
 }
 
+async function createValuationUpdate(valuationBaseUrl, payload) {
+  return jsonFetch(`${valuationBaseUrl}/v1/player-updates`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-License-Key": process.env.VALUATION_API_KEY,
+    },
+    body: JSON.stringify({
+      source: "Valuation API proxy regression feed",
+      source_type: "LIVE_FEED",
+      created_by: "test-valuation-proxy",
+      ...payload,
+    }),
+  });
+}
+
 async function main() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dbdraftkit-proxy-"));
   process.env.AUTH_DB_PATH = path.join(tempDir, "draftkit-auth.db");
@@ -129,35 +145,63 @@ async function main() {
       assert.equal(updates.response.status, 200, "proxy /v1/player-updates should succeed");
       assert.ok(Array.isArray(updates.body?.updates), "proxy player updates should return an updates array");
 
-      const publishedUpdate = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates`, {
+      const draftkitPublishAttempt = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_name: "Aaron Judge", type: "INJURY", severity: "HIGH" }),
+        body: JSON.stringify({
+          player_name: "Aaron Judge",
+          type: "INJURY",
+          severity: "HIGH",
+          headline: "Draft Kit should not publish this",
+          body: "Player news must be created by the Valuation API.",
+          source_type: "LIVE_FEED",
+        }),
+      });
+      assert.equal(
+        draftkitPublishAttempt.response.status,
+        404,
+        "Draft Kit API must not expose a player-news creation route",
+      );
+
+      const publishedUpdate = await createValuationUpdate(valuationBaseUrl, {
+        player_name: "Aaron Judge",
+        type: "INJURY",
+        severity: "HIGH",
+        headline: "Aaron Judge injury alert from Valuation API",
+        body: "Proxy regression confirms Draft Kit reads API-owned alerts without creating local news.",
+        injury_status: "Questionable",
+        impact_summary: "Draft Kit should show the Valuation API alert in player surfaces.",
       });
       assert.equal(
         publishedUpdate.response.status,
         201,
-        "proxy /v1/player-updates should create an update",
+        "Valuation API should create an update for Draft Kit to proxy",
       );
       assert.equal(publishedUpdate.body?.update?.player_name, "Aaron Judge");
+
+      const proxiedAfterCreate = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates?limit=5`);
+      assert.equal(
+        proxiedAfterCreate.body?.updates?.[0]?.origin,
+        "VALUATION_API",
+        "Draft Kit proxy should expose API-owned player updates",
+      );
 
       const streamEvent = await readSseEvent(
         `${draftkitBaseUrl}/v1/player-updates/stream?limit=5`,
         "player-update",
         async () => {
-          const response = await jsonFetch(`${draftkitBaseUrl}/v1/player-updates`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              player_name: "Bobby Witt Jr.",
-              type: "NEWS",
-              severity: "MEDIUM",
-            }),
+          const response = await createValuationUpdate(valuationBaseUrl, {
+            player_name: "Bobby Witt Jr.",
+            type: "NEWS",
+            severity: "MEDIUM",
+            headline: "Bobby Witt Jr. news alert from Valuation API",
+            body: "Proxy regression confirms SSE pushes originate from the Valuation API feed.",
+            impact_summary: "Draft Kit should receive this immediately through the proxied SSE stream.",
           });
           assert.equal(
             response.response.status,
             201,
-            "proxy POST should push to open SSE stream",
+            "Valuation API POST should push to open Draft Kit SSE stream",
           );
         },
       );

@@ -43,13 +43,13 @@ The browser never sends the valuation license key directly. `draftkit-api` store
 - `draftkit-web`
   - Creates and runs draft rooms.
   - Manages board, keeper setup, taxi draft, minor league rosters, draft history, settings, player notes, and UI feedback.
-  - Subscribes to player update streams and sends league-scoped commissioner notes for signed-in cloud drafts.
+  - Subscribes to Valuation API player update streams through `draftkit-api` and displays those pushed alerts in draft surfaces.
 - `draftkit-api`
-  - Owns Draft Kit accounts, password reset, sessions, cloud draft persistence, and per-draft commissioner notes.
-  - Proxies player pool, valuation, MLB depth chart, and global player update calls to `valuation-api`.
+  - Owns Draft Kit accounts, password reset, sessions, and cloud draft persistence.
+  - Proxies player pool, valuation, MLB depth chart, and Valuation API player update reads/streams.
 - `valuation-api`
   - Owns licensed valuation logic, player pool data, global MLB/player news feed, live depth charts, API key mediation, optional IP allowlisting, and rate limiting.
-  - Accepts stateless draft payloads, including local `commissioner_notes`, and returns valuation dictionaries.
+  - Accepts stateless draft payloads and returns valuation dictionaries. Notification-worthy news must enter through `POST /v1/player-updates` or `/v1/player-updates/demo`.
 - `valuation-site`
   - Explains the licensed API, shows endpoint examples, and provides buyer/account-oriented copy.
 
@@ -166,7 +166,7 @@ The backend enforces key-based API access and optional exact-IP/CIDR allowlistin
 
 ### Player API Valuations
 
-The valuation API should receive full credit for valuation behavior because values are not static lookup fields. `valuation-api/services/valuation.js` recalculates value from draft context, remaining budget, roster fill, position scarcity, and player risk. It also overlays commissioner notes and Player API updates without mutating the base player dataset, which is why injury/news context can immediately affect dollar values.
+The valuation API should receive full credit for valuation behavior because values are not static lookup fields. `valuation-api/services/valuation.js` recalculates value from draft context, remaining budget, roster fill, position scarcity, and player risk. It reads persisted Player API updates without mutating the base player dataset, which is why injury/news context can immediately affect dollar values.
 
 The player pool includes generated baseball context in `valuation-api/data/players.json`. The generation pipeline in `valuation-api/scripts/generate-players.js` documents how projection data, current-season data, and three-year-average data are blended into player values. Age, injury/news status, scarcity, depth context, and risk adjustments flow through `valuation-api/services/valuation.js`, `valuation-api/services/playerUpdates.js`, and `valuation-api/services/mlbDepthCharts.js`. Draft Kit requests and presents updated values after draft changes through the valuation state path in `draftkit-web/src/App.jsx`.
 
@@ -190,9 +190,9 @@ Player discovery and review are covered by `draftkit-web/src/components/PlayerDi
 
 ### Player API And Draft Kit Push Notifications
 
-The push-notification requirement should receive full credit because the project implements both a global Player API push feed and draft-local commissioner notes. The global feed is in `valuation-api/routes/player-updates.js` and `valuation-api/services/playerUpdates.js`; it supports publishing update-worthy player news and streaming those updates to connected clients with server-sent events.
+The push-notification requirement should receive full credit because notification-worthy player news is now produced only by the Valuation API. The feed is in `valuation-api/routes/player-updates.js` and `valuation-api/services/playerUpdates.js`; it supports live-feed ingestion, an operator demo push endpoint, persistence, and server-sent events.
 
-The Draft Kit side uses a hybrid approach so injury/news UI does not stay permanently bloated on screen. `draftkit-web/src/components/PlayerUpdateCenter.jsx` keeps the feed accessible behind management controls, while `draftkit-web/src/App.jsx` merges updates into player state, opens affected players, shows board notices, and connects to live streams. Draft-local league notes are stored and streamed through `draftkit-api/routes/drafts.js` and `draftkit-api/lib/db.js`, which is also where the remove flow for commissioner injury/news notes is implemented. Player cards and details show the resulting injury/news, risk, depth, and transaction context in `draftkit-web/src/components/PlayerCard.jsx`.
+The Draft Kit side is a subscriber. `draftkit-api/routes/valuation-proxy.js` proxies update reads and SSE streams without exposing the API key, `draftkit-web/src/components/PlayerUpdateCenter.jsx` shows the feed, and `draftkit-web/src/App.jsx` merges updates into player state, opens affected players, shows board notices, and connects to live streams. Player cards and details show the resulting injury/news, risk, depth, transaction, and contract context in `draftkit-web/src/components/PlayerCard.jsx`.
 
 ### Taxi Draft
 
@@ -202,4 +202,4 @@ Taxi draft should receive full credit because taxi roster entry is its own workf
 
 The UI should receive full credit because it is organized around repeated draft-day use instead of a marketing-style demo. `draftkit-web/src/App.jsx` lays out the main product shell, `draftkit-web/src/styles.css` defines the visual system, and the app uses focused feature components for setup, board, dictionary, player card, history, depth charts, prospect rosters, taxi draft, and settings. The result is a board-first workflow where common actions stay visible and rare injury/news management stays available without dominating the interface.
 
-The interface also includes the feedback and guardrails expected in a draft tool: disabled invalid actions, warning banners, loading states, health/error messages, board notices, locked mid-draft settings, and confirmation before destructive note removal. Those behaviors are spread across `draftkit-web/src/App.jsx`, `draftkit-web/src/components/LeagueSettings.jsx`, `draftkit-web/src/components/PlayerUpdateCenter.jsx`, and the validation helpers in `draftkit-web/src/utils/helpers.js`.
+The interface also includes the feedback and guardrails expected in a draft tool: disabled invalid actions, warning banners, loading states, health/error messages, board notices, locked mid-draft settings, and API-owned pushed update alerts. Those behaviors are spread across `draftkit-web/src/App.jsx`, `draftkit-web/src/components/LeagueSettings.jsx`, `draftkit-web/src/components/PlayerUpdateCenter.jsx`, and the validation helpers in `draftkit-web/src/utils/helpers.js`.

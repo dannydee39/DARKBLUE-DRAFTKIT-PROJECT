@@ -1,24 +1,10 @@
 import { useState } from "react";
 
-const UPDATE_TYPES = [
-  { value: "INJURY", label: "Injury" },
-  { value: "TRANSACTION", label: "Transaction" },
-  { value: "LINEUP", label: "Lineup" },
-  { value: "ROLE", label: "Role" },
-];
-
-const UPDATE_SEVERITIES = [
-  { value: "HIGH", label: "High" },
-  { value: "MEDIUM", label: "Medium" },
-  { value: "LOW", label: "Low" },
-];
-
 function formatUpdateSource(update) {
-  const source = String(update?.source || "").toLowerCase();
-  if (source.includes("commissioner") || source.includes("league")) {
-    return "League";
+  if (update?.source_type === "MANUAL_DEMO") {
+    return "Valuation API Demo";
   }
-  return "MLB";
+  return update?.source || "Valuation API";
 }
 
 export default function PlayerUpdateCenter({
@@ -27,18 +13,12 @@ export default function PlayerUpdateCenter({
   error = "",
   apiStatus = "checking",
   pushStatus = "offline",
-  targetPlayer = null,
   onRefresh,
-  onPublishInjury,
   onOpenPlayer,
-  onDeleteUpdate,
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [updateType, setUpdateType] = useState("INJURY");
-  const [severity, setSeverity] = useState("HIGH");
   const latest = updates[0] || null;
   const isOnline = apiStatus === "online";
-  const canPublish = isOnline && !loading && targetPlayer;
   const statusLabel =
     !isOnline
       ? "Feed offline"
@@ -51,24 +31,14 @@ export default function PlayerUpdateCenter({
     !isOnline ? "offline" : pushStatus === "online" ? "online" : "reconnecting";
   const compactHeadline = latest
     ? latest.headline
-    : targetPlayer
-      ? `Ready to add a league note for ${targetPlayer.name}`
-      : "No active transactions";
+    : "No Valuation API news";
   const updateCountLabel =
     updates.length === 1 ? "1 update" : `${updates.length} updates`;
-
-  function handlePublish() {
-    onPublishInjury?.({ type: updateType, severity });
-  }
-
-  function canDeleteUpdate(update) {
-    return Boolean(update?.draft_id && formatUpdateSource(update) === "League");
-  }
 
   return (
     <section
       className={`player-update-center ${isOpen ? "is-open" : "is-collapsed"}`}
-      aria-label="Player transactions and updates"
+      aria-label="Valuation API player news"
     >
       <div className="puc-compact">
         <button
@@ -77,7 +47,7 @@ export default function PlayerUpdateCenter({
           onClick={() => setIsOpen((open) => !open)}
           aria-expanded={isOpen}
         >
-          <span className="puc-eyebrow">Transactions</span>
+          <span className="puc-eyebrow">API News</span>
           <strong>{compactHeadline}</strong>
           <span>{latest ? `${formatUpdateSource(latest)} - ${updateCountLabel}` : updateCountLabel}</span>
         </button>
@@ -96,7 +66,7 @@ export default function PlayerUpdateCenter({
           className="puc-compact-btn puc-primary-btn"
           onClick={() => setIsOpen((open) => !open)}
         >
-          {isOpen ? "Hide" : "Manage"}
+          {isOpen ? "Hide" : "View Feed"}
         </button>
       </div>
 
@@ -104,8 +74,8 @@ export default function PlayerUpdateCenter({
         <>
           <div className="puc-header">
             <div>
-              <div className="puc-eyebrow">League transaction center</div>
-              <h2>Transactions and risk notes</h2>
+              <div className="puc-eyebrow">Valuation API notification center</div>
+              <h2>API-sourced player news</h2>
             </div>
             <div className={`puc-status ${statusTone}`}>
               {statusLabel}
@@ -118,11 +88,11 @@ export default function PlayerUpdateCenter({
                 {latest ? `${formatUpdateSource(latest)} ${latest.type}` : "No updates loaded"}
               </div>
               <strong>
-                {latest?.headline || "Select a player, then publish a league note if needed."}
+                {latest?.headline || "Draft Kit is listening for Valuation API player updates."}
               </strong>
               <p>
                 {latest?.impact_summary ||
-                  "Use this only for transaction-worthy context. The board stays clean when there is nothing to review."}
+                  "News alerts are created by the Valuation API. Draft Kit only subscribes, alerts, and opens the affected player card."}
               </p>
               {latest && (
                 <div className="puc-primary-actions">
@@ -133,67 +103,15 @@ export default function PlayerUpdateCenter({
                   >
                     Inspect Updated Player
                   </button>
-                  {canDeleteUpdate(latest) && (
-                    <button
-                      type="button"
-                      className="puc-link-btn danger"
-                      onClick={() => onDeleteUpdate?.(latest)}
-                    >
-                      Remove Note
-                    </button>
-                  )}
                 </div>
               )}
             </div>
 
             <div className="puc-actions">
-              <label className="puc-field">
-                <span>Type</span>
-                <select
-                  value={updateType}
-                  onChange={(event) => setUpdateType(event.target.value)}
-                  disabled={loading}
-                >
-                  {UPDATE_TYPES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="puc-field">
-                <span>Risk</span>
-                <select
-                  value={severity}
-                  onChange={(event) => setSeverity(event.target.value)}
-                  disabled={loading}
-                >
-                  {UPDATE_SEVERITIES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                className="puc-primary-btn"
-                onClick={handlePublish}
-                disabled={!canPublish}
-                title={
-                  !canPublish && !targetPlayer
-                    ? "Select a player first to publish a league note"
-                    : !canPublish && !isOnline
-                      ? "Player updates need the Draft Kit API to be online"
-                      : `Publish ${updateType.toLowerCase()} note for ${targetPlayer?.name || "selected player"}`
-                }
-              >
-                {loading
-                  ? "Publishing..."
-                  : targetPlayer
-                    ? `Publish for ${targetPlayer.name}`
-                    : "Publish League Note"}
-              </button>
+              <div className="puc-ingest-note">
+                Create demo/news pushes from the Valuation API site. This draft board
+                never manufactures news locally.
+              </div>
               <button
                 type="button"
                 onClick={onRefresh}
@@ -227,23 +145,13 @@ export default function PlayerUpdateCenter({
                       <span>{update.headline}</span>
                     </span>
                   </button>
-                  {canDeleteUpdate(update) && (
-                    <button
-                      type="button"
-                      className="puc-delete-btn"
-                      onClick={() => onDeleteUpdate?.(update)}
-                      title={`Remove league note for ${update.player_name}`}
-                    >
-                      Remove
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="puc-empty">
-              No active transactions. Select a player only when there is real
-              draft context to publish.
+              No API news is active. The board will alert when the Valuation API
+              publishes notification-worthy player information.
             </div>
           )}
         </>

@@ -12,27 +12,18 @@ The public Dark Blue value site and API are up.
 | Dark Blue valuation API health | `https://darkblueapi.anythingavenue.com/health` | HTTP `200`, `environment: production` |
 | Dark Blue valuation API landing page | `https://darkblueapi.anythingavenue.com/` | HTTP `200` |
 
-## Did The Input Format Change Since A Week Ago?
+## Current Endpoint Shape
 
-No, not compared with the deployed May 8 state. The current production code is still based on the May 8 API architecture commits:
+The current development code keeps valuation requests stateless and makes player news API-owned. Notification-worthy injury/news/role updates must enter through the Valuation API player-update feed, not through Draft Kit draft state.
 
-- `86e47bf` - added valuation buyer accounts, password reset, and unique account license keys.
-- `c1293e6` - fixed the API landing page template.
-
-There have been no later `valuation-api` or `valuation-site` commits changing endpoint input contracts after that May 8 deployment.
-
-If comparing against the code before May 8, then there were two important additions:
-
-- New buyer account endpoints were added under `/v1/auth/*`.
-- `X-License-Key` validation now accepts both configured static keys from `API_KEYS` and unique license keys generated for buyer accounts.
-
-The core valuation/data endpoints are otherwise the same shape:
+Core valuation/data/news endpoints:
 
 - `POST /v1/valuate`
 - `GET /v1/players`
 - `GET /v1/player-updates`
 - `GET /v1/player-updates/stream`
 - `POST /v1/player-updates`
+- `POST /v1/player-updates/demo`
 - `GET /v1/mlb/depth-charts`
 
 ## High-Level Architecture
@@ -309,17 +300,7 @@ Body:
       "UTIL": 1,
       "BN": 0,
       "TAXI": 0
-    },
-    "commissioner_notes": [
-      {
-        "player_id": 2,
-        "player_name": "Juan Soto",
-        "type": "ROLE",
-        "severity": "MEDIUM",
-        "headline": "League-only role note",
-        "source": "League commissioner note"
-      }
-    ]
+    }
   }
 }
 ```
@@ -337,7 +318,8 @@ Fields:
 | `draft_state.teams[].budget_remaining` | number | Recommended | Current budget left |
 | `draft_state.teams[].roster` | string[][] | Recommended | Array of `[player_name, mlb_team]` tuples |
 | `draft_state.roster_config` | object | No | Slot counts by roster position |
-| `draft_state.commissioner_notes` | object[] | No | Local risk/news overlays for this valuation only |
+
+Notification-worthy injury/news/role context is no longer sent inside the valuation payload. It is persisted through the Valuation API player-update feed so Draft Kit receives one auditable pushed-news source.
 
 Important roster format:
 
@@ -460,8 +442,9 @@ Body:
   "body": "Aaron Judge has a high-risk injury flag for draft review.",
   "injury_status": "Questionable",
   "impact_summary": "Consider lowering the max bid or waiting for roster clarity.",
-  "source": "Commissioner update",
-  "created_by": "Draft Kit commissioner",
+  "source": "Dark Blue live news feed",
+  "source_type": "LIVE_FEED",
+  "created_by": "Valuation API ingestion",
   "created_at": "2026-05-15T18:10:00.000Z"
 }
 ```
@@ -472,17 +455,42 @@ Fields:
 |---|---|---:|---|
 | `player_id` | number | Yes* | Player id from `/v1/players` |
 | `player_name` | string | Yes* | Alternative lookup when id is unavailable |
-| `type` | `INJURY`, `NEWS`, `LINEUP`, `ROLE` | No | Defaults to `NEWS` |
-| `severity` | `LOW`, `MEDIUM`, `HIGH` | No | Defaults to `LOW`; also becomes `risk_level` |
-| `headline` | string | No | Generated if omitted |
-| `body` | string | No | Generated if omitted |
-| `injury_status` | string | No | Only used for injury updates; generated if omitted |
-| `impact_summary` | string | No | Generated from type/severity if omitted |
-| `source` | string | No | Defaults to `Manual update` |
-| `created_by` | string | No | Defaults to `Draft Kit` |
+| `type` | `INJURY`, `TRANSACTION`, `CONTRACT`, `NEWS`, `LINEUP`, `ROLE` | Yes | Update class used by Draft Kit cards |
+| `severity` | `LOW`, `MEDIUM`, `HIGH` | Yes | Also becomes `risk_level` |
+| `headline` | string | Yes | Supplied by the Valuation API news source |
+| `body` | string | Yes | Supplied by the Valuation API news source |
+| `injury_status` | string | No | Injury-specific status text |
+| `transaction_status` | string | No | Transaction, lineup, or role status text |
+| `contract_status` | string | No | Contract-specific status text |
+| `impact_summary` | string | No | Draft/valuation impact summary |
+| `source` | string | No | Human-readable source label |
+| `source_type` | `LIVE_FEED`, `MANUAL_DEMO` | Yes | Production ingestion or operator demo push |
+| `created_by` | string | No | Ingestion actor label |
 | `created_at` | ISO timestamp | No | Defaults to server time |
 
 *Provide either `player_id` or `player_name`. If both are provided, `player_id` is used first.
+
+### POST `/v1/player-updates/demo`
+
+Purpose: create an operator-triggered demo update through the same persisted Valuation API player-update service used by live ingestion. Draft Kit receives this through the proxied player-update SSE stream.
+
+Auth: `X-License-Key` required.
+
+Headers:
+
+```http
+Content-Type: application/json
+X-License-Key: <active license key>
+```
+
+Example:
+
+```http
+POST /v1/player-updates/demo
+X-License-Key: <active license key>
+```
+
+The created update is marked with `source_type: "MANUAL_DEMO"` and `origin: "VALUATION_API"`.
 
 ### GET `/v1/mlb/depth-charts`
 

@@ -64,10 +64,12 @@ function normalizeDepthContext(row, team, position) {
     depth_position: row.depthPosition || position?.position || primaryPosition(row),
     depth_rank: depthRank,
     depth_role: volumeProjection.role || row.depth || row.tier || null,
+    // Roster status comes from the MLB depth payload or the Valuation API news
+    // field. Draft Kit does not use static player-pool injury text as a news
+    // source because pushed alerts must originate from the Valuation API.
     status:
       row.officialRoster?.statusDescription ||
       row.injury_status ||
-      row.injury ||
       "Active",
     is_starter: depthRank === 1,
     active_roster: Boolean(row.officialRoster?.active),

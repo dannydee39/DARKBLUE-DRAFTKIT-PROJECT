@@ -65,7 +65,7 @@ DB.pages.license = function (container) {
         custom_one_or_three_year_stats: 'Supported through draft_state.player_stat_overrides and runtime weighted stats_window.',
         predictive_stats: 'Projected playing time and FPTS feed predictive_adjustment.',
         age: 'Player age feeds age_adjustment.',
-        injury_status: 'Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.',
+        injury_status: 'Valuation API player updates feed risk_adjustment and player-card news.',
         scarcity: 'Roster config and undrafted pool feed position scarcity.',
         depth_chart_position: 'draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.',
       },
@@ -116,8 +116,7 @@ DB.pages.license = function (container) {
             '<p class="license-kicker">Dark Blue MLB Valuation API</p>' +
             '<h1>A licensed valuation engine for auction drafts.</h1>' +
             '<p class="license-lead">' +
-              'One license, one key, three endpoints. Load the player pool once, ' +
-              'send full draft state to one valuation endpoint, keep the key server-side.' +
+              'One license and one server-side key for player data, valuations, depth context, and pushed player news.' +
             '</p>' +
             '<div class="license-hero-actions">' +
               '<a class="btn btn-primary" href="#pricing">See Pricing</a>' +

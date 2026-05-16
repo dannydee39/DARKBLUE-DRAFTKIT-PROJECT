@@ -60,34 +60,11 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
-  CREATE TABLE IF NOT EXISTS draft_notes (
-    id TEXT PRIMARY KEY,
-    draft_id TEXT NOT NULL,
-    user_id INTEGER NOT NULL,
-    player_id INTEGER,
-    player_name TEXT NOT NULL,
-    team TEXT,
-    positions_json TEXT NOT NULL DEFAULT '[]',
-    type TEXT NOT NULL,
-    severity TEXT NOT NULL,
-    risk_level TEXT NOT NULL,
-    headline TEXT NOT NULL,
-    body TEXT,
-    injury_status TEXT,
-    impact_summary TEXT,
-    source TEXT NOT NULL,
-    created_by TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (draft_id) REFERENCES drafts(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
   CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
   CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_reset_tokens(user_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_password_reset_expires ON password_reset_tokens(expires_at);
   CREATE INDEX IF NOT EXISTS idx_drafts_user_id_updated_at ON drafts(user_id, updated_at DESC);
-  CREATE INDEX IF NOT EXISTS idx_draft_notes_draft_created ON draft_notes(draft_id, user_id, created_at DESC);
 `);
 
 function nowIso() {
@@ -339,167 +316,6 @@ function cleanText(value) {
   return String(value).trim();
 }
 
-function normalizeNoteType(value) {
-  const normalized = cleanText(value).toUpperCase();
-  return ["INJURY", "TRANSACTION", "NEWS", "LINEUP", "ROLE"].includes(normalized)
-    ? normalized
-    : "TRANSACTION";
-}
-
-function normalizeSeverity(value) {
-  const normalized = cleanText(value).toUpperCase();
-  return ["LOW", "MEDIUM", "HIGH"].includes(normalized) ? normalized : "LOW";
-}
-
-function defaultImpactSummary(type, severity) {
-  if (severity === "HIGH") {
-    return "Treat as a meaningful draft risk before bidding.";
-  }
-  if (severity === "MEDIUM") {
-    return "Keep this player on the watch list before committing budget.";
-  }
-  if (type === "INJURY") {
-    return "Low-risk injury context; confirm status before bidding.";
-  }
-  return "Informational note for draft review.";
-}
-
-function rowToDraftNote(row) {
-  if (!row) return null;
-  let positions = [];
-  try {
-    positions = JSON.parse(row.positions_json || "[]");
-  } catch {
-    positions = [];
-  }
-
-  return {
-    id: row.id,
-    draft_id: row.draft_id,
-    player_id: row.player_id,
-    player_name: row.player_name,
-    team: row.team || null,
-    positions,
-    type: row.type,
-    severity: row.severity,
-    risk_level: row.risk_level,
-    headline: row.headline,
-    body: row.body || "",
-    injury_status: row.injury_status || null,
-    impact_summary: row.impact_summary || null,
-    source: row.source,
-    created_by: row.created_by,
-    created_at: row.created_at,
-  };
-}
-
-function listDraftNotesForUser(userId, draftId, options = {}) {
-  if (!findDraftForUser(userId, draftId)) return null;
-  const limit = Math.max(1, Math.min(Number(options.limit || 25), 100));
-  const rows = db
-    .prepare(
-      `SELECT *
-       FROM draft_notes
-       WHERE draft_id = ? AND user_id = ?
-       ORDER BY created_at DESC
-       LIMIT ?`
-    )
-    .all(draftId, userId, limit);
-  return rows.map(rowToDraftNote);
-}
-
-// Draft notes are scoped to both user and draft. That keeps commissioner-authored
-// context inside one Draft Kit league instead of leaking into the licensed API feed.
-function findDraftNoteForUser(userId, draftId, noteId) {
-  const row = db
-    .prepare(
-      `SELECT *
-       FROM draft_notes
-       WHERE id = ? AND draft_id = ? AND user_id = ?`
-    )
-    .get(noteId, draftId, userId);
-  return rowToDraftNote(row);
-}
-
-function createDraftNoteForUser(userId, draftId, input = {}) {
-  const draft = findDraftForUser(userId, draftId);
-  if (!draft) return null;
-
-  const playerId = Number(input.player_id);
-  const playerName = cleanText(input.player_name);
-  if (!Number.isFinite(playerId) && !playerName) {
-    const error = new Error("A player_id or player_name is required.");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const type = normalizeNoteType(input.type);
-  const severity = normalizeSeverity(input.severity);
-  const timestamp = nowIso();
-  let positions = Array.isArray(input.positions) ? input.positions : [];
-  positions = positions.map((pos) => cleanText(pos)).filter(Boolean);
-
-  // The frontend consumes these notes through the same shape as player updates,
-  // so `update` and `note` payloads can share merge/rendering logic.
-  const note = {
-    id: input.id || `note-${crypto.randomUUID()}`,
-    draft_id: draftId,
-    player_id: Number.isFinite(playerId) ? playerId : null,
-    player_name: playerName || `Player ${playerId}`,
-    team: cleanText(input.team) || null,
-    positions,
-    type,
-    severity,
-    risk_level: normalizeSeverity(input.risk_level || severity),
-    headline:
-      cleanText(input.headline) ||
-      `${playerName || `Player ${playerId}`} marked for ${severity.toLowerCase()} ${type.toLowerCase()} review`,
-    body: cleanText(input.body),
-    injury_status:
-      type === "INJURY" ? cleanText(input.injury_status) || "Questionable" : cleanText(input.injury_status) || null,
-    impact_summary:
-      cleanText(input.impact_summary) || defaultImpactSummary(type, severity),
-    source: cleanText(input.source) || "League commissioner note",
-    created_by: cleanText(input.created_by) || "Draft Kit commissioner",
-    created_at: input.created_at || timestamp,
-  };
-
-  db.prepare(
-    `INSERT INTO draft_notes (
-       id, draft_id, user_id, player_id, player_name, team, positions_json,
-       type, severity, risk_level, headline, body, injury_status,
-       impact_summary, source, created_by, created_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    note.id,
-    note.draft_id,
-    userId,
-    note.player_id,
-    note.player_name,
-    note.team,
-    JSON.stringify(note.positions),
-    note.type,
-    note.severity,
-    note.risk_level,
-    note.headline,
-    note.body,
-    note.injury_status,
-    note.impact_summary,
-    note.source,
-    note.created_by,
-    note.created_at
-  );
-
-  return note;
-}
-
-function deleteDraftNoteForUser(userId, draftId, noteId) {
-  const info = db
-    .prepare("DELETE FROM draft_notes WHERE id = ? AND draft_id = ? AND user_id = ?")
-    .run(noteId, draftId, userId);
-  return info.changes > 0;
-}
-
 function touchDraftOpened(userId, draftId, openedAt = nowIso()) {
   const row = db
     .prepare("SELECT payload_json FROM drafts WHERE id = ? AND user_id = ?")
@@ -549,8 +365,4 @@ module.exports = {
   deleteDraftForUser,
   findDraftForUser,
   touchDraftOpened,
-  listDraftNotesForUser,
-  findDraftNoteForUser,
-  createDraftNoteForUser,
-  deleteDraftNoteForUser,
 };

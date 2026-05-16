@@ -344,7 +344,7 @@ export default function PlayerDictionary({
  * DictCard
  *
  * A single clickable card in the player dictionary grid.
- * Shows name, team, positions, value, injury, and a note preview.
+ * Shows name, team, positions, value, API news status, and a note preview.
  *
  * @param {Object}   props
  * @param {Object}   props.player     - Player object
@@ -433,8 +433,8 @@ function DictCard({
         </div>
       </div>
 
-      {/* Injury flag */}
-      {player.injury && <div className="dc-injury">⚠ {player.injury}</div>}
+      {/* Valuation API alert preview. Draft Kit cards do not manufacture local news. */}
+      {player.news_headline && <div className="dc-injury">API alert: {player.news_headline}</div>}
 
       {/* Note preview (truncated) */}
       {note && (

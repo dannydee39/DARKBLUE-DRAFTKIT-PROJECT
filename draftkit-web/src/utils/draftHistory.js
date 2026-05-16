@@ -151,7 +151,7 @@ export function makeValuationSnapshot(player, valuation, options = {}) {
     scarcityTier: valuation?.scarcity_tier || null,
     positionScarcity: valuation?.position_scarcity || null,
     riskLevel: valuation?.risk_level || player?.risk_level || "LOW",
-    injuryStatus: valuation?.injury_status || player?.injury_status || player?.injury || null,
+    injuryStatus: valuation?.injury_status || player?.injury_status || null,
     statProfile: valuation?.stat_profile || null,
     predictiveAdjustment: valuation?.predictive_adjustment || null,
     ageAdjustment: valuation?.age_adjustment || null,

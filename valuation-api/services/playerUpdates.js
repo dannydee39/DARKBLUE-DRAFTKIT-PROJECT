@@ -5,8 +5,9 @@ const players = require("../data/players.json");
 
 const PLAYER_BY_ID = new Map(players.map((player) => [player.id, player]));
 const RISK_ORDER = { LOW: 0, MEDIUM: 1, HIGH: 2 };
-const UPDATE_TYPES = new Set(["INJURY", "TRANSACTION", "NEWS", "LINEUP", "ROLE"]);
+const UPDATE_TYPES = new Set(["INJURY", "TRANSACTION", "CONTRACT", "NEWS", "LINEUP", "ROLE"]);
 const UPDATE_SEVERITIES = new Set(["LOW", "MEDIUM", "HIGH"]);
+const SOURCE_TYPES = new Set(["LIVE_FEED", "MANUAL_DEMO"]);
 const DEFAULT_UPDATES_FILE = path.join(__dirname, "..", "data", "player-updates.json");
 const UPDATES_FILE = process.env.PLAYER_UPDATES_FILE || DEFAULT_UPDATES_FILE;
 
@@ -49,7 +50,7 @@ function decoratePlayerWithUpdate(player) {
     return {
       ...player,
       risk_level: "LOW",
-      injury_status: player.injury || null,
+      injury_status: null,
       news_headline: null,
       update_impact_summary: null,
       last_update_at: null,
@@ -68,7 +69,7 @@ function decoratePlayerWithUpdate(player) {
   return {
     ...player,
     risk_level: highestRisk,
-    injury_status: latestUpdate.injury_status || player.injury || null,
+    injury_status: latestUpdate.injury_status || null,
     news_headline: latestUpdate.headline,
     update_impact_summary: latestUpdate.impact_summary,
     last_update_at: latestUpdate.created_at,
@@ -86,9 +87,26 @@ function normalizeUpdate(input) {
     throw error;
   }
 
-  const type = normalizeType(input.type);
-  const severity = normalizeSeverity(input.severity);
+  const type = requireType(input.type);
+  const severity = requireSeverity(input.severity);
   const createdAt = input.created_at || new Date().toISOString();
+  const headline = cleanText(input.headline);
+  const body = cleanText(input.body);
+  const sourceType = requireSourceType(input.source_type);
+
+  /*
+   * Player news is intentionally API-authored. Draft Kit is a subscriber, not
+   * a creator, so every notification-worthy update must enter through this
+   * Valuation API ingestion boundary. A future live feed adapter should call
+   * createPlayerUpdate with source_type="LIVE_FEED"; the API website demo calls
+   * the same function with source_type="MANUAL_DEMO".
+   */
+  if (!headline || !body) {
+    const error = new Error("Player update requires headline and body from the Valuation API news source.");
+    error.status = 400;
+    error.code = "NEWS_CONTENT_REQUIRED";
+    throw error;
+  }
 
   return {
     id: String(input.id || `upd-${randomUUID()}`),
@@ -99,16 +117,21 @@ function normalizeUpdate(input) {
     type,
     severity,
     risk_level: severity,
-    headline: cleanText(input.headline) || defaultHeadline(player, type, severity),
-    body: cleanText(input.body) || defaultBody(player, type, severity),
-    injury_status:
-      type === "INJURY"
-        ? cleanText(input.injury_status) || defaultInjuryStatus(severity)
+    headline,
+    body,
+    injury_status: type === "INJURY" ? cleanText(input.injury_status) || null : null,
+    transaction_status:
+      ["TRANSACTION", "LINEUP", "ROLE"].includes(type)
+        ? cleanText(input.transaction_status)
         : null,
-    impact_summary:
-      cleanText(input.impact_summary) || defaultImpactSummary(type, severity),
-    source: cleanText(input.source) || "Manual update",
-    created_by: cleanText(input.created_by) || "Draft Kit",
+    contract_status: type === "CONTRACT" ? cleanText(input.contract_status) : null,
+    depth_chart_note: cleanText(input.depth_chart_note) || null,
+    impact_summary: cleanText(input.impact_summary) || null,
+    source: cleanText(input.source) || "Dark Blue Valuation API",
+    source_type: sourceType,
+    origin: "VALUATION_API",
+    notification_worthy: true,
+    created_by: cleanText(input.created_by) || "Valuation API ingestion",
     created_at: createdAt,
   };
 }
@@ -178,14 +201,37 @@ function findPlayer(playerId, playerName) {
   return null;
 }
 
-function normalizeType(value) {
-  const next = String(value || "NEWS").trim().toUpperCase();
-  return UPDATE_TYPES.has(next) ? next : "NEWS";
+function requireType(value) {
+  const next = String(value || "").trim().toUpperCase();
+  if (UPDATE_TYPES.has(next)) return next;
+  const error = new Error(
+    `Player update type is required and must be one of: ${Array.from(UPDATE_TYPES).join(", ")}.`,
+  );
+  error.status = 400;
+  error.code = "NEWS_TYPE_REQUIRED";
+  throw error;
 }
 
-function normalizeSeverity(value) {
-  const next = String(value || "LOW").trim().toUpperCase();
-  return UPDATE_SEVERITIES.has(next) ? next : "LOW";
+function requireSourceType(value) {
+  const next = String(value || "").trim().toUpperCase();
+  if (SOURCE_TYPES.has(next)) return next;
+  const error = new Error(
+    `Player update source_type is required and must be one of: ${Array.from(SOURCE_TYPES).join(", ")}.`,
+  );
+  error.status = 400;
+  error.code = "NEWS_SOURCE_TYPE_REQUIRED";
+  throw error;
+}
+
+function requireSeverity(value) {
+  const next = String(value || "").trim().toUpperCase();
+  if (UPDATE_SEVERITIES.has(next)) return next;
+  const error = new Error(
+    `Player update severity is required and must be one of: ${Array.from(UPDATE_SEVERITIES).join(", ")}.`,
+  );
+  error.status = 400;
+  error.code = "NEWS_SEVERITY_REQUIRED";
+  throw error;
 }
 
 function normalizeName(value) {
@@ -204,45 +250,6 @@ function cleanText(value) {
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min;
   return Math.min(Math.max(Math.round(value), min), max);
-}
-
-function defaultHeadline(player, type, severity) {
-  if (type === "INJURY") {
-    return `${player.name} moved to ${severity.toLowerCase()} injury risk`;
-  }
-  if (type === "TRANSACTION") {
-    return `${player.name} transaction status updated`;
-  }
-  return `${player.name} status updated`;
-}
-
-function defaultBody(player, type, severity) {
-  if (type === "INJURY") {
-    return `${player.name} is carrying a ${severity.toLowerCase()} injury risk flag for draft review.`;
-  }
-  if (type === "TRANSACTION") {
-    return `${player.name} has updated transaction context for draft-day volume review.`;
-  }
-  return `${player.name} has an updated draft-day status note.`;
-}
-
-function defaultInjuryStatus(severity) {
-  if (severity === "HIGH") return "Questionable";
-  if (severity === "MEDIUM") return "Day-to-day";
-  return "Monitor";
-}
-
-function defaultImpactSummary(type, severity) {
-  if (type === "INJURY" && severity === "HIGH") {
-    return "Consider lowering the max bid or waiting for roster clarity.";
-  }
-  if (type === "INJURY") {
-    return "Keep the player visible, but review injury risk before bidding.";
-  }
-  if (type === "TRANSACTION") {
-    return "Review role and playing-time volume before bidding.";
-  }
-  return "Player context updated for draft decisions.";
 }
 
 module.exports = {

@@ -10,9 +10,9 @@ Licensed MLB valuation API. This service is intentionally separate from Draft Ki
 - `lib/db.js` stores buyer accounts, sessions, password reset tokens, and per-account license keys in SQLite.
 - `routes/players.js` returns filtered player-pool data.
 - `routes/valuate.js` accepts stateless draft payloads and returns valuation dictionaries.
-- `routes/player-updates.js` owns global MLB/player update CRUD and SSE.
+- `routes/player-updates.js` owns API-authored MLB/player update ingestion, demo pushes, and SSE.
 - `routes/mlb-depth-charts.js` exposes live/fallback MLB roster depth data.
-- `services/valuation.js` contains the valuation math, scarcity logic, risk adjustment, and commissioner-note overlay.
+- `services/valuation.js` contains the valuation math, scarcity logic, and Valuation API player-news risk adjustment.
 - `services/playerUpdates.js` owns global player update persistence.
 - `services/mlbDepthCharts.js` owns MLB Stats API depth data and fallback behavior.
 
@@ -24,12 +24,11 @@ Licensed MLB valuation API. This service is intentionally separate from Draft Ki
 - scoring categories
 - current team rosters
 - roster configuration
-- optional `commissioner_notes` from Draft Kit
 - optional `valuation_options.stat_window` (`ONE_YEAR`, `THREE_YEAR`, or `BLEND`)
 - optional `player_stat_overrides` for custom one-year, three-year, and predictive stats
 - optional `depth_chart_context` for per-player depth position, rank, role, and roster status
 
-Commissioner notes are read from the request only. They affect that response but are not persisted by the valuation API.
+Notification-worthy injury/news/role context is not accepted inside draft state. It must be persisted through `POST /v1/player-updates` or the operator demo endpoint so Draft Kit consumes one auditable Valuation API news source.
 
 The readable valuation implementation is centralized in `services/valuation.js`.
 Each response includes `valuation_breakdown` with the exact factor formula:

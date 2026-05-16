@@ -108,8 +108,6 @@ function buildDraftContext(draftState = {}) {
     budget_per_team = 260,
     scoring_categories = ["R", "HR", "RBI", "SB", "AVG", "W", "SV", "ERA", "WHIP", "SO"],
     teams = [],
-    commissioner_notes = [],
-    commissionerNotes = [],
     player_stat_overrides = {},
     custom_stats = {},
     depth_chart_context = {},
@@ -150,12 +148,6 @@ function buildDraftContext(draftState = {}) {
   });
 
   const undrafted = players.filter((player) => !draftedPlayerIds.has(player.id));
-  // Commissioner notes are optional draft-local context supplied by Draft Kit.
-  // They overlay, but do not mutate, the licensed player dataset.
-  const commissionerNotesByPlayerId = buildCommissionerNotesByPlayerId([
-    ...commissioner_notes,
-    ...commissionerNotes,
-  ]);
   const totalRosterSlots = Object.values(roster_config).reduce(
     (sum, count) => sum + Number(count || 0),
     0,
@@ -203,7 +195,6 @@ function buildDraftContext(draftState = {}) {
     undrafted,
     inflationFactor,
     positionScarcity,
-    commissionerNotesByPlayerId,
     statWindow,
     statOverridesByPlayerId: buildStatOverridesByPlayerId([
       player_stat_overrides,
@@ -307,11 +298,13 @@ function valuatePlayer(player, context) {
    * with everyday plate appearances or starter/closer innings.
    */
   const volumeProjection = buildVolumeProjection(scoringPlayer, statProfile.predictiveStats);
-  const staticInjuryUpdate = buildStaticInjuryUpdate(player);
-  const playerUpdate = chooseMostSevereUpdate(
-    chooseMostSevereUpdate(getLatestUpdateForPlayer(player.id), staticInjuryUpdate),
-    context.commissionerNotesByPlayerId.get(player.id),
-  );
+  /*
+   * NEWS SOURCE BOUNDARY:
+   * Risk/news context comes only from the Valuation API player update store.
+   * Draft Kit and static player-pool fields do not create notification-worthy
+   * news, which keeps live alerts auditable and production-owned.
+   */
+  const playerUpdate = getLatestUpdateForPlayer(player.id);
   const riskAdjustment = getRiskAdjustment(playerUpdate);
   const predictiveAdjustment = calculatePredictiveAdjustment(scoringPlayer, statProfile, volumeProjection);
   const ageAdjustment = calculateAgeAdjustment(scoringPlayer);
@@ -382,7 +375,7 @@ function valuatePlayer(player, context) {
     value_delta: valueDelta,
     is_drafted: context.draftedPlayerIds.has(player.id),
     player_update: playerUpdate,
-    injury_status: playerUpdate?.injury_status || player.injury || null,
+    injury_status: playerUpdate?.injury_status || null,
     risk_level: playerUpdate?.risk_level || "LOW",
     risk_adjustment: riskAdjustment,
     scoring_adjustment: scoringAdjustment,
@@ -909,23 +902,6 @@ function calculateDepthChartAdjustment(player, volumeProjection, depthContext = 
   };
 }
 
-function buildStaticInjuryUpdate(player) {
-  if (!player?.injury && !player?.injury_status) return null;
-  const injuryStatus = player.injury_status || player.injury;
-  return {
-    player_id: player.id,
-    player_name: player.name,
-    type: "INJURY",
-    severity: "MEDIUM",
-    risk_level: "MEDIUM",
-    headline: `${player.name} has injury context in the player pool`,
-    injury_status: injuryStatus,
-    impact_summary: "Player-pool injury status lowered the risk-adjusted valuation.",
-    source: "Player pool injury status",
-    created_at: new Date(0).toISOString(),
-  };
-}
-
 function buildValuationBreakdown(parts) {
   /*
    * This object is the audit trail for the valuation. It is intentionally
@@ -973,7 +949,7 @@ function buildRubricCoverageSummary(context) {
     custom_one_or_three_year_stats: "Supported through draft_state.player_stat_overrides and runtime weighted stats_window.",
     predictive_stats: "Projected playing time and FPTS feed predictive_adjustment.",
     age: "Player age feeds age_adjustment.",
-    injury_status: "Player updates, player-pool injury status, and commissioner notes feed risk_adjustment.",
+    injury_status: "Valuation API player updates feed risk_adjustment and player-card news.",
     scarcity: "Roster config and undrafted pool feed position scarcity.",
     depth_chart_position: "draft_state.depth_chart_context feeds depth_chart_adjustment when Draft Kit sends real MLB team, position, rank, status, role confidence, and volume context.",
     draftkit_refresh: "Draft Kit posts the full draft_state after draft-state cache invalidation.",
@@ -1291,37 +1267,6 @@ function normalizeRiskLevel(value) {
   return Object.prototype.hasOwnProperty.call(RISK_ORDER, normalized)
     ? normalized
     : "LOW";
-}
-
-function buildCommissionerNotesByPlayerId(notes) {
-  const byPlayerId = new Map();
-  if (!Array.isArray(notes)) return byPlayerId;
-
-  notes.forEach((note) => {
-    const playerId = Number(note?.player_id ?? note?.playerId);
-    if (!Number.isFinite(playerId)) return;
-    const normalized = {
-      ...note,
-      player_id: playerId,
-      type: String(note.type || "NEWS").toUpperCase(),
-      risk_level: normalizeRiskLevel(note.risk_level || note.severity),
-      severity: normalizeRiskLevel(note.severity || note.risk_level),
-      headline:
-        note.headline ||
-        `${note.player_name || `Player ${playerId}`} has commissioner draft context`,
-      source: note.source || "League commissioner note",
-      created_at: note.created_at || new Date(0).toISOString(),
-    };
-
-    byPlayerId.set(
-      playerId,
-      // If multiple notes exist for one player, valuations should react to the
-      // highest-risk note first and use recency only as a tie breaker.
-      chooseMostSevereUpdate(byPlayerId.get(playerId), normalized),
-    );
-  });
-
-  return byPlayerId;
 }
 
 function chooseMostSevereUpdate(left, right) {

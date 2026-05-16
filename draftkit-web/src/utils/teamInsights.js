@@ -240,11 +240,13 @@ export function getPlayerVolumeProjection(player = {}) {
 }
 
 export function getPlayerRiskLevel(player = {}) {
+  // Risk shown in team/depth insights must come from the Valuation API news
+  // feed or a live valuation response. Static player-pool injury fields are
+  // intentionally ignored so the UI does not invent notification context.
   return String(
     player.risk_level ||
       player.latest_update?.risk_level ||
-      player.injuryRisk ||
-      (player.injury_status || player.injury ? "MEDIUM" : "LOW"),
+      (player.injury_status ? "MEDIUM" : "LOW"),
   ).toUpperCase();
 }
 
@@ -255,7 +257,6 @@ export function getPlayerUpdateSummary(player = {}) {
     player.update_impact_summary ||
     player.latest_update?.impact_summary ||
     player.injury_status ||
-    player.injury ||
     ""
   );
 }

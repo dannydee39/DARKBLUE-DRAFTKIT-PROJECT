@@ -564,7 +564,7 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
     note:
       directAvailable.length > 0
         ? "Depth rank uses projected playing-time fields from the generated player source."
-        : "Direct projected PA/IP/G are missing in this runtime player file, so volume is inferred from weighted historical production until the next data-generation refresh includes those fields.",
+        : "Using a stat-based volume estimate because dedicated workload projections are not loaded for this player.",
   };
 }
 

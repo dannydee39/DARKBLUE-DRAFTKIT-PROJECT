@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { posColor } from "../utils/helpers.js";
 import { sortOwnerRankings } from "../utils/teamInsights.js";
 
+const POSITION_GROUPS = [
+  ["Hitters", ["C", "1B", "2B", "3B", "SS", "OF", "DH"]],
+  ["Pitchers", ["SP", "RP", "P"]],
+];
+
 const SORT_LABELS = {
   displayRank: "Rank",
   name: "Owner",
@@ -26,11 +31,68 @@ function formatAssignment(player) {
   return "Available";
 }
 
-function expectedVolumeLabel(player) {
-  if (player.officialRoster && !player.officialRoster.active) {
-    return "Low volume";
+function roleSourceLabel(player) {
+  if (player.officialRoster?.active) return "MLB roster";
+  if (player.volumeProjection?.missing_direct_fields?.length === 0) return "Workload projection";
+  return "Projection estimate";
+}
+
+function roleSourceDetail(player) {
+  if (player.officialRoster?.active) {
+    return player.officialRoster.statusDescription || "Listed on current MLB active roster";
   }
-  return player.volumeProjection?.role || "Volume unknown";
+  if (player.volumeProjection?.missing_direct_fields?.length === 0) {
+    return player.volumeProjection.basis || "Projected workload fields";
+  }
+  return "Estimated from production and fantasy-value signals";
+}
+
+function roleTone(player) {
+  const score = Number(player.volumeScore || player.volumeProjection?.score || 0);
+  if (score >= 76) return "strong";
+  if (score >= 58) return "steady";
+  if (score >= 38) return "thin";
+  return "limited";
+}
+
+function getTeamByCode(depthCharts, selectedTeam) {
+  return (depthCharts?.teams || []).find((team) => team.team === selectedTeam) || null;
+}
+
+function flattenTeamPlayers(team, positionFilter, searchQ) {
+  const query = searchQ.trim().toLowerCase();
+  if (!team) return [];
+  return team.positions
+    .filter((position) => positionFilter === "ALL" || position.position === positionFilter)
+    .flatMap((position) =>
+      position.players
+        .filter((player) => {
+          if (!query) return true;
+          return (
+            player.name.toLowerCase().includes(query) ||
+            String(player.assignment?.teamName || "").toLowerCase().includes(query)
+          );
+        })
+        .map((player) => ({ ...player, depthPosition: position.position })),
+    );
+}
+
+function buildPositionSections(team, positionFilter, searchQ) {
+  if (!team) return [];
+  const query = searchQ.trim().toLowerCase();
+  return team.positions
+    .filter((position) => positionFilter === "ALL" || position.position === positionFilter)
+    .map((position) => ({
+      ...position,
+      players: position.players.filter((player) => {
+        if (!query) return true;
+        return (
+          player.name.toLowerCase().includes(query) ||
+          String(player.assignment?.teamName || "").toLowerCase().includes(query)
+        );
+      }),
+    }))
+    .filter((position) => position.players.length > 0);
 }
 
 export default function DepthCharts({
@@ -45,7 +107,7 @@ export default function DepthCharts({
 }) {
   const teamOptions = depthCharts?.teamOptions || [];
   const positionOptions = depthCharts?.positionOptions || [];
-  const [selectedTeam, setSelectedTeam] = useState(teamOptions[0] || "ALL");
+  const [selectedTeam, setSelectedTeam] = useState(teamOptions[0] || "");
   const [positionFilter, setPositionFilter] = useState("ALL");
   const [searchQ, setSearchQ] = useState("");
   const [sortState, setSortState] = useState({
@@ -55,48 +117,34 @@ export default function DepthCharts({
 
   useEffect(() => {
     if (teamOptions.length === 0) return;
-    if (selectedTeam !== "ALL" && !teamOptions.includes(selectedTeam)) {
+    if (!selectedTeam || !teamOptions.includes(selectedTeam)) {
       setSelectedTeam(teamOptions[0]);
     }
   }, [selectedTeam, teamOptions]);
 
-  const visibleTeams = useMemo(() => {
-    const query = searchQ.trim().toLowerCase();
-    return (depthCharts?.teams || [])
-      .filter((team) => selectedTeam === "ALL" || team.team === selectedTeam)
-      .map((team) => ({
-        ...team,
-        positions: team.positions
-          .filter(
-            (position) =>
-              positionFilter === "ALL" || position.position === positionFilter,
-          )
-          .map((position) => ({
-            ...position,
-            players: position.players.filter((player) => {
-              if (!query) return true;
-              return (
-                player.name.toLowerCase().includes(query) ||
-                String(player.team || "").toLowerCase().includes(query) ||
-                String(player.assignment?.teamName || "")
-                  .toLowerCase()
-                  .includes(query)
-              );
-            }),
-          }))
-          .filter((position) => position.players.length > 0),
-      }))
-      .filter((team) => team.positions.length > 0);
-  }, [depthCharts, positionFilter, searchQ, selectedTeam]);
-
-  const sortedRankings = useMemo(
-    () => sortOwnerRankings(ownerRankings, sortState.key, sortState.direction),
-    [ownerRankings, sortState],
+  const selectedTeamData = useMemo(
+    () => getTeamByCode(depthCharts, selectedTeam),
+    [depthCharts, selectedTeam],
   );
+  const positionSections = useMemo(
+    () => buildPositionSections(selectedTeamData, positionFilter, searchQ),
+    [positionFilter, searchQ, selectedTeamData],
+  );
+  const visiblePlayers = useMemo(
+    () => flattenTeamPlayers(selectedTeamData, positionFilter, searchQ),
+    [positionFilter, searchQ, selectedTeamData],
+  );
+  const availableCount = visiblePlayers.filter((player) => !player.assignment).length;
+  const draftedCount = visiblePlayers.length - availableCount;
+  const highVolumeCount = visiblePlayers.filter((player) => roleTone(player) === "strong").length;
   const activeScoring = Object.entries(league.scoring || {})
     .filter(([, enabled]) => enabled)
     .map(([category]) => category)
     .join(", ");
+  const sortedRankings = useMemo(
+    () => sortOwnerRankings(ownerRankings, sortState.key, sortState.direction),
+    [ownerRankings, sortState],
+  );
 
   function toggleSort(key) {
     setSortState((prev) => ({
@@ -106,58 +154,52 @@ export default function DepthCharts({
   }
 
   return (
-    <div className="insights-layout">
-      <section className="insights-main">
-        <div className="insights-header">
+    <div className="depth-redesign">
+      <section className="depth-workspace">
+        <header className="depth-hero">
           <div>
-            <span className="insights-eyebrow">Sprint 6 depth charts</span>
-            <h2>MLB Depth Charts</h2>
+            <span className="depth-eyebrow">MLB team research</span>
+            <h2>MLB Team Depth Charts</h2>
             <p>
-              Derived from the live draft pool, current auction state, keeper
-              contracts, taxi picks, scoring format, and transaction context.
+              Pick a real MLB team, scan who has role volume by position, then click a player
+              to open their Draft Kit card before bidding.
             </p>
           </div>
-          <div className="insights-summary">
-            <span>{activeScoring || "No scoring"} scoring</span>
-            <span>{depthCharts?.summary?.teamCount || 0} MLB teams</span>
-            <span>{depthCharts?.summary?.liveRosterPlayerCount || 0} MLB roster</span>
-            <span>{depthCharts?.summary?.draftedCount || 0} drafted</span>
-            <span>{depthCharts?.summary?.highRiskCount || 0} high risk</span>
+          <div className="depth-hero-stats">
+            <span>{depthCharts?.summary?.teamCount || 0} teams</span>
+            <span>{depthCharts?.summary?.liveRosterPlayerCount || 0} MLB roster matches</span>
+            <span>{activeScoring || "Default"} scoring</span>
           </div>
-        </div>
+        </header>
 
-        <div className={`depth-source-banner ${depthCharts?.summary?.warning ? "warning" : ""}`}>
+        <section className={`depth-source-card ${depthCharts?.summary?.warning || liveDepthError ? "warning" : ""}`}>
           <div>
-            <span>Depth source</span>
+            <span>Current source</span>
             <strong>
               {liveDepthLoading
-                ? "Loading MLB roster feed"
-                : depthCharts?.summary?.source || "local-derived"}
+                ? "Refreshing MLB roster feed"
+                : depthCharts?.summary?.source || "Draft Kit projection model"}
             </strong>
             <small>
               {depthCharts?.summary?.generatedAt
                 ? `Updated ${new Date(depthCharts.summary.generatedAt).toLocaleString()}`
-                : "Using local fantasy pool ranking"}
+                : "Local player pool context"}
             </small>
           </div>
           <p>
             {liveDepthError ||
               depthCharts?.summary?.warning ||
-              "MLB active roster status is supplied by the MLB Stats API. Depth rank now prioritizes projected volume/workload first, then fantasy value as a tie-breaker."}
+              "This view combines the MLB roster feed with Draft Kit role and volume estimates. It is a draft research chart, not an official club depth chart."}
           </p>
           <button type="button" onClick={onRefreshLiveDepth} disabled={liveDepthLoading}>
             {liveDepthLoading ? "Refreshing..." : "Refresh MLB Feed"}
           </button>
-        </div>
+        </section>
 
-        <div className="insights-toolbar">
+        <section className="depth-controls-panel">
           <label>
             <span>MLB team</span>
-            <select
-              value={selectedTeam}
-              onChange={(event) => setSelectedTeam(event.target.value)}
-            >
-              <option value="ALL">All teams</option>
+            <select value={selectedTeam} onChange={(event) => setSelectedTeam(event.target.value)}>
               {teamOptions.map((team) => (
                 <option key={team} value={team}>
                   {team}
@@ -167,10 +209,7 @@ export default function DepthCharts({
           </label>
           <label>
             <span>Position</span>
-            <select
-              value={positionFilter}
-              onChange={(event) => setPositionFilter(event.target.value)}
-            >
+            <select value={positionFilter} onChange={(event) => setPositionFilter(event.target.value)}>
               <option value="ALL">All positions</option>
               {positionOptions.map((position) => (
                 <option key={position} value={position}>
@@ -179,113 +218,138 @@ export default function DepthCharts({
               ))}
             </select>
           </label>
-          <label className="insights-search-label">
-            <span>Search</span>
+          <label className="depth-search-control">
+            <span>Search this team</span>
             <input
               value={searchQ}
               onChange={(event) => setSearchQ(event.target.value)}
-              placeholder="Player or owner"
+              placeholder="Player or fantasy owner"
             />
           </label>
-        </div>
+        </section>
 
-        <div className="depth-team-list">
-          {visibleTeams.length === 0 ? (
-            <div className="insights-empty">No players match the current filters.</div>
-          ) : (
-            visibleTeams.map((team) => (
-              <section key={team.team} className="depth-team">
-                <div className="depth-team-header">
+        {selectedTeamData ? (
+          <section className="depth-team-shell">
+            <div className="depth-team-overview">
+              <div>
+                <span>Selected MLB Team</span>
+                <strong>{selectedTeamData.team}</strong>
+              </div>
+              <div className="depth-team-counters">
+                <span>{visiblePlayers.length} visible</span>
+                <span>{availableCount} available</span>
+                <span>{draftedCount} rostered</span>
+                <span>{highVolumeCount} high-volume</span>
+              </div>
+            </div>
+
+            <div className="depth-position-jump">
+              {POSITION_GROUPS.map(([group, positions]) => (
+                <div key={group}>
+                  <span>{group}</span>
                   <div>
-                    <span>MLB Team</span>
-                    <strong>{team.team}</strong>
-                  </div>
-                  <div className="depth-team-metrics">
-                    <span>{team.totalPlayers} players</span>
-                    <span>{team.draftedCount} rostered</span>
-                    <span>{team.highRiskCount} high risk</span>
+                    {positions
+                      .filter((position) => positionOptions.includes(position))
+                      .map((position) => (
+                        <button
+                          key={position}
+                          type="button"
+                          className={positionFilter === position ? "active" : ""}
+                          onClick={() => setPositionFilter(position)}
+                        >
+                          {position}
+                        </button>
+                      ))}
                   </div>
                 </div>
+              ))}
+              {positionFilter !== "ALL" && (
+                <button type="button" className="depth-clear-filter" onClick={() => setPositionFilter("ALL")}>
+                  Show all
+                </button>
+              )}
+            </div>
 
-                {team.positions.map((position) => (
-                  <div key={`${team.team}-${position.position}`} className="depth-position">
-                    <div className="depth-position-header">
+            {positionSections.length === 0 ? (
+              <div className="depth-empty">No players match this team/position/search view.</div>
+            ) : (
+              <div className="depth-sections">
+                {positionSections.map((position) => (
+                  <section key={`${selectedTeamData.team}-${position.position}`} className="depth-position-card">
+                    <div className="depth-position-title">
                       <span
                         className="depth-position-chip"
                         style={{ background: posColor(position.position) }}
                       >
                         {position.position}
                       </span>
-                      <strong>{position.players.length} player depth</strong>
-                      <span className="depth-position-method">
-                        Ranked by volume score, then value
-                      </span>
+                      <div>
+                        <strong>{position.position} depth</strong>
+                        <small>Sorted by role volume, then fantasy value</small>
+                      </div>
                     </div>
-                    <div className="depth-player-grid">
+
+                    <div className="depth-card-list">
                       {position.players.map((player) => (
                         <button
                           key={`${player.id}-${position.position}`}
                           type="button"
-                          className={`depth-player-row risk-${player.riskLevel.toLowerCase()} ${
+                          className={`depth-card-row ${roleTone(player)} ${
                             selectedPlayer?.id === player.id ? "active" : ""
                           }`}
                           onClick={() => setSelectedPlayer?.(player)}
                         >
-                          <span className="depth-rank">#{player.depthRank}</span>
-                          <span className="depth-player-main">
+                          <span className="depth-card-rank">#{player.depthRank}</span>
+                          <span className="depth-card-player">
                             <strong>{player.name}</strong>
-                            <small>
-                              {player.pos?.join("/")} · age {player.age || "N/A"} · {player.volumeProjection?.confidence || "LOW"} confidence
-                            </small>
+                            <small>{player.pos?.join("/")} · age {player.age || "N/A"}</small>
                           </span>
-                          <span className="depth-value">
-                            Vol {player.volumeScore ?? 0}
+                          <span className={`depth-role-pill ${roleTone(player)}`}>
+                            {player.volumeProjection?.role || "Role estimate"}
                           </span>
-                          <span className="depth-status">
-                            {expectedVolumeLabel(player)}
+                          <span className="depth-card-source">
+                            <strong>{roleSourceLabel(player)}</strong>
+                            <small>{roleSourceDetail(player)}</small>
                           </span>
-                          <span className="depth-official fallback">
-                            {(player.volumeProjection?.drivers || []).slice(0, 3).join(" · ") || "No drivers"}
+                          <span className="depth-card-value">
+                            <strong>{formatMoney(player.value)}</strong>
+                            <small>value</small>
                           </span>
-                          <span className="depth-value">{formatMoney(player.value)}</span>
-                          <span className={`depth-status ${player.assignment ? "drafted" : "available"}`}>
+                          <span className={`depth-card-draft ${player.assignment ? "drafted" : "available"}`}>
                             {formatAssignment(player)}
-                          </span>
-                          <span
-                            className={`depth-official ${
-                              player.officialRoster?.active ? "active" : "fallback"
-                            }`}
-                          >
-                            {player.officialRoster
-                              ? `${player.officialRoster.statusDescription || "MLB roster"}${
-                                  player.officialRoster.positionCode
-                                    ? ` ${player.officialRoster.positionCode}`
-                                    : ""
-                                }`
-                              : "Local pool"}
                           </span>
                           <span className={`depth-risk risk-${player.riskLevel.toLowerCase()}`}>
                             {player.riskLevel}
                           </span>
-                          <span className="depth-update">
-                            {player.updateSummary || "No active update"}
-                          </span>
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </section>
                 ))}
-              </section>
-            ))
-          )}
-        </div>
+              </div>
+            )}
+          </section>
+        ) : (
+          <div className="depth-empty">No MLB team depth data is available yet.</div>
+        )}
       </section>
 
-      <aside className="insights-side">
-        <div className="rankings-card">
+      <aside className="depth-context-rail">
+        <section className="depth-help-card">
+          <span className="depth-eyebrow">How to use this</span>
+          <h3>Draft flow</h3>
+          <ol>
+            <li>Choose the MLB team for a player you are considering.</li>
+            <li>Check whether his position group has strong or thin role volume.</li>
+            <li>Use rostered/available status to find alternatives or backups.</li>
+            <li>Click a player to open the full card and valuation drivers.</li>
+          </ol>
+        </section>
+
+        <section className="rankings-card">
           <div className="rankings-header">
             <div>
-              <span className="insights-eyebrow">Fantasy team comparison</span>
+              <span className="depth-eyebrow">Draft context</span>
               <h3>Owner Strength</h3>
             </div>
             <span className="rankings-count">{ownerRankings.length} teams</span>
@@ -339,7 +403,7 @@ export default function DepthCharts({
             Current sort: {SORT_LABELS[sortState.key] || sortState.key},{" "}
             {sortState.direction === "desc" ? "high to low" : "low to high"}.
           </p>
-        </div>
+        </section>
       </aside>
     </div>
   );

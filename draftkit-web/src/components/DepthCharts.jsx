@@ -26,9 +26,17 @@ function formatAssignment(player) {
   return "Available";
 }
 
+function expectedVolumeLabel(player) {
+  if (player.officialRoster && !player.officialRoster.active) {
+    return "Low volume";
+  }
+  return player.volumeProjection?.role || "Volume unknown";
+}
+
 export default function DepthCharts({
   depthCharts,
   ownerRankings = [],
+  league = {},
   selectedPlayer,
   setSelectedPlayer,
   liveDepthLoading = false,
@@ -85,6 +93,10 @@ export default function DepthCharts({
     () => sortOwnerRankings(ownerRankings, sortState.key, sortState.direction),
     [ownerRankings, sortState],
   );
+  const activeScoring = Object.entries(league.scoring || {})
+    .filter(([, enabled]) => enabled)
+    .map(([category]) => category)
+    .join(", ");
 
   function toggleSort(key) {
     setSortState((prev) => ({
@@ -102,10 +114,11 @@ export default function DepthCharts({
             <h2>MLB Depth Charts</h2>
             <p>
               Derived from the live draft pool, current auction state, keeper
-              contracts, taxi picks, and pushed injury/news context.
+              contracts, taxi picks, scoring format, and transaction context.
             </p>
           </div>
           <div className="insights-summary">
+            <span>{activeScoring || "No scoring"} scoring</span>
             <span>{depthCharts?.summary?.teamCount || 0} MLB teams</span>
             <span>{depthCharts?.summary?.liveRosterPlayerCount || 0} MLB roster</span>
             <span>{depthCharts?.summary?.draftedCount || 0} drafted</span>
@@ -130,7 +143,7 @@ export default function DepthCharts({
           <p>
             {liveDepthError ||
               depthCharts?.summary?.warning ||
-              "MLB active roster status is supplied by the MLB Stats API; fantasy ordering still uses Draft Kit value and rank."}
+              "MLB active roster status is supplied by the MLB Stats API. Depth rank now prioritizes projected volume/workload first, then fantasy value as a tie-breaker."}
           </p>
           <button type="button" onClick={onRefreshLiveDepth} disabled={liveDepthLoading}>
             {liveDepthLoading ? "Refreshing..." : "Refresh MLB Feed"}
@@ -204,6 +217,9 @@ export default function DepthCharts({
                         {position.position}
                       </span>
                       <strong>{position.players.length} player depth</strong>
+                      <span className="depth-position-method">
+                        Ranked by volume score, then value
+                      </span>
                     </div>
                     <div className="depth-player-grid">
                       {position.players.map((player) => (
@@ -219,8 +235,17 @@ export default function DepthCharts({
                           <span className="depth-player-main">
                             <strong>{player.name}</strong>
                             <small>
-                              {player.pos?.join("/")} · {player.depth || "Pool"} · age {player.age || "N/A"}
+                              {player.pos?.join("/")} · age {player.age || "N/A"} · {player.volumeProjection?.confidence || "LOW"} confidence
                             </small>
+                          </span>
+                          <span className="depth-value">
+                            Vol {player.volumeScore ?? 0}
+                          </span>
+                          <span className="depth-status">
+                            {expectedVolumeLabel(player)}
+                          </span>
+                          <span className="depth-official fallback">
+                            {(player.volumeProjection?.drivers || []).slice(0, 3).join(" · ") || "No drivers"}
                           </span>
                           <span className="depth-value">{formatMoney(player.value)}</span>
                           <span className={`depth-status ${player.assignment ? "drafted" : "available"}`}>

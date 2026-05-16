@@ -356,8 +356,8 @@ function createApp(options = {}) {
             <select class="ctrl-select" id="players-tier" onchange="updatePlayersCurl()">
               <option value="">ALL</option>
               <option value="Elite">Elite</option>
-              <option value="Starter">Starter</option>
-              <option value="Bench">Bench</option>
+              <option value="Core">Core</option>
+              <option value="Depth">Depth</option>
             </select>
           </div>
           <button class="try-btn" id="players-btn" onclick="runPlayersRequest()">Try It</button>

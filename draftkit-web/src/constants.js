@@ -71,9 +71,9 @@ export const MLB_TEAM_CODES = [
   "WSH",
 ];
 
-// TIERS: the three performance tiers assigned by the generate-players.js script.
-// Elite = top 20 by FPTS, Starter = 21-75, Bench = 76+.
-export const TIERS = ["Elite", "Starter", "Bench"];
+// TIERS: the three fantasy-value bands assigned by the generate-players.js script.
+// Elite = top 25 players, Core = next 100 auction-relevant players, Depth = rest of pool.
+export const TIERS = ["Elite", "Core", "Depth"];
 
 // ── Default Roster Configuration ─────────────────────────────────────────────
 // DEFAULT_ROSTER: the starting roster slot counts for a new draft instance.

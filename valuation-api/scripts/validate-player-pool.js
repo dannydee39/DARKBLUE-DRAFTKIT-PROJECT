@@ -36,7 +36,7 @@ function main() {
     assert.equal(typeof player.team, "string", `player[${index}].team should be a string`);
     assert.ok(["AL", "NL", "ALL"].includes(player.league), `player[${index}].league should be AL/NL/ALL`);
     assert.ok(Array.isArray(player.pos) && player.pos.length > 0, `player[${index}].pos should be a non-empty array`);
-    assert.ok(["Elite", "Starter", "Bench"].includes(player.tier), `player[${index}].tier should be valid`);
+    assert.ok(["Elite", "Core", "Depth"].includes(player.tier), `player[${index}].tier should be valid`);
     assertFiniteNumber(player.baseValue, `player[${index}].baseValue`);
     assert.ok(player.baseValue >= 1, `player[${index}].baseValue should be at least 1`);
     assertFiniteNumber(player.fpts, `player[${index}].fpts`);

@@ -45,7 +45,7 @@ const MIN_HITTER_PA = 40;
 const MIN_PITCHER_OUTS = 15;
 
 const ELITE_COUNT = 25;
-const STARTER_CUTOFF = 125;
+const CORE_CUTOFF = 125;
 
 const POSITION_MAP = {
   C: "C",
@@ -538,13 +538,13 @@ async function main() {
       return a.name.localeCompare(b.name);
     })
     .map((player, index) => {
-      let tier = "Bench";
+      let tier = "Depth";
       if (index < ELITE_COUNT) tier = "Elite";
-      else if (index < STARTER_CUTOFF) tier = "Starter";
+      else if (index < CORE_CUTOFF) tier = "Core";
       return { ...player, tier };
     });
 
-  const tierRanks = { Elite: 0, Starter: 0, Bench: 0 };
+  const tierRanks = { Elite: 0, Core: 0, Depth: 0 };
   const playersJson = combined.map((player, index) => makePlayerRecord(player, index, tierRanks));
 
   fs.writeFileSync(OUT_FILE, JSON.stringify(playersJson, null, 2), "utf8");
@@ -553,8 +553,8 @@ async function main() {
   console.log(`  Hitters: ${playersJson.filter((player) => !["SP", "RP"].includes(player.pos[0])).length}`);
   console.log(`  Pitchers: ${playersJson.filter((player) => ["SP", "RP"].includes(player.pos[0])).length}`);
   console.log(`  Elite: ${playersJson.filter((player) => player.tier === "Elite").length}`);
-  console.log(`  Starter: ${playersJson.filter((player) => player.tier === "Starter").length}`);
-  console.log(`  Bench: ${playersJson.filter((player) => player.tier === "Bench").length}`);
+  console.log(`  Core: ${playersJson.filter((player) => player.tier === "Core").length}`);
+  console.log(`  Depth: ${playersJson.filter((player) => player.tier === "Depth").length}`);
 }
 
 main().catch((error) => {

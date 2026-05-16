@@ -210,7 +210,7 @@ export function getPlayerVolumeProjection(player = {}) {
             : "Part-time role"
           : isPitcher
             ? "Depth arm"
-            : "Depth or bench role";
+            : "Depth role";
 
   return {
     score: normalizedScore,

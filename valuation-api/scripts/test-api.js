@@ -137,6 +137,28 @@ async function runGeneralRegressionSuite() {
       players.body.players.every((player) => typeof player.risk_level === "string"),
       "players should include live update risk metadata",
     );
+    assert.deepEqual(
+      players.body.groups.map((group) => group.tier),
+      ["Elite", "Core", "Depth"],
+      "tier groups should use product-facing Elite/Core/Depth names",
+    );
+
+    const corePlayers = await jsonFetch(`${baseUrl}/v1/players?tier=Core`, {
+      headers: { "X-License-Key": API_KEY },
+    });
+    assert.equal(corePlayers.response.status, 200, "GET /v1/players Core tier should return 200");
+    assert.ok(corePlayers.body.players.length > 0, "Core tier should include players");
+    assert.ok(corePlayers.body.players.every((player) => player.tier === "Core"), "Core filter should return Core players");
+
+    const legacyStarterPlayers = await jsonFetch(`${baseUrl}/v1/players?tier=Starter`, {
+      headers: { "X-License-Key": API_KEY },
+    });
+    assert.equal(legacyStarterPlayers.response.status, 200, "legacy Starter tier query should remain compatible");
+    assert.equal(
+      legacyStarterPlayers.body.count,
+      corePlayers.body.count,
+      "legacy Starter tier query should map to Core",
+    );
 
     const updates = await jsonFetch(`${baseUrl}/v1/player-updates?limit=5`, {
       headers: { "X-License-Key": API_KEY },

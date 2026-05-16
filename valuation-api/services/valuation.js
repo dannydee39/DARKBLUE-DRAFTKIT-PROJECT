@@ -4,7 +4,8 @@ const {
   getLatestUpdateForPlayer,
 } = require("./playerUpdates");
 
-const PLAYER_TIER_ORDER = { Elite: 0, Starter: 1, Bench: 2 };
+const PLAYER_TIER_ORDER = { Elite: 0, Core: 1, Depth: 2 };
+const LEGACY_TIER_ALIASES = { Starter: "Core", Bench: "Depth" };
 const PLAYER_BY_ID = new Map(players.map((player) => [player.id, player]));
 const POSITION_DEFAULT = {
   multiplier: 1.0,
@@ -545,7 +546,7 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
             : "Part-time role"
           : isPitcher
             ? "Depth arm"
-            : "Depth or bench role";
+            : "Depth role";
 
   return {
     score: normalizedScore,
@@ -872,16 +873,16 @@ function calculateDepthChartAdjustment(player, volumeProjection, depthContext = 
 
   /*
    * Depth context answers: "How secure is this player's real baseball role?"
-   * A first-choice starter or elite player gets a small bump. Bench/deeper depth
+   * A first-choice real-life starter or elite player gets a small bump. Deeper
    * roles get a haircut. The separate volumeMultiplier then checks whether the
    * projected PA/IP/G supports that role.
    */
   const depthMultiplier =
     depthContext?.is_starter || depthRank === 1 || depth === "ELITE"
       ? 1.04
-      : depth === "STARTER" || (depthRank != null && depthRank <= 3)
+      : ["CORE", "STARTER"].includes(depth) || (depthRank != null && depthRank <= 3)
         ? 1
-        : depth === "BENCH" || (depthRank != null && depthRank > 3)
+        : ["DEPTH", "BENCH"].includes(depth) || (depthRank != null && depthRank > 3)
           ? 0.92
           : 0.96;
   const volumeScore = numberOrNull(volumeProjection?.score) || 0;
@@ -1181,8 +1182,9 @@ function getPlayers({ league, pos, tier, available_only, drafted_names }) {
   if (pos && pos !== "ALL") {
     result = result.filter((player) => player.pos.includes(pos));
   }
-  if (tier && tier !== "ALL") {
-    result = result.filter((player) => player.tier === tier);
+  const normalizedTier = normalizeTier(tier);
+  if (normalizedTier && normalizedTier !== "ALL") {
+    result = result.filter((player) => player.tier === normalizedTier);
   }
   if (available_only && drafted_names) {
     const draftedSet = new Set(drafted_names);
@@ -1225,7 +1227,7 @@ function annotateRanks(sortedPlayers) {
 }
 
 function groupPlayersByTier(sortedPlayers) {
-  return ["Elite", "Starter", "Bench"]
+  return ["Elite", "Core", "Depth"]
     .map((tier) => ({
       tier,
       count: sortedPlayers.filter((player) => player.tier === tier).length,
@@ -1262,6 +1264,11 @@ function getRiskAdjustment(playerUpdate) {
     return { level: "MEDIUM", multiplier: 0.94, max_bid_delta_percent: -6 };
   }
   return { level: "LOW", multiplier: 1, max_bid_delta_percent: 0 };
+}
+
+function normalizeTier(tier) {
+  if (!tier) return tier;
+  return LEGACY_TIER_ALIASES[tier] || tier;
 }
 
 function normalizeRiskLevel(value) {

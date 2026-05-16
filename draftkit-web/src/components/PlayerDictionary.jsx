@@ -4,7 +4,7 @@
 // Browsable list of all players in the pool. Supports:
 //  - Name / team text search
 //  - Position filter buttons
-//  - Tier filter buttons (Elite / Starter / Bench)
+//  - Tier filter buttons (Elite / Core / Depth)
 //  - Toggle to show/hide drafted players
 //  - Clicking a player loads their card in the right panel
 //  - Inline note preview on each card
@@ -89,7 +89,7 @@ export default function PlayerDictionary({
       // Position filter — player must have this position in their eligibility list
       if (posFilter !== "ALL" && !p.pos.includes(posFilter)) return false;
 
-      // Tier filter — must match exactly (Elite / Starter / Bench)
+      // Tier filter - must match exactly (Elite / Core / Depth)
       if (tierFilter !== "ALL" && p.tier !== tierFilter) return false;
       if (hasNotesOnly && !noteText) return false;
       if (favoritesOnly && !favorites?.[p.id]) return false;
@@ -114,7 +114,7 @@ export default function PlayerDictionary({
 
   // ── Group By Tier ─────────────────────────────────────────────────────────
   // Organise filtered players into groups by tier for titled sections.
-  // Uses TIERS constant to maintain consistent order (Elite → Starter → Bench).
+  // Uses TIERS constant to maintain consistent order (Elite -> Core -> Depth).
   const byTier = {};
   filtered.forEach((p) => {
     if (!byTier[p.tier]) byTier[p.tier] = [];
@@ -166,7 +166,7 @@ export default function PlayerDictionary({
             <span className="divider">|</span>
 
             {/* Tier filters */}
-            {["ALL", "Elite", "Starter", "Bench"].map((t) => (
+            {["ALL", ...TIERS].map((t) => (
               <button
                 key={t}
                 className={`tier-filter ${tierFilter === t ? "active" : ""}`}

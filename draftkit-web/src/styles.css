@@ -1732,12 +1732,12 @@ a {
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
-.tier-badge.starter {
+.tier-badge.core {
   background: rgba(34, 197, 94, 0.15);
   color: var(--green);
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
-.tier-badge.bench {
+.tier-badge.depth {
   background: rgba(107, 114, 128, 0.2);
   color: var(--muted2);
   border: 1px solid var(--border2);
@@ -4633,10 +4633,10 @@ a {
 .tier-label-row.elite {
   color: #f59e0b;
 }
-.tier-label-row.starter {
+.tier-label-row.core {
   color: var(--green);
 }
-.tier-label-row.bench {
+.tier-label-row.depth {
   color: var(--muted2);
 }
 

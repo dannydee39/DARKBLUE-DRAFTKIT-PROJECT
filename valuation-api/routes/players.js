@@ -11,7 +11,7 @@ const { getPlayers, groupPlayersByTier } = require("../services/valuation");
  * Query params:
  *   league=NL|AL|ALL
  *   pos=SP|OF|SS|... (any position)
- *   tier=Elite|Starter|Bench
+ *   tier=Elite|Core|Depth
  *   drafted=comma,separated,player,names (to mark as unavailable)
  */
 router.get("/", requireApiKey, (req, res) => {

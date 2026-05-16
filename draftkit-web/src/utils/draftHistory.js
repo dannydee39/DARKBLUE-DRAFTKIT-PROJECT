@@ -9,10 +9,85 @@ function formatMoneyValue(value) {
   return String(Math.round(numeric));
 }
 
+function formatIsoTimestamp(timestamp) {
+  if (!timestamp) return "";
+  const numeric = asNumber(timestamp, null);
+  const date = numeric != null ? new Date(numeric) : new Date(timestamp);
+  return Number.isNaN(date.getTime()) ? String(timestamp) : date.toISOString();
+}
+
 function normalizePositions(pos) {
   if (Array.isArray(pos)) return pos.filter(Boolean).join("/");
   if (typeof pos === "string") return pos;
   return "";
+}
+
+function roundMoney(value, fallback = null) {
+  const numeric = asNumber(value, fallback);
+  return numeric == null ? fallback : Math.round(numeric);
+}
+
+// Values can appear before the valuation API responds. Every visible dollar
+// amount gets a source label so "Base Value" is not mistaken for a live API bid.
+export function getValuationSource(player, valuation, loading = false) {
+  if (valuation && valuation !== "loading" && !valuation.error) {
+    return "live_api";
+  }
+  if (valuation === "loading" || loading) {
+    return "refreshing";
+  }
+  if (valuation?.error) {
+    return "api_error";
+  }
+  if (player?.baseValue != null) {
+    return "base_value";
+  }
+  return "unknown";
+}
+
+export function formatValuationSource(source) {
+  switch (source) {
+    case "live_api":
+      return "Live API";
+    case "refreshing":
+      return "Refreshing";
+    case "api_error":
+      return "API Error";
+    case "base_value":
+      return "Base Value";
+    default:
+      return "Unknown";
+  }
+}
+
+export function getAdjustmentPercent(multiplier) {
+  const numeric = asNumber(multiplier, null);
+  if (numeric == null) return null;
+  // API multipliers are centered on 1.00, so 1.08 means +8% and 0.94 means -6%.
+  return Math.round((numeric - 1) * 100);
+}
+
+export function formatAdjustmentPercent(multiplier) {
+  const pct = getAdjustmentPercent(multiplier);
+  if (pct == null) return "";
+  if (pct === 0) return "0%";
+  return `${pct > 0 ? "+" : ""}${pct}%`;
+}
+
+export function summarizeValuationSnapshot(snapshot = null) {
+  if (!snapshot) return [];
+  // Keep the factor order aligned with the valuation rubric: baseline stats
+  // first, then scoring/scarcity/context adjustments that explain the final bid.
+  return [
+    ["Baseline", snapshot.statBaselineValue != null ? `$${snapshot.statBaselineValue}` : ""],
+    ["Scoring", formatAdjustmentPercent(snapshot.factors?.scoring)],
+    ["Scarcity", formatAdjustmentPercent(snapshot.factors?.scarcity)],
+    ["Predictive", formatAdjustmentPercent(snapshot.factors?.predictive)],
+    ["Age", formatAdjustmentPercent(snapshot.factors?.age)],
+    ["Depth", formatAdjustmentPercent(snapshot.factors?.depthChart)],
+    ["Inflation", formatAdjustmentPercent(snapshot.factors?.marketInflation)],
+    ["Risk", formatAdjustmentPercent(snapshot.factors?.injuryRisk)],
+  ].filter(([, value]) => value !== "");
 }
 
 function resolvePlayer(entry = {}, players = []) {
@@ -39,6 +114,63 @@ export function getPlayerPrePickValue(player, valuation) {
   return asNumber(player?.baseValue, 0);
 }
 
+/**
+ * Build the one object the UI stores and displays for valuation context.
+ *
+ * Vocabulary:
+ * - TDV / trueDollarValue: the API's calculated auction value before the app's
+ *   max-bid guardrails.
+ * - maxBidRecommendation: the number the drafter should be willing to bid.
+ * - statBaselineValue: the value derived from the selected stat window before
+ *   league scoring, scarcity, age, injury, depth, and market multipliers.
+ * - factors: API multiplier fields copied into readable names for the UI.
+ *
+ * If the API value is unavailable, the snapshot intentionally falls back to the
+ * player's baseValue and marks the source as "base_value".
+ */
+export function makeValuationSnapshot(player, valuation, options = {}) {
+  const source = getValuationSource(player, valuation, options.loading);
+  const hasLiveValuation = source === "live_api";
+  const breakdown = hasLiveValuation ? valuation.valuation_breakdown || {} : {};
+  const trueDollarValue = hasLiveValuation
+    ? roundMoney(valuation.true_dollar_value ?? breakdown.true_dollar_value, null)
+    : roundMoney(player?.baseValue, 0);
+  const maxBidRecommendation = hasLiveValuation
+    ? roundMoney(valuation.max_bid_recommendation ?? breakdown.max_bid_recommendation, null)
+    : roundMoney(player?.baseValue, 0);
+
+  return {
+    source,
+    sourceLabel: formatValuationSource(source),
+    capturedAt: new Date().toISOString(),
+    trueDollarValue,
+    maxBidRecommendation,
+    statBaselineValue: roundMoney(valuation?.stat_baseline_value ?? breakdown.stat_baseline_value, null),
+    baseValue: roundMoney(player?.baseValue, null),
+    marketContext: valuation?.market_context || null,
+    scarcityTier: valuation?.scarcity_tier || null,
+    positionScarcity: valuation?.position_scarcity || null,
+    riskLevel: valuation?.risk_level || player?.risk_level || "LOW",
+    injuryStatus: valuation?.injury_status || player?.injury_status || player?.injury || null,
+    statProfile: valuation?.stat_profile || null,
+    predictiveAdjustment: valuation?.predictive_adjustment || null,
+    ageAdjustment: valuation?.age_adjustment || null,
+    depthChartAdjustment: valuation?.depth_chart_adjustment || null,
+    riskAdjustment: valuation?.risk_adjustment || null,
+    valuationBreakdown: valuation?.valuation_breakdown || null,
+    reasoning: valuation?.reasoning || null,
+    factors: {
+      scoring: asNumber(breakdown.scoring_multiplier, null),
+      scarcity: asNumber(breakdown.scarcity_multiplier, null),
+      predictive: asNumber(breakdown.predictive_multiplier, null),
+      age: asNumber(breakdown.age_multiplier, null),
+      depthChart: asNumber(breakdown.depth_chart_multiplier, null),
+      marketInflation: asNumber(breakdown.market_inflation_multiplier, null),
+      injuryRisk: asNumber(breakdown.injury_risk_multiplier, null),
+    },
+  };
+}
+
 export function makeDraftHistoryEvent({
   type,
   player,
@@ -47,12 +179,17 @@ export function makeDraftHistoryEvent({
   price = 0,
   timestamp = Date.now(),
   prePickValue = null,
+  valuationSnapshot = null,
   remainingBudgetAfter = null,
   note = "",
   source = "manual",
 }) {
   const numericPrice = asNumber(price, 0);
-  const numericValue = asNumber(prePickValue, 0);
+  const snapshot = valuationSnapshot || null;
+  const numericValue = asNumber(
+    prePickValue ?? snapshot?.maxBidRecommendation,
+    0,
+  );
 
   return {
     id: `hist-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
@@ -68,6 +205,7 @@ export function makeDraftHistoryEvent({
     rosterSlot,
     price: numericPrice,
     prePickValue: numericValue,
+    valuationSnapshot: snapshot,
     valueDelta: numericPrice - numericValue,
     remainingBudgetAfter: asNumber(remainingBudgetAfter, null),
     note,
@@ -167,7 +305,7 @@ export function buildDraftHistoryRows(league = {}, players = [], rosterPositions
         prePickValue: value,
         valueDelta: -value,
         remainingBudgetAfter: team.budget_remaining,
-        note: entry.note || "Minor league/prospect roster",
+        note: entry.note || "Minor league roster",
       });
     });
   });
@@ -195,6 +333,17 @@ export function normalizeHistoryRow(event = {}, fallbackNumber = 1) {
     priceLabel: formatMoneyValue(event.price),
     prePickValue: asNumber(event.prePickValue, 0),
     prePickValueLabel: formatMoneyValue(event.prePickValue),
+    valuationSnapshot: event.valuationSnapshot || null,
+    valuationSource:
+      event.valuationSnapshot?.source || (event.prePickValue ? "legacy_value" : "unknown"),
+    valuationSourceLabel:
+      event.valuationSnapshot?.sourceLabel ||
+      (event.prePickValue ? "Legacy Value" : "Unknown"),
+    trueDollarValue: asNumber(event.valuationSnapshot?.trueDollarValue, null),
+    trueDollarValueLabel: formatMoneyValue(event.valuationSnapshot?.trueDollarValue),
+    scarcityTier: event.valuationSnapshot?.scarcityTier || "",
+    riskLevel: event.valuationSnapshot?.riskLevel || "",
+    marketLabel: event.valuationSnapshot?.marketContext?.label || "",
     valueDelta: asNumber(event.valueDelta, 0),
     valueDeltaLabel: formatSignedMoney(event.valueDelta),
     remainingBudgetAfter: asNumber(event.remainingBudgetAfter, null),
@@ -263,6 +412,7 @@ export function createDraftHistoryCsv(rows = [], league = {}) {
     "Event #",
     "Type",
     "Timestamp",
+    "Timestamp ISO",
     "Player",
     "MLB Team",
     "Positions",
@@ -270,6 +420,11 @@ export function createDraftHistoryCsv(rows = [], league = {}) {
     "Roster Slot",
     "Winning Bid",
     "Pre-Pick Value",
+    "Valuation Source",
+    "True Dollar Value",
+    "Scarcity",
+    "Risk",
+    "Market",
     "Value Delta",
     "Remaining Budget After",
     "Note",
@@ -279,6 +434,7 @@ export function createDraftHistoryCsv(rows = [], league = {}) {
     row.eventNumber,
     row.typeLabel,
     row.timestampLabel,
+    formatIsoTimestamp(row.timestamp),
     row.playerName,
     row.mlbTeam,
     row.positions,
@@ -286,15 +442,33 @@ export function createDraftHistoryCsv(rows = [], league = {}) {
     row.rosterSlot,
     row.priceLabel ? `$${row.priceLabel}` : "",
     row.prePickValueLabel ? `$${row.prePickValueLabel}` : "",
+    row.valuationSourceLabel || "",
+    row.trueDollarValueLabel ? `$${row.trueDollarValueLabel}` : "",
+    row.scarcityTier || "",
+    row.riskLevel || "",
+    row.marketLabel || "",
     row.valueDeltaLabel,
     row.remainingBudgetAfterLabel ? `$${row.remainingBudgetAfterLabel}` : "",
     row.note,
   ]);
 
   const title = [
-    [`League`, league.name || "Draft"],
-    [`Season`, league.season || ""],
-    [`Exported At`, new Date().toLocaleString()],
+    ["League", league.name || "Draft"],
+    ["Season", league.season || ""],
+    [
+      "Scoring Format",
+      Object.entries(league.scoring || {})
+        .filter(([, enabled]) => enabled)
+        .map(([category]) => category)
+        .join(", "),
+    ],
+    [
+      "Roster Slots",
+      Object.entries(league.roster || {})
+        .map(([slot, count]) => `${slot}:${Number(count) || 0}`)
+        .join(", "),
+    ],
+    ["Exported At", new Date().toLocaleString()],
     [],
   ];
 
@@ -302,7 +476,7 @@ export function createDraftHistoryCsv(rows = [], league = {}) {
 }
 
 export function downloadCsv(filename, csvText) {
-  const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob([`\ufeff${csvText}`], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

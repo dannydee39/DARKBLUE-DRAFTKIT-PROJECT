@@ -15,6 +15,14 @@
 import { useState, useEffect, useRef } from "react";
 import PlayerAvatar from "./PlayerAvatar.jsx";
 import { posColor, formatStat } from "../utils/helpers.js";
+import { getPlayerVolumeProjection } from "../utils/teamInsights.js";
+import {
+  formatAdjustmentPercent,
+  formatValuationSource,
+  getValuationSource,
+  summarizeValuationSnapshot,
+  makeValuationSnapshot,
+} from "../utils/draftHistory.js";
 
 /**
  * PlayerCard
@@ -93,6 +101,8 @@ export default function PlayerCard({
       : valuationFailed
       ? player.baseValue
       : valuation?.max_bid_recommendation ?? player.baseValue;
+  const valuationSource = getValuationSource(player, valuation);
+  const valuationSourceLabel = formatValuationSource(valuationSource);
 
   // ── Pitcher vs. Hitter detection ────────────────────────────────────────
   // Players with non-null era values are pitchers.
@@ -155,6 +165,35 @@ export default function PlayerCard({
     (riskAdjustmentDelta
       ? `${Math.abs(riskAdjustmentDelta)}% risk adjustment applied.`
       : null);
+  const updateType =
+    player.latest_update?.type ||
+    updateContext?.type ||
+    (valuation && valuation !== "loading" ? valuation.player_update?.type : null);
+  const transactionContext =
+    updateType === "TRANSACTION" || updateType === "LINEUP" || updateType === "ROLE"
+      ? updateContext
+      : null;
+  const volumeProjection =
+    player.volume_projection ||
+    (valuation && valuation !== "loading"
+      ? valuation.volume_projection || valuation.stats?.volume_projection
+      : null) ||
+    getPlayerVolumeProjection(player);
+  const valuationSnapshot =
+    valuation && valuation !== "loading" && !valuationFailed
+      ? makeValuationSnapshot(player, valuation)
+      : null;
+  // The player card mirrors the API rubric: TDV is the true dollar value,
+  // factorRows show each multiplier, and context pills show which inputs moved it.
+  const factorRows = summarizeValuationSnapshot(valuationSnapshot);
+  const statProfile =
+    valuation && valuation !== "loading" ? valuation.stat_profile : null;
+  const predictiveAdjustment =
+    valuation && valuation !== "loading" ? valuation.predictive_adjustment : null;
+  const ageAdjustment =
+    valuation && valuation !== "loading" ? valuation.age_adjustment : null;
+  const depthChartAdjustment =
+    valuation && valuation !== "loading" ? valuation.depth_chart_adjustment : null;
 
   const storedNote = notes?.[player.id] ?? player.note ?? "";
   const isDirty = localNote !== storedNote;
@@ -218,12 +257,19 @@ export default function PlayerCard({
               </span>
             ))}
             {player.depth && <span className="depth-badge">{player.depth}</span>}
+            {player.age != null && <span className="depth-badge">Age {player.age}</span>}
+            {volumeProjection && (
+              <span className="depth-badge">Vol {volumeProjection.score}</span>
+            )}
           </div>
 
           {/* Max bid (from API or base value) */}
           <div className="pc-maxbid">
             <span className="pc-bid-val">${maxBid}</span>
             <span className="pc-bid-label"> MAX BID</span>
+          </div>
+          <div className={`valuation-source-chip ${valuationSource}`}>
+            {valuationSourceLabel}
           </div>
         </div>
       </div>
@@ -249,6 +295,51 @@ export default function PlayerCard({
         </div>
       )}
 
+      {volumeProjection && (
+        <div className="pc-news">
+          <span className="news-tag">[DEPTH]</span>{" "}
+          {volumeProjection.role} · {volumeProjection.score}/100 · {volumeProjection.confidence} confidence.
+          <span style={{ display: "block", marginTop: 4 }}>
+            Basis: {volumeProjection.basis}. Drivers: {(volumeProjection.drivers || []).join(", ") || "not available"}.
+          </span>
+        </div>
+      )}
+
+      {valuationSnapshot && (
+        <div className="pc-valuation-panel">
+          <div className="pc-valuation-top">
+            <span>Live valuation</span>
+            <strong>TDV ${valuationSnapshot.trueDollarValue}</strong>
+          </div>
+          <div className="pc-factor-grid">
+            {factorRows.map(([label, value]) => (
+              <div key={label} className="pc-factor">
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="pc-valuation-context">
+            {statProfile?.window && <span>{statProfile.window}</span>}
+            {predictiveAdjustment && (
+              <span>
+                Predictive {formatAdjustmentPercent(predictiveAdjustment.multiplier)}
+              </span>
+            )}
+            {ageAdjustment?.band && (
+              <span>
+                {ageAdjustment.band} age {formatAdjustmentPercent(ageAdjustment.multiplier)}
+              </span>
+            )}
+            {depthChartAdjustment?.depth_position && (
+              <span>
+                {depthChartAdjustment.depth_position} depth {formatAdjustmentPercent(depthChartAdjustment.multiplier)}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {player.minorLeague && (
         <div className="pc-news">
           <span className="news-tag">[MiLB]</span>{" "}
@@ -261,7 +352,9 @@ export default function PlayerCard({
       {(injuryStatus || updateHeadline) && (
         <div className={`pc-risk-panel risk-${String(riskLevel).toLowerCase()}`}>
           <div className="pc-risk-top">
-            <span className="pc-risk-label">LIVE UPDATE</span>
+            <span className="pc-risk-label">
+              {updateType === "TRANSACTION" ? "TRANSACTION" : "LIVE UPDATE"}
+            </span>
             <span className="pc-risk-level">{riskLevel} RISK</span>
           </div>
           {injuryStatus && (
@@ -273,6 +366,15 @@ export default function PlayerCard({
           {updateImpact && (
             <div className="pc-risk-impact">{updateImpact}</div>
           )}
+        </div>
+      )}
+
+      {transactionContext && (
+        <div className="pc-news">
+          <span className="news-tag">[{updateType}]</span>{" "}
+          {transactionContext.body ||
+            transactionContext.impact_summary ||
+            "Transaction context is active for draft review."}
         </div>
       )}
 

@@ -87,7 +87,10 @@ assert.equal(rows[1].typeLabel, "Taxi Squad");
 assert.equal(rows[1].rosterSlot, "TAXI 1");
 
 const csv = createDraftHistoryCsv(rows, league);
-assert.match(csv, /"Event #","Type","Timestamp","Player"/);
+assert.match(csv, /"Scoring Format"/);
+assert.match(csv, /"Roster Slots","OF:1, SS:1, TAXI:1"/);
+assert.match(csv, /"Event #","Type","Timestamp","Timestamp ISO","Player"/);
+assert.match(csv, /"1970-01-01T00:00:01.000Z"/);
 assert.match(csv, /"1","Auction Pick"/);
 assert.match(csv, /"Aaron Judge"/);
 assert.match(csv, /"Bobby Witt Jr\."/);

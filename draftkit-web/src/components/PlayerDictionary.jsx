@@ -15,6 +15,7 @@ import PlayerAvatar from "./PlayerAvatar.jsx";
 import PlayerCard from "./PlayerCard.jsx";
 import { TIERS } from "../constants.js";
 import { posColor } from "../utils/helpers.js";
+import { formatValuationSource } from "../utils/draftHistory.js";
 
 /**
  * PlayerDictionary
@@ -245,6 +246,7 @@ export default function PlayerDictionary({
                     note={notes[p.id] || p.note}
                     isFavorite={Boolean(favorites?.[p.id])}
                     liveValue={valuationCache[p.id]?.max_bid_recommendation}
+                    valueLoading={valuationLoading && !valuationCache[p.id]}
                     onToggleFavorite={() => toggleFavorite(p.id)}
                     onClick={() => handleSelectPlayer(p)}
                   />
@@ -354,9 +356,18 @@ function DictCard({
   note,
   isFavorite,
   liveValue,
+  valueLoading,
   onClick,
   onToggleFavorite,
 }) {
+  // Dictionary cards are often scanned quickly, so the chip clarifies whether
+  // the displayed dollar amount is a live API max bid or only the base pool value.
+  const valueSource =
+    liveValue != null ? "live_api" : valueLoading ? "refreshing" : "base_value";
+  const valueSourceLabel = formatValuationSource(valueSource);
+  const displayValue =
+    liveValue != null ? `$${liveValue}` : valueLoading ? "$..." : `$${player.baseValue}`;
+
   return (
     <div
       className={`dict-card ${isSelected ? "selected" : ""} ${player.drafted ? "drafted" : ""}`}
@@ -411,7 +422,12 @@ function DictCard({
           >
             ★
           </button>
-          <div className="dc-value green">${liveValue ?? player.baseValue}</div>
+          <div className="dc-value green">
+            {displayValue}
+            <span className={`dc-value-source ${valueSource}`}>
+              {valueSourceLabel}
+            </span>
+          </div>
         </div>
       </div>
 

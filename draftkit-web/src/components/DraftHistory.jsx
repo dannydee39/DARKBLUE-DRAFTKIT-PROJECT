@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   createDraftHistoryCsv,
   downloadCsv,
   formatSignedMoney,
+  summarizeValuationSnapshot,
 } from "../utils/draftHistory.js";
 
 const FILTERS = [
@@ -35,6 +36,7 @@ export default function DraftHistory({ league, rows }) {
   const [filter, setFilter] = useState("all");
   const [sortKey, setSortKey] = useState("eventNumber");
   const [sortDir, setSortDir] = useState("asc");
+  const [expandedEvent, setExpandedEvent] = useState(null);
 
   const filteredRows = rows.filter((row) => matchesFilter(row, filter));
   const visibleRows = filteredRows.slice().sort((a, b) => {
@@ -182,6 +184,7 @@ export default function DraftHistory({ league, rows }) {
                   Value
                 </button>
               </th>
+              <th>Source</th>
               <th>
                 <button type="button" onClick={() => toggleSort("valueDelta")}>
                   Delta
@@ -191,48 +194,104 @@ export default function DraftHistory({ league, rows }) {
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map((row) => (
-              <tr key={`${row.eventNumber}-${row.playerId}-${row.type}`}>
-                <td>{row.eventNumber}</td>
-                <td>
-                  <span className={`history-type-pill ${row.type}`}>
-                    {row.typeLabel}
-                  </span>
-                </td>
-                <td>{row.timestampLabel}</td>
-                <td>
-                  <strong>{row.playerName || "Unknown Player"}</strong>
-                  {row.note ? <span className="history-note">{row.note}</span> : null}
-                </td>
-                <td>{row.mlbTeam || "-"}</td>
-                <td>{row.positions || "-"}</td>
-                <td>{row.fantasyOwner || "-"}</td>
-                <td>{row.rosterSlot || "-"}</td>
-                <td>{row.priceLabel ? `$${row.priceLabel}` : "-"}</td>
-                <td>
-                  {row.prePickValueLabel ? `$${row.prePickValueLabel}` : "-"}
-                </td>
-                <td
-                  className={
-                    Number(row.valueDelta) > 0
-                      ? "history-delta over"
-                      : Number(row.valueDelta) < 0
-                        ? "history-delta under"
-                        : "history-delta"
-                  }
-                >
-                  {formatSignedMoney(row.valueDelta)}
-                </td>
-                <td>
-                  {row.remainingBudgetAfterLabel
-                    ? `$${row.remainingBudgetAfterLabel}`
-                    : "-"}
-                </td>
-              </tr>
-            ))}
+            {visibleRows.map((row) => {
+              const rowKey = `${row.eventNumber}-${row.playerId}-${row.type}`;
+              const isExpanded = expandedEvent === rowKey;
+              const snapshot = row.valuationSnapshot;
+              const factorRows = summarizeValuationSnapshot(snapshot);
+
+              return (
+                <Fragment key={rowKey}>
+                  <tr>
+                    <td>{row.eventNumber}</td>
+                    <td>
+                      <span className={`history-type-pill ${row.type}`}>
+                        {row.typeLabel}
+                      </span>
+                    </td>
+                    <td>{row.timestampLabel}</td>
+                    <td>
+                      <strong>{row.playerName || "Unknown Player"}</strong>
+                      {row.note ? <span className="history-note">{row.note}</span> : null}
+                    </td>
+                    <td>{row.mlbTeam || "-"}</td>
+                    <td>{row.positions || "-"}</td>
+                    <td>{row.fantasyOwner || "-"}</td>
+                    <td>{row.rosterSlot || "-"}</td>
+                    <td>{row.priceLabel ? `$${row.priceLabel}` : "-"}</td>
+                    <td>
+                      {row.prePickValueLabel ? `$${row.prePickValueLabel}` : "-"}
+                    </td>
+                    <td>
+                      {/* Opens the saved valuation snapshot for this exact draft edit. */}
+                      <button
+                        type="button"
+                        className={`history-source-pill ${row.valuationSource}`}
+                        onClick={() =>
+                          setExpandedEvent((prev) => (prev === rowKey ? null : rowKey))
+                        }
+                        title="Show captured valuation context"
+                      >
+                        {row.valuationSourceLabel}
+                      </button>
+                    </td>
+                    <td
+                      className={
+                        Number(row.valueDelta) > 0
+                          ? "history-delta over"
+                          : Number(row.valueDelta) < 0
+                            ? "history-delta under"
+                            : "history-delta"
+                      }
+                    >
+                      {formatSignedMoney(row.valueDelta)}
+                    </td>
+                    <td>
+                      {row.remainingBudgetAfterLabel
+                        ? `$${row.remainingBudgetAfterLabel}`
+                        : "-"}
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="history-detail-row">
+                      <td colSpan="13">
+                        <div className="history-valuation-detail">
+                          <div className="history-detail-head">
+                            <strong>
+                              {snapshot?.sourceLabel || row.valuationSourceLabel}
+                            </strong>
+                            {snapshot?.trueDollarValue != null && (
+                              <span>TDV ${snapshot.trueDollarValue}</span>
+                            )}
+                            {row.scarcityTier && <span>{row.scarcityTier} scarcity</span>}
+                            {row.riskLevel && <span>{row.riskLevel} risk</span>}
+                            {row.marketLabel && <span>{row.marketLabel} market</span>}
+                          </div>
+                          {snapshot?.reasoning && (
+                            <p className="history-detail-reasoning">
+                              {snapshot.reasoning}
+                            </p>
+                          )}
+                          {factorRows.length > 0 && (
+                            <div className="history-factor-grid">
+                              {factorRows.map(([label, value]) => (
+                                <div key={label}>
+                                  <span>{label}</span>
+                                  <strong>{value}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
             {visibleRows.length === 0 && (
               <tr>
-                <td colSpan="12" className="history-empty">
+                <td colSpan="13" className="history-empty">
                   No draft history events match this filter yet.
                 </td>
               </tr>

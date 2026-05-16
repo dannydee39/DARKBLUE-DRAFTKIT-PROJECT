@@ -36,6 +36,13 @@ import {
   getValueClass,
   slotAcceptsPlayer,
 } from "../utils/helpers.js";
+import {
+  formatAdjustmentPercent,
+  formatValuationSource,
+  getValuationSource,
+  makeValuationSnapshot,
+  summarizeValuationSnapshot,
+} from "../utils/draftHistory.js";
 
 const SCOUT_RAIL_HELP_STORAGE_KEY = "draftkit-hide-scout-rail-help";
 const MLB_TEAM_CODE_SET = new Set(MLB_TEAM_CODES);
@@ -629,6 +636,20 @@ export default function DraftBoard({
     if (cached) return cached;
     return valuationLoading ? "loading" : null;
   }
+
+  // Sale modal valuation context. The dollar input still uses the max-bid
+  // recommendation, while this block explains why that recommendation exists:
+  // stat baseline, scoring/scarcity multipliers, risk, depth, and market state.
+  const saleValuation = saleModal ? valuationCache?.[saleModal.id] : null;
+  const saleValuationSource = saleModal
+    ? getValuationSource(saleModal, saleValuation || (valuationLoading ? "loading" : null))
+    : "unknown";
+  const saleValuationSourceLabel = formatValuationSource(saleValuationSource);
+  const saleValuationSnapshot =
+    saleModal && saleValuation && !saleValuation.error
+      ? makeValuationSnapshot(saleModal, saleValuation)
+      : null;
+  const saleFactorRows = summarizeValuationSnapshot(saleValuationSnapshot);
 
   // ─────────────────────────────────────────────────────────────────────────
   // openSaleModal — open the sale modal for a player.
@@ -2029,22 +2050,74 @@ export default function DraftBoard({
               </div>
             )}
 
-            {/* API / base value hint */}
-            {valuationCache[saleModal?.id] &&
-            !valuationCache[saleModal?.id]?.error ? (
-              <div></div> // Horrible practice dead code
-            ) : valuationCache[saleModal?.id]?.error ? (
-              <div className="modal-hint">
-                Base value: <strong>${saleModal.baseValue}</strong> ·{" "}
-                {valuationCache[saleModal?.id].message}
+            <div className={`sale-valuation-panel source-${saleValuationSource}`}>
+              <div className="sale-valuation-head">
+                <span>Live valuation</span>
+                <strong>
+                  {saleValuationSnapshot
+                    ? `$${saleValuationSnapshot.maxBidRecommendation} max`
+                    : `$${saleModal.baseValue} base`}
+                </strong>
               </div>
-            ) : (
-              <div className="modal-hint">
-                Base value: <strong>${saleModal.baseValue}</strong>
+              <div className="sale-valuation-status">
+                Source: <strong>{saleValuationSourceLabel}</strong>
+                {saleValuationSource === "refreshing" &&
+                  " · refreshing before the sale is recorded"}
                 {apiStatus !== "online" &&
-                  " (API offline — using pre-calc value)"}
+                  " · API offline, using player-pool base value"}
+                {saleValuation?.error &&
+                  ` · ${saleValuation.message || "valuation unavailable"}`}
               </div>
-            )}
+              {saleValuationSnapshot && (
+                <>
+                  <div className="sale-valuation-metrics">
+                    <span>TDV ${saleValuationSnapshot.trueDollarValue}</span>
+                    {saleValuationSnapshot.scarcityTier && (
+                      <span>{saleValuationSnapshot.scarcityTier} scarcity</span>
+                    )}
+                    {saleValuationSnapshot.riskLevel && (
+                      <span>{saleValuationSnapshot.riskLevel} risk</span>
+                    )}
+                    {saleValuationSnapshot.marketContext?.label && (
+                      <span>{saleValuationSnapshot.marketContext.label} market</span>
+                    )}
+                    {saleValuationSnapshot.depthChartAdjustment?.depth_position && (
+                      <span>{saleValuationSnapshot.depthChartAdjustment.depth_position} depth</span>
+                    )}
+                    {saleValuationSnapshot.ageAdjustment?.band && (
+                      <span>{saleValuationSnapshot.ageAdjustment.band} age</span>
+                    )}
+                  </div>
+                  {saleFactorRows.length > 0 && (
+                    <div className="sale-factor-grid">
+                      {saleFactorRows.map(([label, value]) => (
+                        <div key={label}>
+                          <span>{label}</span>
+                          <strong>{value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {saleValuationSnapshot.reasoning && (
+                    <div className="sale-valuation-reasoning">
+                      {saleValuationSnapshot.reasoning}
+                    </div>
+                  )}
+                </>
+              )}
+              {saleValuationSnapshot?.predictiveAdjustment && (
+                <div className="sale-valuation-status">
+                  Predictive{" "}
+                  {formatAdjustmentPercent(
+                    saleValuationSnapshot.predictiveAdjustment.multiplier,
+                  )}
+                  {" "}· Depth{" "}
+                  {formatAdjustmentPercent(
+                    saleValuationSnapshot.depthChartAdjustment?.multiplier,
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="modal-actions">
               <button className="modal-cancel" onClick={closeSaleModal}>
@@ -2227,6 +2300,9 @@ function SearchResult({
   // the moment the user hovers (which was confusing during the draft).
   const displayValue =
     recValue != null ? `$${recValue}` : recLoading ? "$…" : `$${player.baseValue}`;
+  const valueSource =
+    recValue != null ? "live_api" : recLoading ? "refreshing" : "base_value";
+  const valueSourceLabel = formatValuationSource(valueSource);
   return (
     <div
       className="search-result"
@@ -2274,7 +2350,12 @@ function SearchResult({
       >
         ★
       </button>
-      <span className="sr-value">{displayValue}</span>
+      <span className="sr-value">
+        {displayValue}
+        <span className={`sr-value-source ${valueSource}`}>
+          {valueSourceLabel}
+        </span>
+      </span>
       <div className="sr-actions">
         <button
           type="button"

@@ -86,8 +86,8 @@ import {
 import {
   appendDraftHistoryEvent,
   buildDraftHistoryRows,
-  getPlayerPrePickValue,
   makeDraftHistoryEvent,
+  makeValuationSnapshot,
 } from "./utils/draftHistory.js";
 import {
   buildMlbDepthCharts,
@@ -339,11 +339,22 @@ export default function App() {
     setRedoStack([]);
   }
 
-  function getCachedPrePickValue(player) {
-    return getPlayerPrePickValue(
+  function getCachedValuationSnapshot(player) {
+    return makeValuationSnapshot(
       player,
       valuationCacheRef.current?.[player?.id],
     );
+  }
+
+  // All draft actions use this wrapper so history stores the valuation context
+  // that was visible at the moment of the edit, not a later recalculated value.
+  function makeDraftHistoryEventWithValuation(args) {
+    const snapshot = getCachedValuationSnapshot(args.player);
+    return makeDraftHistoryEvent({
+      ...args,
+      prePickValue: snapshot.maxBidRecommendation,
+      valuationSnapshot: snapshot,
+    });
   }
 
   function withDraftHistory(prevLeague, event) {
@@ -560,7 +571,22 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   // Include exact roster identifiers and budgets so any meaningful draft-state change
   // forces a fresh all-player valuation pass.
-  const draftStateKey = league.teams
+  const scoringStateKey = Object.entries(league.scoring || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([category, enabled]) => `${category}:${enabled ? 1 : 0}`)
+    .join("|");
+  const rosterStateKey = Object.entries(league.roster || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([slot, count]) => `${slot}:${Number(count) || 0}`)
+    .join("|");
+  const leagueSettingsStateKey = [
+    `owners:${league.owners}`,
+    `budget:${league.budget}`,
+    `pool:${league.pool}`,
+    `scoring:${scoringStateKey}`,
+    `roster:${rosterStateKey}`,
+  ].join(";");
+  const teamDraftStateKey = league.teams
     .map((team) => {
       const rosterNames = (team.roster || [])
         .map((entry) => entry?.playerId ?? entry?.name ?? entry)
@@ -577,9 +603,12 @@ export default function App() {
       return `${team.id}:${team.budget_remaining}:${rosterNames}:${taxiNames}:${minorLeagueNames}`;
     })
     .join(";");
+  const draftStateKey = `${leagueSettingsStateKey}::${teamDraftStateKey}`;
   useEffect(() => {
     cacheVersionRef.current += 1;
     valuationRequestRef.current = { key: null, inFlight: false };
+    valuationCacheRef.current = {};
+    setValuationCache({});
     setValuationError("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftStateKey]);
@@ -791,6 +820,12 @@ export default function App() {
       setCloudSyncMessage(response?.message || "If that account exists, a reset link will be sent shortly.");
       return response;
     } catch (error) {
+      if (error?.code === "MAIL_NOT_CONFIGURED") {
+        const message =
+          "Password reset email is not configured for this deployment. Contact the commissioner/admin to set SMTP before production reset links can be sent.";
+        setCloudSyncMessage(message);
+        return { ok: true, message };
+      }
       setAuthError(error?.message || "Could not request a password reset.");
       return null;
     } finally {
@@ -1831,14 +1866,13 @@ export default function App() {
     pushUndoSnapshot();
 
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "keeper",
         player: result.player,
         team: result.team,
         rosterSlot: result.slotTarget.draftedPos,
         price: result.cost,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(result.player),
         remainingBudgetAfter: result.team.budget_remaining - result.cost,
         note: "Keeper contract",
       });
@@ -1908,14 +1942,13 @@ export default function App() {
     pushUndoSnapshot();
 
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "keeper_update",
         player: result.player,
         team: result.team,
         rosterSlot: result.slotTarget.draftedPos,
         price: result.cost,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(result.player),
         remainingBudgetAfter: result.effectiveBudget - result.cost,
         note: oldPlayerId === result.player.id ? "Keeper cost updated" : "Keeper player replaced",
       });
@@ -2004,14 +2037,13 @@ export default function App() {
         name: rosterEntry.name,
         pos: rosterEntry.pos,
       };
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "keeper_remove",
         player,
         team,
         rosterSlot: rosterEntry.draftedPos,
         price: rosterEntry.price,
         timestamp: Date.now(),
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter:
           team.budget_remaining + (Number(rosterEntry.price) || 0),
         note: "Keeper removed",
@@ -2241,7 +2273,7 @@ export default function App() {
 
     // Update the winning team's budget and roster
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "auction",
         player: {
           ...currentPlayer,
@@ -2252,7 +2284,6 @@ export default function App() {
         rosterSlot: draftedPos,
         price: numericPrice,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(currentPlayer),
         remainingBudgetAfter: currentTeam.budget_remaining - numericPrice,
       });
 
@@ -2359,14 +2390,13 @@ export default function App() {
       });
 
       historyEvents.push({
-        event: makeDraftHistoryEvent({
+        event: makeDraftHistoryEventWithValuation({
           type: "auction",
           player,
           team,
           rosterSlot: pick.draftedPos,
           price: pick.price,
           timestamp: draftedAt,
-          prePickValue: getCachedPrePickValue(player),
           remainingBudgetAfter:
             team.budget_remaining +
             teamChanges[team.id].budgetDelta,
@@ -2474,14 +2504,13 @@ export default function App() {
         name: rosterEntry.name,
         pos: rosterEntry.pos,
       };
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "auction_remove",
         player,
         team,
         rosterSlot: rosterEntry.draftedPos || rosterPositions[slotIndex],
         price: rosterEntry.price,
         timestamp: Date.now(),
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter: team.budget_remaining + (rosterEntry?.price || 0),
         note: "Roster entry removed",
       });
@@ -2587,14 +2616,13 @@ export default function App() {
     const actionTime = Date.now();
 
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "taxi",
         player: currentPlayer,
         team,
         rosterSlot: `TAXI ${currentTaxiCount + 1}`,
         price: 1,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(currentPlayer),
         remainingBudgetAfter: team.budget_remaining,
         note: "Taxi squad",
       });
@@ -2668,14 +2696,13 @@ export default function App() {
       const taxiIndex = (team.taxiSquad || []).findIndex(
         (entry) => entry?.playerId === playerId,
       );
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "taxi_remove",
         player,
         team,
         rosterSlot: `TAXI ${taxiIndex + 1}`,
         price: taxiEntry.price || 1,
         timestamp: Date.now(),
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter: team.budget_remaining,
         note: "Taxi pick removed",
       });
@@ -2749,14 +2776,13 @@ export default function App() {
     const actionTime = Date.now();
 
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "minor_league",
         player: currentPlayer,
         team,
         rosterSlot: `MiLB ${(team.minorLeague || []).length + 1}`,
         price: 0,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(currentPlayer),
         remainingBudgetAfter: team.budget_remaining,
         note: "Minor league/prospect roster",
       });
@@ -2826,14 +2852,13 @@ export default function App() {
         name: prospectEntry.name,
         pos: prospectEntry.pos,
       };
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "minor_league_remove",
         player,
         team,
         rosterSlot: "MiLB",
         price: 0,
         timestamp: Date.now(),
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter: team.budget_remaining,
         note: "Prospect released back to draft pool",
       });
@@ -2916,14 +2941,13 @@ export default function App() {
     const actionTime = Date.now();
 
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "roster_move",
         player,
         team,
         rosterSlot: `${rosterEntry.draftedPos || rosterPositions[fromSlotIndex]} -> ${targetSlot}`,
         price: rosterEntry.price,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter: team.budget_remaining,
         note: "Roster slot correction",
       });
@@ -3008,14 +3032,13 @@ export default function App() {
     const actionTime = Date.now();
 
     setLeague((prev) => {
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "roster_transfer",
         player,
         team: targetTeam,
         rosterSlot: targetSlot,
         price,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter: targetTeam.budget_remaining - price,
         note: `Transferred from ${fromTeam.name}`,
       });
@@ -3102,14 +3125,13 @@ export default function App() {
         name: prospectEntry.name,
         pos: prospectEntry.pos,
       };
-      const event = makeDraftHistoryEvent({
+      const event = makeDraftHistoryEventWithValuation({
         type: "minor_league_transfer",
         player,
         team: targetTeam,
         rosterSlot: "MiLB",
         price: 0,
         timestamp: actionTime,
-        prePickValue: getCachedPrePickValue(player),
         remainingBudgetAfter: targetTeam.budget_remaining,
         note: `Transferred from ${fromTeam.name}`,
       });
@@ -3331,7 +3353,7 @@ export default function App() {
     0,
   );
   const taxiSlots = Math.max(0, Number(league.roster?.TAXI) || 0);
-  const prospectCount = countMinorLeagueEntries(league);
+  const minorLeagueCount = countMinorLeagueEntries(league);
   const showKeeperBoardPrompt =
     activeTab === "board" &&
     league.keeperLeague &&
@@ -3361,7 +3383,7 @@ export default function App() {
             ["dictionary", "Player Dictionary"],
             ["settings", "League Settings"],
             ["keeper", "Keeper Setup"],
-            ["prospects", "Prospects"],
+            ["prospects", "Minor League"],
             // "sandbox" tab intentionally omitted from nav — use setActiveTab("sandbox")
             // programmatically or navigate directly for API diagnostics.
             ["taxi", "Taxi Squad"],
@@ -3522,7 +3544,7 @@ export default function App() {
                   <span>{keeperCount} keepers entered</span>
                   <span>{totalRecordedPicks} board entries</span>
                   <span>{taxiSlots} taxi slots</span>
-                  <span>{prospectCount} prospects</span>
+                  <span>{minorLeagueCount} minor league</span>
                 </div>
                 <div className="keeper-board-actions">
                   <button
@@ -3681,6 +3703,7 @@ export default function App() {
           <DepthCharts
             depthCharts={depthCharts}
             ownerRankings={ownerRankings}
+            league={league}
             selectedPlayer={selectedPlayer}
             setSelectedPlayer={setSelectedPlayer}
             liveDepthLoading={liveDepthLoading}

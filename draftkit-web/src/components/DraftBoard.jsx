@@ -823,10 +823,7 @@ export default function DraftBoard({
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // handleFilledCellClick — opens the remove confirmation modal.
-  // ─────────────────────────────────────────────────────────────────────────
-  function handleFilledCellClick(entry, teamId, pos, e) {
-    e.stopPropagation();
+  function openRosterCorrectionModal(entry, teamId, pos) {
     setActiveCellSearch(null); // close any open inline search
     const defaultTransferTeam = league.teams.find((team) => team.id !== teamId);
     setRemoveModal({
@@ -840,6 +837,28 @@ export default function DraftBoard({
     setMoveSlotChoice("");
     setTransferTeamChoice(defaultTransferTeam ? String(defaultTransferTeam.id) : "");
     setTransferSlotChoice("");
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // handleFilledCellClick — opens the drafted player's full card.
+  // Roster corrections stay available through the explicit Fix button.
+  // ─────────────────────────────────────────────────────────────────────────
+  function handleFilledCellClick(entry, teamId, pos, matchedPlayer, e) {
+    e.stopPropagation();
+    setActiveCellSearch(null);
+
+    if (matchedPlayer) {
+      openPlayerCard({
+        ...matchedPlayer,
+        drafted: true,
+        draftedBy: teamId,
+        draftPrice: entry.price,
+        draftedPos: entry.draftedPos || pos,
+      });
+      return;
+    }
+
+    openRosterCorrectionModal(entry, teamId, pos);
   }
 
   function getCorrectionContext() {
@@ -1333,9 +1352,9 @@ export default function DraftBoard({
 
                       if (entry) {
                         // ── FILLED CELL ────────────────────────────────────
-                        const matchedPlayer = players.find(
-                          (p) => p.name === entry.name,
-                        );
+                        const matchedPlayer =
+                          players.find((p) => p.id === entry.playerId) ||
+                          players.find((p) => p.name === entry.name);
                         const valueClass = getValueClass(
                           entry.price,
                           matchedPlayer?.baseValue,
@@ -1346,8 +1365,19 @@ export default function DraftBoard({
                             key={si}
                             className={`roster-cell roster-cell-filled ${valueClass}`}
                             onClick={(e) =>
-                              handleFilledCellClick(entry, team.id, pos, e)
+                              handleFilledCellClick(
+                                entry,
+                                team.id,
+                                pos,
+                                matchedPlayer,
+                                e,
+                              )
                             }
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openRosterCorrectionModal(entry, team.id, pos);
+                            }}
                             onMouseEnter={(e) =>
                               setHoveredCell({
                                 teamId: team.id,
@@ -1359,10 +1389,22 @@ export default function DraftBoard({
                               })
                             }
                             onMouseLeave={() => setHoveredCell(null)}
-                            title={`${entry.name} · $${entry.price} · Click to remove`}
+                            title={`${entry.name} · $${entry.price} · Click to open card`}
                             style={{ position: "relative" }}
                           >
                             <div className="roster-entry">
+                              <button
+                                type="button"
+                                className="roster-cell-fix"
+                                title={`Move, transfer, or remove ${entry.name}`}
+                                aria-label={`Move, transfer, or remove ${entry.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openRosterCorrectionModal(entry, team.id, pos);
+                                }}
+                              >
+                                Fix
+                              </button>
                               {entry.isKeeper && (
                                 <span className="keeper-badge">K</span>
                               )}

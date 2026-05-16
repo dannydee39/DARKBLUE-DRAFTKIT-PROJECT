@@ -258,76 +258,78 @@ export default function PlayerDictionary({
       </div>
 
       {/* ── Right Panel: Selected Player Card ─────────────────────────────── */}
-      <div className="right-panel" ref={rightPanelRef}>
+      <div className="right-panel dict-right-panel">
         <div className="panel-section-label">PLAYER CARD</div>
-        {selectedPlayer ? (
-          <PlayerCard
-            player={selectedPlayer}
-            valuation={getDisplayedValuation(selectedPlayer)}
-            notes={notes}
-            favorites={favorites}
-            saveNote={saveNote}
-            toggleFavorite={toggleFavorite}
-          />
-        ) : (
-          <div className="cp-empty dict-empty-state">
-            <div className="dict-empty-title">Select a player to view card</div>
-            <div className="dict-empty-copy">
-              Use search, filters, or the notes-only toggle to jump to players
-              you already marked up.
-            </div>
-            <div className="dict-empty-meta">
-              {filtered.length} players currently visible
-            </div>
-          </div>
-        )}
-
-        {/* Recommended players — top 4 undrafted in current filter */}
-        <div className="recommendations">
-          <div className="rec-header">
-            TOP AVAILABLE{" "}
-            <span className="rec-sub">
-              {posFilter !== "ALL" ? posFilter : "All Positions"}
-            </span>
-          </div>
-          {players
-            .filter((p) => !p.drafted)
-            .filter((p) => posFilter === "ALL" || p.pos.includes(posFilter))
-            .slice(0, 4)
-            .map((p) => (
-              <div
-                key={p.id}
-                className="rec-row"
-                onClick={() => handleSelectPlayer(p)}
-              >
-                <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
-                <div className="rec-info">
-                  <div className="rec-name">{p.name}</div>
-                  <div className="rec-team">{p.team}</div>
-                  <div className="rec-pos">
-                    {p.pos.map((pos) => (
-                      <span
-                        key={pos}
-                        className="pos-badge"
-                        style={{ background: posColor(pos) }}
-                      >
-                        {pos}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="rec-right">
-                  <div className="rec-value green">
-                    $
-                    {valuationCache[p.id]?.max_bid_recommendation ??
-                      p.baseValue}
-                  </div>
-                  <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
-                    {p.tier?.toUpperCase()}
-                  </div>
-                </div>
+        <div className="right-panel-body dict-card-scroll" ref={rightPanelRef}>
+          {selectedPlayer ? (
+            <PlayerCard
+              player={selectedPlayer}
+              valuation={getDisplayedValuation(selectedPlayer)}
+              notes={notes}
+              favorites={favorites}
+              saveNote={saveNote}
+              toggleFavorite={toggleFavorite}
+            />
+          ) : (
+            <div className="cp-empty dict-empty-state">
+              <div className="dict-empty-title">Select a player to view card</div>
+              <div className="dict-empty-copy">
+                Use search, filters, or the notes-only toggle to jump to players
+                you already marked up.
               </div>
-            ))}
+              <div className="dict-empty-meta">
+                {filtered.length} players currently visible
+              </div>
+            </div>
+          )}
+
+          {/* Recommended players — top 4 undrafted in current filter */}
+          <div className="recommendations">
+            <div className="rec-header">
+              TOP AVAILABLE{" "}
+              <span className="rec-sub">
+                {posFilter !== "ALL" ? posFilter : "All Positions"}
+              </span>
+            </div>
+            {players
+              .filter((p) => !p.drafted)
+              .filter((p) => posFilter === "ALL" || p.pos.includes(posFilter))
+              .slice(0, 4)
+              .map((p) => (
+                <div
+                  key={p.id}
+                  className="rec-row"
+                  onClick={() => handleSelectPlayer(p)}
+                >
+                  <PlayerAvatar name={p.name} size={32} photoUrl={p.photoUrl} />
+                  <div className="rec-info">
+                    <div className="rec-name">{p.name}</div>
+                    <div className="rec-team">{p.team}</div>
+                    <div className="rec-pos">
+                      {p.pos.map((pos) => (
+                        <span
+                          key={pos}
+                          className="pos-badge"
+                          style={{ background: posColor(pos) }}
+                        >
+                          {pos}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rec-right">
+                    <div className="rec-value green">
+                      $
+                      {valuationCache[p.id]?.max_bid_recommendation ??
+                        p.baseValue}
+                    </div>
+                    <div className={`tier-badge ${p.tier?.toLowerCase()}`}>
+                      {p.tier?.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
         </div>
       </div>
     </div>

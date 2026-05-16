@@ -138,6 +138,101 @@ export function getPlayerValue(player = {}) {
   return Math.max(0, asNumber(player.baseValue ?? player.value, 0));
 }
 
+function numberOrNull(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+export function getPlayerVolumeProjection(player = {}) {
+  if (player.volume_projection) return player.volume_projection;
+
+  const positions = Array.isArray(player.pos) ? player.pos : [];
+  const hasHittingStats = ["r", "rbi", "hr", "sb"].some(
+    (key) => numberOrNull(player[key]) != null,
+  );
+  const hasPitchingStats = ["so", "w", "sv", "era", "whip"].some(
+    (key) => numberOrNull(player[key]) != null,
+  );
+  const isPitcher =
+    ["SP", "RP", "P"].includes(positions[0]) ||
+    (hasPitchingStats && !hasHittingStats);
+  const directWorkload = isPitcher
+    ? [
+        ["IP", numberOrNull(player.projected_innings), 180],
+        ["G", numberOrNull(player.projected_games), 65],
+      ]
+    : [
+        ["PA", numberOrNull(player.projected_plate_appearances), 650],
+        ["G", numberOrNull(player.projected_games), 150],
+      ];
+  const directAvailable = directWorkload.filter(([, value]) => value != null);
+  const proxyFields = isPitcher
+    ? [
+        ["SO", numberOrNull(player.so), 185],
+        ["W", numberOrNull(player.w), 14],
+        ["SV", numberOrNull(player.sv), 32],
+        ["FPTS", numberOrNull(player.fpts), 520],
+      ]
+    : [
+        ["R", numberOrNull(player.r), 90],
+        ["RBI", numberOrNull(player.rbi), 95],
+        ["HR", numberOrNull(player.hr), 32],
+        ["SB", numberOrNull(player.sb), 28],
+        ["FPTS", numberOrNull(player.fpts), 600],
+      ];
+  const sourceFields = directAvailable.length > 0 ? directWorkload : proxyFields;
+  const available = sourceFields.filter(([, value]) => value != null);
+  const score =
+    available.length > 0
+      ? Math.round(
+          (available.reduce(
+            (sum, [, value, benchmark]) =>
+              sum + Math.min(Math.max(Number(value) / benchmark, 0), 1.35),
+            0,
+          ) /
+            available.length) *
+            78,
+        )
+      : 0;
+  const normalizedScore = Math.min(Math.max(score, 0), 100);
+  const role =
+    normalizedScore >= 76
+      ? isPitcher
+        ? "Rotation/closer volume"
+        : "Everyday volume"
+      : normalizedScore >= 58
+        ? "Regular volume"
+        : normalizedScore >= 38
+          ? "Role-player volume"
+          : "Limited volume";
+
+  return {
+    score: normalizedScore,
+    role,
+    basis:
+      directAvailable.length > 0
+        ? isPitcher
+          ? "projected innings/games"
+          : "projected plate appearances/games"
+        : isPitcher
+          ? "weighted pitching counting-stat workload proxy"
+          : "weighted hitting counting-stat workload proxy",
+    confidence: directAvailable.length > 0 ? "HIGH" : available.length >= 4 ? "MEDIUM" : "LOW",
+    source: player.stats_window || "weighted historical stats",
+    missing_direct_fields:
+      directAvailable.length > 0
+        ? []
+        : ["projected_games", "projected_plate_appearances", "projected_innings"],
+    drivers: available.map(
+      ([label, value]) => `${label}:${Math.round(Number(value) * 10) / 10}`,
+    ),
+    note:
+      directAvailable.length > 0
+        ? "Depth rank uses projected playing-time fields from the generated player source."
+        : "Direct projected PA/IP/G are missing in this runtime player file, so volume is inferred from weighted historical production until the next data-generation refresh includes those fields.",
+  };
+}
+
 export function getPlayerRiskLevel(player = {}) {
   return String(
     player.risk_level ||
@@ -184,6 +279,7 @@ export function buildMlbDepthCharts(players = [], league = {}, liveDepthData = n
     const assignment = assignments.get(Number(player.id)) || null;
     const riskLevel = getPlayerRiskLevel(player);
     const liveRosterEntry = findLiveRosterEntry(player, liveRosterLookup);
+    const volumeProjection = getPlayerVolumeProjection(player);
     if (assignment || player.drafted) teamBucket.draftedCount += 1;
     if (riskLevel === "HIGH") teamBucket.highRiskCount += 1;
 
@@ -201,6 +297,8 @@ export function buildMlbDepthCharts(players = [], league = {}, liveDepthData = n
         ...player,
         depthPosition: normalizedPosition,
         value: getPlayerValue(player),
+        volumeProjection,
+        volumeScore: volumeProjection.score,
         riskLevel,
         updateSummary: getPlayerUpdateSummary(player),
         officialRoster:
@@ -246,6 +344,8 @@ export function buildMlbDepthCharts(players = [], league = {}, liveDepthData = n
           ...positionBucket,
           players: positionBucket.players
             .sort((a, b) => {
+              const volumeDelta = (b.volumeScore || 0) - (a.volumeScore || 0);
+              if (volumeDelta !== 0) return volumeDelta;
               const valueDelta = b.value - a.value;
               if (valueDelta !== 0) return valueDelta;
               return (

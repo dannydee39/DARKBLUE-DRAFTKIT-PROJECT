@@ -21,6 +21,26 @@ const STAT_WINDOWS = {
   BLEND: "BLEND",
 };
 
+/*
+ * Acronyms used in the valuation math:
+ * - FPTS: fantasy points. This is a single blended production score generated
+ *   from MLB stat lines. Hitters get credit for runs, RBI, home runs, stolen
+ *   bases, total bases, and walks. Pitchers get credit for outs, wins, saves,
+ *   and strikeouts, with penalties for earned runs, hits, and walks.
+ * - PA: plate appearances. This is the best workload signal for hitters
+ *   because it tells us how often the player is expected to bat.
+ * - IP: innings pitched. This is the best workload signal for starting pitchers
+ *   and many bulk relievers.
+ * - G: games. This is a fallback workload signal when PA or IP is missing.
+ * - SO: strikeouts. MLB uses SO for both hitter strikeouts and pitcher
+ *   strikeouts; in this file it is used for pitcher strikeout production.
+ * - W/SV: pitcher wins and saves.
+ * - ERA/WHIP: pitcher rate stats; lower is better, so the scoring functions
+ *   invert them before turning them into a multiplier.
+ * - TDV: true dollar value. This is the final auction value returned by the
+ *   API after all stat, market, scarcity, risk, age, and depth factors apply.
+ */
+
 function normalizeNameKey(value) {
   return String(value || "")
     .normalize("NFD")
@@ -253,9 +273,41 @@ function analyzePositionScarcity(undrafted, teams, totalTeams, rosterConfig) {
 function valuatePlayer(player, context) {
   const playerPositions = Array.isArray(player.pos) ? player.pos : [];
   const positionDetails = {};
+
+  /*
+   * The stat profile decides which raw production line is being valued.
+   *
+   * Normal path:
+   * - Use the runtime player pool's weighted 2023-2025 stats.
+   *
+   * Custom path:
+   * - If the request sends player_stat_overrides, use the requested
+   *   stat_window: ONE_YEAR, THREE_YEAR, or BLEND.
+   *
+   * This keeps custom stats transparent without mutating players.json.
+   */
   const statProfile = buildStatProfile(player, context);
   const scoringPlayer = buildScoringPlayer(player, statProfile.selectedStats);
+
+  /*
+   * stat_baseline_value is the pre-context dollar baseline.
+   *
+   * Start with player.baseValue from the generated player pool. That value was
+   * derived from fantasy production above replacement during generate-players.
+   * If a custom stat line is supplied, move the baseline up/down based on:
+   * - explicit custom auction value, if supplied;
+   * - otherwise custom FPTS compared with runtime FPTS;
+   * - otherwise a category-score estimate from HR/RBI/R/SB/AVG or SO/W/SV/ERA/WHIP.
+   *
+   * This answers: "What is this player's dollar value before live draft context?"
+   */
   const baseValue = calculateStatsBaselineValue(player, statProfile);
+
+  /*
+   * Volume projection estimates role/workload. It matters because a strong rate
+   * stat line on limited playing time is less valuable than similar production
+   * with everyday plate appearances or starter/closer innings.
+   */
   const volumeProjection = buildVolumeProjection(scoringPlayer, statProfile.predictiveStats);
   const staticInjuryUpdate = buildStaticInjuryUpdate(player);
   const playerUpdate = chooseMostSevereUpdate(
@@ -281,6 +333,24 @@ function valuatePlayer(player, context) {
     context.scoringCategories,
   );
 
+  /*
+   * Main valuation formula.
+   *
+   * Every factor is intentionally kept visible in the response as
+   * valuation_breakdown. The order here is not a hidden model; it is a readable
+   * multiplication chain:
+   *
+   * stat_baseline_value
+   *   x scoring format fit
+   *   x position scarcity
+   *   x predictive playing-time/production signal
+   *   x age curve
+   *   x depth-chart role and volume
+   *   x live market inflation
+   *
+   * Injury/news risk is applied after that as a separate haircut so the API can
+   * show both pre-injury and post-injury values.
+   */
   const rawTrueDollarValue = Math.round(
     baseValue *
       scoringAdjustment.multiplier *
@@ -390,9 +460,23 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
   const isPitcher =
     ["SP", "RP", "P"].includes(positions[0]) ||
     (hasPitchingStats && !hasHittingStats);
+
+  /*
+   * Prefer explicit predictive workload if supplied by the request. If it is
+   * missing, fall back to the runtime player fields from players.json.
+   */
   const statSource = predictiveStats && typeof predictiveStats === "object"
     ? { ...player, ...predictiveStats }
     : player;
+
+  /*
+   * Direct workload fields are the clearest playing-time signal:
+   * - hitters: projected_plate_appearances (PA) and projected_games (G)
+   * - pitchers: projected_innings (IP) and projected_games (G)
+   *
+   * Benchmarks are rough full-season anchors. A hitter near 650 PA or a pitcher
+   * near 180 IP gets treated as a full-volume player.
+   */
   const directWorkload = isPitcher
     ? [
         ["IP", numberOrNull(statSource.projected_innings), 180],
@@ -403,6 +487,12 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
         ["G", numberOrNull(statSource.projected_games), 150],
       ];
   const directAvailable = directWorkload.filter(([, value]) => value != null);
+
+  /*
+   * Proxy fields are used when direct workload is unavailable. FPTS is useful
+   * here because it compresses many stats into one production signal, but it is
+   * less precise than actual PA/IP/G for workload.
+   */
   const proxyFields = isPitcher
     ? [
         ["SO", numberOrNull(statSource.so), 185],
@@ -419,6 +509,14 @@ function buildVolumeProjection(player = {}, predictiveStats = null) {
       ];
   const sourceFields = directAvailable.length > 0 ? directWorkload : proxyFields;
   const available = sourceFields.filter(([, value]) => value != null);
+
+  /*
+   * Convert workload into a 0-100 score:
+   * - each available stat is compared with its benchmark;
+   * - individual ratios are capped at 1.35 so one extreme stat cannot dominate;
+   * - the average ratio is scaled by 78, leaving room for above-benchmark volume
+   *   without making everyone with a full season equal 100.
+   */
   const score =
     available.length > 0
       ? Math.round(
@@ -562,6 +660,12 @@ function buildStatProfile(player, context) {
   const oneYearStats = override?.oneYear || null;
   const threeYearStats = override?.threeYear || null;
   const predictiveStats = override?.predictive || buildDefaultPredictiveStats(player);
+
+  /*
+   * selectedStats is the stat line that replaces the runtime player fields for
+   * the baseline/scoring steps. Predictive stats are kept separate because they
+   * are forward-looking workload/production inputs, not the historical baseline.
+   */
   const selectedStats =
     context.statWindow === STAT_WINDOWS.ONE_YEAR
       ? oneYearStats || threeYearStats || null
@@ -615,6 +719,7 @@ function blendStatLines(oneYearStats, threeYearStats) {
   keys.forEach((key) => {
     const one = numberOrNull(oneYearStats[key]);
     const three = numberOrNull(threeYearStats[key]);
+    // Blend favors the most recent season while still stabilizing with history.
     if (one != null && three != null) blended[key] = one * 0.6 + three * 0.4;
     else if (one != null) blended[key] = one;
     else if (three != null) blended[key] = three;
@@ -632,17 +737,33 @@ function calculateStatsBaselineValue(player, statProfile) {
   const selectedStats = statProfile.selectedStats;
   if (!selectedStats || typeof selectedStats !== "object") return originalBaseValue;
 
+  /*
+   * Highest-trust path: the client can send an explicit custom auction value.
+   * This lets a customer import their own dollar values while still letting
+   * Dark Blue apply live scarcity, risk, age, depth, and market factors.
+   */
   const explicitValue = numberOrNull(
     selectedStats.baseValue ?? selectedStats.base_value ?? selectedStats.auction_value,
   );
   if (explicitValue != null) return clampDollarValue(explicitValue);
 
+  /*
+   * Next best path: compare custom FPTS with runtime FPTS. Example:
+   * - runtime player pool says 600 FPTS and $30 base value;
+   * - custom one-year stats say 540 FPTS;
+   * - baseline becomes roughly $27 before clamps.
+   */
   const customFpts = numberOrNull(selectedStats.fpts);
   const runtimeFpts = numberOrNull(player.fpts);
   if (customFpts != null && runtimeFpts != null && runtimeFpts > 0) {
     return clampDollarValue(originalBaseValue * clamp(customFpts / runtimeFpts, 0.65, 1.45));
   }
 
+  /*
+   * Last path: estimate a comparable fantasy score from available categories.
+   * This is less exact than FPTS but keeps custom HR/RBI/R/SB/AVG or
+   * SO/W/SV/ERA/WHIP lines meaningful.
+   */
   const customScore = estimateFantasyScoreFromStats(buildScoringPlayer(player, selectedStats));
   const runtimeScore = estimateFantasyScoreFromStats(player);
   if (customScore > 0 && runtimeScore > 0) {
@@ -677,6 +798,12 @@ function calculatePredictiveAdjustment(player, statProfile, volumeProjection) {
   const predictiveStats = statProfile.predictiveStats;
   const predictiveFpts = numberOrNull(predictiveStats?.fpts);
   const runtimeFpts = numberOrNull(player.fpts);
+
+  /*
+   * Predictive adjustment is intentionally modest. Projections should nudge
+   * value, not swamp the baseline. FPTS compares forward-looking production
+   * with the current player pool, while volumeProjection captures playing time.
+   */
   const fptsMultiplier =
     predictiveFpts != null && runtimeFpts != null && runtimeFpts > 0
       ? clamp(predictiveFpts / runtimeFpts, 0.88, 1.12)
@@ -705,6 +832,15 @@ function calculateAgeAdjustment(player) {
   const isPitcher = ["SP", "RP", "P"].includes(positions[0]);
   let multiplier = 1;
   let band = "PRIME";
+
+  /*
+   * Age curve is a small contextual factor:
+   * - young hitters can receive a small growth bump;
+   * - prime-age players get stability;
+   * - older players receive gradual risk haircuts.
+   * Pitchers are treated more conservatively at very young ages because role
+   * volatility and workload limits are common.
+   */
   if (age <= 23) {
     multiplier = isPitcher ? 0.98 : 1.03;
     band = "ASCENDING";
@@ -727,6 +863,13 @@ function calculateAgeAdjustment(player) {
 function calculateDepthChartAdjustment(player, volumeProjection, depthContext = null) {
   const depth = String(depthContext?.depth_role || player.depth || player.tier || "").toUpperCase();
   const depthRank = numberOrNull(depthContext?.depth_rank);
+
+  /*
+   * Depth context answers: "How secure is this player's real baseball role?"
+   * A first-choice starter or elite player gets a small bump. Bench/deeper depth
+   * roles get a haircut. The separate volumeMultiplier then checks whether the
+   * projected PA/IP/G supports that role.
+   */
   const depthMultiplier =
     depthContext?.is_starter || depthRank === 1 || depth === "ELITE"
       ? 1.04
@@ -767,6 +910,11 @@ function buildStaticInjuryUpdate(player) {
 }
 
 function buildValuationBreakdown(parts) {
+  /*
+   * This object is the audit trail for the valuation. It is intentionally
+   * redundant with the individual response fields so a reviewer can read one
+   * block and see the exact math used to produce TDV.
+   */
   return {
     formula:
       "stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk",
@@ -838,6 +986,12 @@ function calculateScoringAdjustment(player, scoringCategories = []) {
 
   const defaultAverage = averageCategoryScore(player, defaults);
   const activeAverage = averageCategoryScore(player, relevantActive);
+
+  /*
+   * If the league's active categories match a player's strengths, activeAverage
+   * is higher than defaultAverage and the multiplier rises. If the league does
+   * not count the player's best categories, the multiplier falls.
+   */
   const rawMultiplier =
     defaultAverage > 0 ? activeAverage / defaultAverage : 1;
   return {

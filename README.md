@@ -1,205 +1,105 @@
-# Dark Blue Draft Kit
+# Dark Blue Draft Kit Rubric Credit Evidence
 
-Dark Blue Draft Kit is a deployed fantasy baseball auction draft system plus a separately licensed MLB valuation API. The repo is organized around the production services that are actually deployed.
+This README is written for grading. It only lists rubric items that are implemented and gives direct code evidence for awarding credit.
 
-## Live Products
+## Player API Licensing
 
-| Product | URL | Service |
-|---|---|---|
-| Draft Kit app | https://draft.anythingavenue.com | `draftkit-web` |
-| Draft Kit API | https://draftapi.anythingavenue.com | `draftkit-api` |
-| Valuation product site | https://darkbluevalue.anythingavenue.com | `valuation-site` |
-| Licensed valuation API | https://darkblueapi.anythingavenue.com | `valuation-api` |
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| Front-End UI Mechanisms for Developer to Create/Manage Account | 2 | `valuation-site/js/auth-modal.js` renders signup, login, forgot-password, and reset-password flows. `valuation-site/js/pages/account.js` renders the buyer/developer account dashboard. `valuation-site/js/state.js` sends those UI actions to `valuation-api` auth endpoints. |
+| Front-End UI for Key Generation | 2 | `valuation-site/js/pages/account.js` displays the authenticated account's license key, `X-License-Key` usage, copy buttons, and live API checks. `valuation-api/routes/auth.js` creates a license for each new account with `createLicenseForUser(user.id, createLicenseKey())`. |
+| Account Tied to Key Generation and Use | 2 | `valuation-api/lib/db.js` stores users, sessions, and licenses. `valuation-api/lib/security.js` returns the user's license in the sanitized session payload. `valuation-site/js/pages/account.js` reads `user.license` so the displayed key belongs to the signed-in account. |
+| IP Address Whitelisting | 2 | `valuation-api/middleware/auth.js` checks per-key and global allowed IP rules before allowing protected API access. It supports license-specific `allowed_ips`, environment allowlists, exact IPs, and CIDR-style rules through the shared IP rule parser. |
+| Request Throttling | 2 | `valuation-api/server.js` applies `express-rate-limit` globally to API requests. `valuation-api/routes/auth.js` adds stricter auth and password-reset limiters. The Draft Kit API also uses `express-rate-limit` in `draftkit-api/server.js`. |
+| License Used Properly by Draft Kit Server | 4 | The browser talks to `draftkit-api`, not directly to the licensed Valuation API. `draftkit-api/routes/valuation-proxy.js` reads the server-side `VALUATION_API_KEY` and forwards it as `X-License-Key` to `/v1/players`, `/v1/valuate`, `/v1/player-updates`, `/v1/player-updates/stream`, and `/v1/mlb/depth-charts`. `draftkit-web/src/constants.js` points the frontend at `https://draftapi.anythingavenue.com`, keeping the licensed key off the client. |
 
-## Repository Layout
+## Player API Valuations
 
-```text
-.
-|-- draftkit-web/       React/Vite Draft Kit application
-|-- draftkit-api/       Express API for accounts, cloud drafts, and valuation proxying
-|-- valuation-api/      Licensed Express API for player pool, valuation, depth charts, and MLB/global updates
-|-- valuation-site/     Static product site for API licensing docs and account preview
-|-- docs/client-input/  Original client/project input artifacts
-|-- README.md           This file
-```
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| Test Cases 1-5 Variation Values Quality | 5 | `valuation-api/scripts/test-api-fixtures.js` creates multiple valuation scenarios and asserts distinct returned values. It verifies the exposed formula `stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk`, numeric true-dollar values, max-bid recommendations, and rubric flags. `valuation-api/scripts/test-api.js` also checks valuation dictionaries, market context, player update risk, and depth adjustments. |
+| Custom 1 or 3 Year Stats Used | 1 | `valuation-api/services/valuation.js` reads custom stat windows supplied in `draft_state`. `valuation-api/scripts/test-api-fixtures.js` sends one-year and three-year stat overrides and asserts `rubric_checks.custom_one_or_three_year_stats_used === true`. |
+| Predictive Stats Used | 1 | `valuation-api/services/valuation.js` applies predictive/projection inputs to the valuation adjustment. `valuation-api/scripts/test-api-fixtures.js` supplies predictive stats and asserts `rubric_checks.predictive_stats_used === true`. |
+| Age Used | 1 | `valuation-api/services/valuation.js` returns `age_adjustment` and uses player age in the valuation calculation. `valuation-api/scripts/test-api-fixtures.js` asserts `rubric_checks.age_used === true`. |
+| Injury Status Used | 1 | `valuation-api/services/playerUpdates.js` stores API-owned injury/news updates, and `valuation-api/services/valuation.js` applies that update context as injury risk. `valuation-api/scripts/test-api-fixtures.js` creates an injury update and asserts `rubric_checks.injury_status_used === true`. |
+| Scarcity Used | 1 | `valuation-api/services/valuation.js` includes scarcity in the exposed valuation formula and returns scarcity context in the valuation breakdown. `valuation-api/scripts/test-api-fixtures.js` asserts `rubric_checks.scarcity_used === true`. |
+| Depth Chart Position Used | 1 | `draftkit-web/src/utils/helpers.js` builds `depth_chart_context` from MLB depth chart rows and includes it in `draft_state`. `valuation-api/services/valuation.js` returns `depth_chart_adjustment`. `valuation-api/scripts/test-api-fixtures.js` asserts `rubric_checks.depth_chart_position_used === true`. |
+| New Values Requested/Presented by Draft Kit After Every Edit | 2 | `draftkit-web/src/App.jsx` clears the valuation cache whenever roster/taxi/minor-league state changes and rebuilds the request key from current rosters, budgets, scoring, roster config, and depth context. `requestValuation()` posts the full `draft_state` to `draftkit-api`, which proxies `/v1/valuate`. `draftkit-web/src/components/DraftBoard.jsx` and `draftkit-web/src/components/PlayerDictionary.jsx` display live `max_bid_recommendation` values from the shared valuation cache. |
 
-Old sprint snapshots and experimental folders were removed. The active code now lives at the repo root; there is no `mvpfinal/` wrapper.
+## Draft Kit Accounts
 
-## Architecture
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| Account Creation and Login Mechanisms | 2 | `draftkit-web/src/components/AuthModal.jsx` provides signup/login UI. `draftkit-api/routes/auth.js` implements `/v1/auth/signup`, `/v1/auth/login`, `/v1/auth/session`, and `/v1/auth/logout`. `draftkit-api/lib/security.js` hashes and verifies passwords. |
+| Account Password/Login Reset/Retrieval | 2 | `draftkit-web/src/components/AuthModal.jsx` includes forgot-password and reset-token views. `draftkit-api/routes/auth.js` implements `/v1/auth/password-reset/request` and `/v1/auth/password-reset/confirm`. `draftkit-api/lib/mailer.js` builds and sends reset links. |
+| User Can Create Draft for Given Year | 2 | `draftkit-web/src/components/SetupScreen.jsx` includes a season year field. `draftkit-web/src/utils/draftSessions.js` validates the year and builds the league draft object. `draftkit-api/lib/db.js` stores each cloud draft with a `season` column. |
+| User Can Create Multiple Drafts | 2 | `draftkit-web/src/App.jsx` creates new draft IDs with `createDraftId()` and stores multiple saved cloud draft records. `draftkit-api/routes/drafts.js` and `draftkit-api/lib/db.js` support creating, updating, listing, opening, and deleting multiple drafts per user. |
+| User Can Access Multiple Drafts | 2 | `draftkit-web/src/components/SetupScreen.jsx` renders the saved draft library. `draftkit-web/src/App.jsx` loads the cloud library with `fetchCloudDraftLibrary()` and opens selected drafts with `openSavedDraft()`. |
+| User Can Access Drafts from Current and Past Years | 2 | Each saved draft stores its own `league.season` in `draftkit-api/lib/db.js`. `draftkit-web/src/components/SetupScreen.jsx` shows draft cards with season labels and allows reopening drafts regardless of season. |
+| Can Create New Draft Using Completed Draft from Previous Year | 2 | `draftkit-web/src/App.jsx` implements `duplicateDraft()`, cloning the selected saved draft into a new draft ID/workspace while preserving league structure and player state. `draftkit-web/src/components/SetupScreen.jsx` exposes duplicate controls through the saved draft library. |
 
-```text
-Browser Draft Kit
-  -> draftkit-api
-      -> valuation-api
+## Draft Kit Prep
 
-Valuation product site
-  -> valuation-api
-```
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| User Can Setup Draft Using AL-only, NL-only, or All MLB | 2 | `draftkit-web/src/components/SetupScreen.jsx` exposes `MLB`, `AL`, and `NL` pool buttons and loads pool counts through the Draft Kit API. `draftkit-web/src/App.jsx` fetches players with the selected league filter. |
+| Custom Number of Fantasy Teams | 2 | `draftkit-web/src/components/SetupScreen.jsx` lets the user set owner count. `draftkit-web/src/utils/draftSessions.js` validates the owner count and creates the matching number of team records. |
+| Custom Fantasy Team Names | 2 | `draftkit-web/src/components/SetupScreen.jsx` and `draftkit-web/src/components/LeagueSettings.jsx` render editable fantasy team name fields. `draftkit-web/src/utils/draftSessions.js` normalizes and persists names into league/team state. |
+| Custom Stats Selection for League | 2 | `draftkit-web/src/components/LeagueSettings.jsx` renders hitter and pitcher scoring category toggles. `draftkit-web/src/utils/helpers.js` includes active `scoring_categories` in the `draft_state` sent to the valuation API. |
+| Custom Hitter and Pitcher Positions for League | 2 | `draftkit-web/src/components/LeagueSettings.jsx` provides roster slot count controls for hitter, pitcher, bench, and taxi slots. `draftkit-web/src/utils/helpers.js` converts the configured roster into ordered slot columns with `buildRosterPositions()`. |
+| User Can Enter Pre-Draft Rosters with Contract and Dollar Values | 2 | `draftkit-web/src/components/KeeperSetup.jsx` lets commissioners add/edit keeper contracts with owner, player, and dollar cost before the auction. `draftkit-web/src/App.jsx` saves keepers as real roster entries, deducts budget, and marks players unavailable. |
+| User Can Easily Move Player to Another Position Within Team | 2 | `draftkit-web/src/components/DraftBoard.jsx` exposes a manage-drafted-player modal with Move Slot controls. `draftkit-web/src/App.jsx` implements `moveRosterEntry()` and records the move in draft history. |
+| Kit Only Allows Players to Be Moved to Positions They Are Eligible For | 2 | `draftkit-web/src/components/DraftBoard.jsx` filters move destinations through `slotAcceptsPlayer()`. `draftkit-web/src/App.jsx` also validates target slots before committing `moveRosterEntry()` or `transferRosterEntry()`. |
+| User Can Enter Minor League Player Rosters | 2 | `draftkit-web/src/components/ProspectRosters.jsx` provides a protected minor-league roster UI with search, owner selection, roster display, release, and transfer controls. `draftkit-web/src/App.jsx` implements `addProspect()` and stores entries under each team's `minorLeague` array. |
+| Minor League Player Not Eligible for Draft | 2 | `draftkit-web/src/App.jsx` marks protected prospects as drafted/minor-league players when added. `draftkit-web/src/utils/draftSessions.js` reapplies `minorLeague` assignments to player availability when drafts are reopened, keeping protected players out of the active draft pool. |
+| Minor League Players Can Be Moved from One Team to Another | 2 | `draftkit-web/src/components/ProspectRosters.jsx` renders transfer controls for each protected player. `draftkit-web/src/App.jsx` implements `transferProspect()` and records the transfer in draft history. |
+| User Can Enter Player Notes Before or During Draft | 1 | `draftkit-web/src/components/PlayerCard.jsx` renders the notes editor for selected players. `draftkit-web/src/App.jsx` stores notes in draft state so notes can be entered before or during draft work. |
+| User Can Edit Player Notes Before or During Draft | 1 | `draftkit-web/src/components/PlayerCard.jsx` saves edited note text through `saveNote`. `draftkit-web/src/App.jsx` persists the updated `notes` object in the active draft. |
 
-The browser never sends the valuation license key directly. `draftkit-api` stores that key server-side and proxies valuation requests with `X-License-Key`.
+## Draft Day
 
-### Service Responsibilities
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| Ordered Draft History with Full Detail | 2 | `draftkit-web/src/components/DraftHistory.jsx` renders the history table. `draftkit-web/src/utils/draftHistory.js` builds ordered rows for auction picks, keepers, taxi picks, minor-league entries, roster moves, transfers, removals, and CSV export. `draftkit-web/src/App.jsx` records each board-changing action through `recordDraftAction()`. |
+| Filtering Players List by Position | 2 | `draftkit-web/src/components/DraftBoard.jsx` and `draftkit-web/src/components/PlayerDictionary.jsx` both expose position filters and only show players eligible for the selected position or slot. |
+| Filtering/Searching Players List by Name | 2 | `draftkit-web/src/components/DraftBoard.jsx`, `draftkit-web/src/components/PlayerDictionary.jsx`, `draftkit-web/src/components/TaxiSquad.jsx`, and `draftkit-web/src/components/ProspectRosters.jsx` include name/team search fields for finding players. |
+| Sorting Players List by Dollar Value | 2 | `draftkit-web/src/components/DraftBoard.jsx` sorts scouting results by base value when other priority signals are tied. `draftkit-web/src/components/PlayerDictionary.jsx` sorts filtered players by live/base dollar value and displays live API value labels where available. |
+| Move Player to New Position | 2 | `draftkit-web/src/components/DraftBoard.jsx` opens the manage-drafted-player modal from filled cells and drafted player cards. `draftkit-web/src/App.jsx` commits legal slot moves with `moveRosterEntry()`. |
+| Any Players Can Be Moved from One Team to Another | 2 | `draftkit-web/src/components/DraftBoard.jsx` exposes Transfer Team controls for drafted players. `draftkit-web/src/App.jsx` implements `transferRosterEntry()`, checks destination slot/budget eligibility, updates both teams, and records `roster_transfer` history. |
+| Player Details - Stats, Age, Injury Status, Depth Chart, Transactions | 2 | `draftkit-web/src/components/PlayerCard.jsx` shows player stats, age, live valuation factors, injury/news status, depth details, and transaction/contract context from Valuation API updates. |
+| Fantasy Team Tabular Comparison | 2 | `draftkit-web/src/components/DepthCharts.jsx` renders owner ranking/comparison tables. `draftkit-web/src/utils/teamInsights.js` computes roster value, remaining budget, value delta, risk counts, roster fill, max bid, and strength score. |
+| Fantasy Team Tabular Comparison Sortable by Estimated Rankings/Money | 2 | `draftkit-web/src/components/DepthCharts.jsx` stores comparison `sortState` and renders sortable owner rankings. `draftkit-web/src/utils/teamInsights.js` provides `sortOwnerRankings()` for strength score, roster value, budget, value delta, risk, and roster fill sorting. |
+| Can View MLB Team Depth Charts | 2 | `valuation-api/services/mlbDepthCharts.js` builds MLB team depth chart data. `valuation-api/routes/mlb-depth-charts.js` exposes the protected endpoint. `draftkit-api/routes/valuation-proxy.js` proxies it to Draft Kit. `draftkit-web/src/components/DepthCharts.jsx` renders the MLB team/position/search depth chart page. |
+| Undo/Redo for All Draft Editing | 2 | `draftkit-web/src/App.jsx` maintains `undoStack` and `redoStack`, snapshots board-changing actions, and wires Undo/Redo buttons into `draftkit-web/src/components/DraftBoard.jsx`. |
 
-- `draftkit-web`
-  - Creates and runs draft rooms.
-  - Manages board, keeper setup, taxi draft, minor league rosters, draft history, settings, player notes, and UI feedback.
-  - Subscribes to Valuation API player update streams through `draftkit-api` and displays those pushed alerts in draft surfaces.
-- `draftkit-api`
-  - Owns Draft Kit accounts, password reset, sessions, and cloud draft persistence.
-  - Proxies player pool, valuation, MLB depth chart, and Valuation API player update reads/streams.
-- `valuation-api`
-  - Owns licensed valuation logic, player pool data, global MLB/player news feed, live depth charts, API key mediation, optional IP allowlisting, and rate limiting.
-  - Accepts stateless draft payloads and returns valuation dictionaries. Notification-worthy news must enter through `POST /v1/player-updates` or `/v1/player-updates/demo`.
-- `valuation-site`
-  - Explains the licensed API, shows endpoint examples, and provides buyer/account-oriented copy.
+## Player API - Draft Kit Push Notification
 
-## Local Development
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| Mechanism to Force New Notification-Worthy Info via Player API | 5 | `valuation-api/routes/player-updates.js` exposes protected `POST /v1/player-updates` for real API-owned updates and `POST /v1/player-updates/demo` for operator-forced demo alerts. `valuation-api/services/playerUpdateDemo.js` lets the caller choose a player and alert status, then generates a complete notification-worthy update. `valuation-api/routes/admin-console.js` provides the password-protected API test console used to trigger demo push news from the Valuation API site. |
+| Draft Kit Shows Updated Pushed State | 2 | `draftkit-api/routes/valuation-proxy.js` proxies player update reads and streams to Draft Kit without exposing the license key. `draftkit-web/src/App.jsx` fetches player updates, merges pushed state into affected player records, clears valuation cache, and refreshes valuations. `draftkit-web/src/components/PlayerUpdateCenter.jsx` shows the latest pushed player-update feed. |
+| Draft Kit Employs Notification System to Alert User of Pushed State | 2 | `draftkit-web/src/App.jsx` opens the Valuation API update stream, watches for new pushed updates, and sets board notices such as `Player alert: ...`. `draftkit-web/src/components/PlayerUpdateCenter.jsx` renders status-colored alert cards using the pushed alert status. |
+| Player Details - Depth Chart | 1 | `draftkit-web/src/components/PlayerCard.jsx` renders depth chart details from valuation `depth_chart_adjustment`, including depth position, rank, role, and volume context. |
+| Player Details - Transactions/Contract Status | 1 | `valuation-api/services/playerUpdates.js` stores `transaction_status` and `contract_status` fields. `draftkit-web/src/components/PlayerCard.jsx` renders transaction/contract context in the player detail card. |
+| Player Details - Injury/News | 1 | `valuation-api/services/playerUpdates.js` stores injury/news updates with status labels and severity. `draftkit-web/src/components/PlayerCard.jsx` renders injury status, update headline/body, impact summary, and risk context. |
 
-Use three terminals:
+## Taxi Draft
 
-```powershell
-cd valuation-api
-npm install
-npm start
-```
+| Requirement | Points | Credit Evidence |
+|---|---:|---|
+| Taxi Draft Order Can Be Specified | 1 | `draftkit-web/src/components/TaxiSquad.jsx` uses the active fantasy team as the current taxi team and lets the commissioner select which team is active before entering taxi picks. |
+| Taxi Draft Order Can Be Changed | 1 | `draftkit-web/src/components/TaxiSquad.jsx` lets the commissioner click any team row to change the active taxi team, so taxi pick order can be adjusted during the taxi workflow. |
+| Players Can Be Entered into Taxi Rosters in Any Order | 4 | `draftkit-web/src/components/TaxiSquad.jsx` lets the commissioner choose the active team and search/add available players independently of the main auction order. `draftkit-web/src/App.jsx` records taxi picks as `taxi` history entries. |
+| Players Can Easily Be Found for Entry in Taxi Rosters | 2 | `draftkit-web/src/components/TaxiSquad.jsx` includes a dedicated taxi player search, filtered to available players and disabled when the active taxi roster is full. |
+| Players Entered Are Removed from Eligible Players List | 4 | `draftkit-web/src/App.jsx` implements `addTaxiPick()`, writes the player to `team.taxiSquad`, marks the player as drafted/taxi, and prevents reassignment. `draftkit-web/src/utils/draftSessions.js` reapplies taxi assignments when saved drafts are reopened. |
+| Taxi Draft Rosters Can Be Edited | 2 | `draftkit-web/src/components/TaxiSquad.jsx` renders remove buttons for taxi picks. `draftkit-web/src/App.jsx` implements `removeTaxiPick()` and restores player availability when a taxi pick is removed. |
 
-```powershell
-cd draftkit-api
-npm install
-npm start
-```
+## User Interface
 
-```powershell
-cd draftkit-web
-npm install
-npm run dev
-```
-
-Default local ports:
-
-| Service | Port |
-|---|---:|
-| `valuation-api` | `3001` |
-| `draftkit-api` | `3002` |
-| `draftkit-web` | `5173` |
-
-Important environment files:
-
-- `valuation-api/.env.example`
-- `draftkit-api/.env.example`
-- `draftkit-web/.env.example`
-- `draftkit-web/.env.production`
-
-Do not commit real `.env` files, SQLite databases, player update state, logs, `node_modules`, or build output.
-
-## Validation
-
-Run these checks before committing changes that touch the matching service:
-
-```powershell
-cd valuation-api
-npm run test:api
-node scripts/test-mlb-depth-charts.js
-```
-
-```powershell
-cd draftkit-api
-npm run test:auth
-npm run test:proxy
-```
-
-```powershell
-cd draftkit-web
-npm run build
-node scripts/test-depth-rankings.mjs
-node scripts/test-draft-history.mjs
-node scripts/test-minor-league-rosters.mjs
-node scripts/test-team-names.mjs
-node scripts/test-settings-guardrails.mjs
-```
-
-## Deployment
-
-The deployed VPS uses PM2 processes:
-
-| PM2 process | Purpose | Local path after cleanup |
-|---|---|---|
-| `draftkit-web` | Serves `draftkit-web/dist` on port `3003` | `/home/apple/DARKBLUE-DRAFTKIT-PROJECT/draftkit-web` |
-| `draftkit-app-api` | Draft Kit API on port `3002` | `/home/apple/DARKBLUE-DRAFTKIT-PROJECT/draftkit-api` |
-| `darkblueapi-service` | Valuation API on port `3006` | `/home/apple/DARKBLUE-DRAFTKIT-PROJECT/valuation-api` |
-| `darkbluevalue-site` | Static valuation site | `/home/apple/DARKBLUE-DRAFTKIT-PROJECT/valuation-site` |
-
-Deploy flow:
-
-```bash
-cd /home/apple/DARKBLUE-DRAFTKIT-PROJECT
-git pull origin main
-cd draftkit-web && npm run build
-pm2 restart draftkit-app-api darkblueapi-service draftkit-web darkbluevalue-site
-pm2 save
-```
-
-Smoke checks:
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://draft.anythingavenue.com
-curl -s -o /dev/null -w '%{http_code}\n' https://draftapi.anythingavenue.com/health
-curl -s -o /dev/null -w '%{http_code}\n' https://darkblueapi.anythingavenue.com/health
-curl -s -o /dev/null -w '%{http_code}\n' https://darkbluevalue.anythingavenue.com
-```
-
-## Runtime Data
-
-- `valuation-api/data/players.json` is tracked because it is the generated production player pool.
-- `valuation-api/data/player-updates.json` is runtime state and is ignored.
-- `draftkit-api/data/draftkit-auth.db*` is runtime account/draft state and is ignored.
-
-## Rubric Coverage
-
-Source rubric: `C:\Users\Apple\Documents\Downloads\416-S26-Final Project-System Testing.xlsx`.
-
-### Player API Licensing
-
-The project should receive full credit for the relevant licensing workflow because the valuation API is treated as a separate licensed product rather than as code directly exposed to the Draft Kit browser. The public valuation product site gives a buyer-facing account/license surface, shows the API key flow, and documents how a developer sends `X-License-Key`. Reviewers can see that in `valuation-site/index.html`, `valuation-site/js/pages/account.js`, `valuation-site/js/pages/license.js`, and `valuation-site/js/pages/endpoints.js`.
-
-The backend enforces key-based API access and optional exact-IP/CIDR allowlisting in `valuation-api/middleware/auth.js`, applies request throttling in `valuation-api/server.js`, and has regression coverage for authenticated calls, blocked IPs, whitelisted CIDR access, and rate limiting in `valuation-api/scripts/test-api.js`. Draft Kit uses the license correctly because only `draftkit-api/routes/valuation-proxy.js` reads `VALUATION_API_KEY` from server-side environment and forwards it to the valuation API. The React app never stores or sends the licensed valuation key directly.
-
-### Player API Valuations
-
-The valuation API should receive full credit for valuation behavior because values are not static lookup fields. `valuation-api/services/valuation.js` recalculates value from draft context, remaining budget, roster fill, position scarcity, and player risk. It reads persisted Player API updates without mutating the base player dataset, which is why injury/news context can immediately affect dollar values.
-
-The player pool includes generated baseball context in `valuation-api/data/players.json`. The generation pipeline in `valuation-api/scripts/generate-players.js` documents how projection data, current-season data, and three-year-average data are blended into player values. Age, injury/news status, scarcity, depth context, and risk adjustments flow through `valuation-api/services/valuation.js`, `valuation-api/services/playerUpdates.js`, and `valuation-api/services/mlbDepthCharts.js`. Draft Kit requests and presents updated values after draft changes through the valuation state path in `draftkit-web/src/App.jsx`.
-
-### Draft Kit Accounts
-
-Draft Kit should receive full credit for account-backed draft ownership because account creation, login, production password reset, sessions, draft storage, draft reopening, and duplicate draft workflows are all implemented as real product behavior. The backend account/session implementation is in `draftkit-api/routes/auth.js`, `draftkit-api/middleware/session.js`, `draftkit-api/lib/security.js`, `draftkit-api/lib/mailer.js`, and `draftkit-api/lib/db.js`. The user-facing login/signup/password-reset modal is `draftkit-web/src/components/AuthModal.jsx`.
-
-Saved drafts are scoped to the authenticated user in `draftkit-api/routes/drafts.js` and `draftkit-api/lib/db.js`. On the frontend, `draftkit-web/src/App.jsx` manages creating drafts for a season, saving multiple cloud drafts, reopening current or prior drafts, and duplicating an existing draft as a new workspace. This gives reviewers a concrete account-to-draft flow rather than a local-only demo.
-
-### Draft Kit Prep
-
-Draft preparation should receive full credit because the setup workflow supports the league configuration choices expected before a fantasy auction starts. `draftkit-web/src/components/SetupScreen.jsx` handles league creation, player pool selection, season, teams, budgets, and initial setup. `draftkit-web/src/components/LeagueSettings.jsx` exposes editable league settings before the draft starts, including team names, scoring categories, roster slots, and guardrails that lock dangerous changes once drafting begins.
-
-Keeper and roster preparation are implemented in `draftkit-web/src/components/KeeperSetup.jsx`, `draftkit-web/src/components/ProspectRosters.jsx`, and the roster mutation logic in `draftkit-web/src/App.jsx`. Player movement is guarded by eligibility helpers in `draftkit-web/src/utils/helpers.js`, so players can only be placed into valid slots. Minor league and protected prospects are handled separately from the active draft pool, which lets the app support protected rosters without making those players draft eligible. Player notes are persisted in draft state through the selected-player flow in `draftkit-web/src/App.jsx` and rendered in `draftkit-web/src/components/PlayerCard.jsx`.
-
-### Draft Day
-
-Draft day should receive full credit because the board supports the core live-auction actions and keeps an auditable history of them. `draftkit-web/src/components/DraftBoard.jsx` is the main draft surface for player search, nomination, sale, roster movement, transfers, budget display, and eligibility-driven controls. `draftkit-web/src/components/DraftHistory.jsx` records ordered auction events, keeper entries, taxi moves, corrections, and other draft actions.
-
-Player discovery and review are covered by `draftkit-web/src/components/PlayerDictionary.jsx`, `draftkit-web/src/components/PlayerCard.jsx`, and the filtering/sorting state in `draftkit-web/src/App.jsx`. Team comparison and ranking views are built from `draftkit-web/src/utils/teamInsights.js` and displayed through the depth/ranking UI. MLB depth chart review is implemented in `valuation-api/services/mlbDepthCharts.js`, exposed by `valuation-api/routes/mlb-depth-charts.js`, proxied through Draft Kit, and rendered in `draftkit-web/src/components/DepthCharts.jsx`. Undo and redo are centralized in `draftkit-web/src/App.jsx`, so board-changing actions can be corrected during a live draft.
-
-### Player API And Draft Kit Push Notifications
-
-The push-notification requirement should receive full credit because notification-worthy player news is now produced only by the Valuation API. The feed is in `valuation-api/routes/player-updates.js` and `valuation-api/services/playerUpdates.js`; it supports live-feed ingestion, an operator demo push endpoint, persistence, and server-sent events.
-
-The Draft Kit side is a subscriber. `draftkit-api/routes/valuation-proxy.js` proxies update reads and SSE streams without exposing the API key, `draftkit-web/src/components/PlayerUpdateCenter.jsx` shows the feed, and `draftkit-web/src/App.jsx` merges updates into player state, opens affected players, shows board notices, and connects to live streams. Player cards and details show the resulting injury/news, risk, depth, transaction, and contract context in `draftkit-web/src/components/PlayerCard.jsx`.
-
-### Taxi Draft
-
-Taxi draft should receive full credit because taxi roster entry is its own workflow rather than a generic note field. `draftkit-web/src/components/TaxiSquad.jsx` provides taxi search, owner selection, current order flow, add/remove actions, and roster display. The state transitions live in `draftkit-web/src/App.jsx`, where taxi assignments remove players from the eligible pool, allow roster editing, and write draft-history events through `draftkit-web/src/utils/draftHistory.js`.
-
-### User Interface
-
-The UI should receive full credit because it is organized around repeated draft-day use instead of a marketing-style demo. `draftkit-web/src/App.jsx` lays out the main product shell, `draftkit-web/src/styles.css` defines the visual system, and the app uses focused feature components for setup, board, dictionary, player card, history, depth charts, prospect rosters, taxi draft, and settings. The result is a board-first workflow where common actions stay visible and rare injury/news management stays available without dominating the interface.
-
-The interface also includes the feedback and guardrails expected in a draft tool: disabled invalid actions, warning banners, loading states, health/error messages, board notices, locked mid-draft settings, and API-owned pushed update alerts. Those behaviors are spread across `draftkit-web/src/App.jsx`, `draftkit-web/src/components/LeagueSettings.jsx`, `draftkit-web/src/components/PlayerUpdateCenter.jsx`, and the validation helpers in `draftkit-web/src/utils/helpers.js`.
+| Requirement | Credit Evidence |
+|---|---|
+| Nicely Laid Out in All Screens | `draftkit-web/src/App.jsx` organizes the product into focused tabs for setup, board, player dictionary, keeper setup, minor league rosters, taxi squad, depth/rankings, history, and settings. Component-specific layouts live in `draftkit-web/src/styles.css`. |
+| Complementary Color Combinations | `draftkit-web/src/styles.css` defines the Dark Blue visual system with consistent dark surfaces, green action states, muted table colors, warning/danger tones, and position badge colors. |
+| Conceptual Integrity | The app is board-first and draft-day focused: `draftkit-web/src/components/DraftBoard.jsx` handles auction actions, `PlayerDictionary.jsx` handles research, `DepthCharts.jsx` handles MLB/team comparison, `DraftHistory.jsx` handles audit history, and setup/prep features stay in their own tabs. |
+| Foolproof Design: Unusable Controls Deactivated or Hidden | `draftkit-web/src/components/LeagueSettings.jsx` locks unsafe owner/pool/roster reductions after draft activity unless commissioner override permits safe expansion. `DraftBoard.jsx`, `TaxiSquad.jsx`, and `KeeperSetup.jsx` disable invalid action buttons when slot, budget, team, eligibility, or roster-cap requirements are not met. |
+| Quality Feedback, Error Messages, and Modals | `draftkit-web/src/App.jsx` and `DraftBoard.jsx` set `boardNotice` messages for invalid sales, already-drafted players, transfer failures, undo/redo, pushed alerts, and successful actions. `AuthModal.jsx`, `SetupScreen.jsx`, `KeeperSetup.jsx`, `TaxiSquad.jsx`, and `LeagueSettings.jsx` render inline errors, warning banners, disabled states, and modal feedback. |

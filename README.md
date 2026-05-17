@@ -2,6 +2,15 @@
 
 This README is written for grading. It only lists rubric items that are implemented and gives direct code evidence for awarding credit.
 
+## Product URLs
+
+| Product | Reviewer URL |
+|---|---|
+| Draft Kit app | https://draft.anythingavenue.com |
+| Draft Kit API health | https://draftapi.anythingavenue.com/health |
+| Valuation API health | https://darkblueapi.anythingavenue.com/health |
+| Valuation API customer site | https://darkbluevalue.anythingavenue.com |
+
 ## Player API Licensing
 
 | Requirement | Points | Credit Evidence |

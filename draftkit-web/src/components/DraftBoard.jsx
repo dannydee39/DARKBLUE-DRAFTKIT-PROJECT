@@ -162,7 +162,7 @@ export default function DraftBoard({
   const [customPlayerError, setCustomPlayerError] = useState("");
 
   // ── Remove confirmation modal state ──────────────────────────────────────
-  const [removeModal, setRemoveModal] = useState(null); // {playerName, teamId, price, pos}
+  const [removeModal, setRemoveModal] = useState(null); // {playerName, teamId, price, pos, mode}
   const [moveSlotChoice, setMoveSlotChoice] = useState("");
   const [transferTeamChoice, setTransferTeamChoice] = useState("");
   const [transferSlotChoice, setTransferSlotChoice] = useState("");
@@ -287,6 +287,117 @@ export default function DraftBoard({
 
       return acc;
     }, []);
+  }
+
+  function findRosterAssignmentForPlayer(player) {
+    if (!player) return null;
+    const playerId = player.id;
+    const playerName = String(player.name || "").trim().toLowerCase();
+
+    for (const team of league.teams) {
+      const rosterEntry = (team.roster || []).find((entry) => {
+        if (playerId != null && entry.playerId === playerId) return true;
+        return (
+          playerName &&
+          String(entry.name || "").trim().toLowerCase() === playerName
+        );
+      });
+
+      if (rosterEntry) {
+        const slotIndex = Number(rosterEntry.slotIndex);
+        return {
+          team,
+          rosterEntry,
+          slotIndex,
+          slotLabel: rosterEntry.draftedPos || rosterPositions[slotIndex] || "BN",
+        };
+      }
+    }
+
+    return null;
+  }
+
+  function isEligibleOpenSlot(player, teamId, slotIndex, sourceSlotIndex = null) {
+    const team = league.teams.find((candidate) => candidate.id === teamId);
+    const slotLabel = rosterPositions[slotIndex];
+    if (!team || !slotLabel) return false;
+
+    const occupiedByOtherPlayer = (team.roster || []).some(
+      (entry) =>
+        Number(entry.slotIndex) === Number(slotIndex) &&
+        Number(sourceSlotIndex) !== Number(slotIndex),
+    );
+    if (occupiedByOtherPlayer) return false;
+
+    return slotAcceptsPlayer(player, slotLabel);
+  }
+
+  function openDraftedPlayerActionModal(player, preferredTarget = null) {
+    const assignment = findRosterAssignmentForPlayer(player);
+    if (!assignment) return false;
+
+    setIsPinnedExpanded(false);
+    clearHoverPreview();
+    requestValuation();
+
+    const { team, rosterEntry, slotIndex, slotLabel } = assignment;
+    const eligibilityPlayer = {
+      ...player,
+      pos: rosterEntry.pos || player?.pos || [],
+    };
+    const defaultTransferTeam = league.teams.find(
+      (candidate) => candidate.id !== team.id,
+    );
+
+    let nextMoveSlotChoice = "";
+    let nextTransferTeamChoice = defaultTransferTeam
+      ? String(defaultTransferTeam.id)
+      : "";
+    let nextTransferSlotChoice = "";
+
+    // When the user clicked an empty grid cell first, use that cell as the
+    // proposed destination if it can legally hold this already-drafted player.
+    if (preferredTarget) {
+      const preferredTeamId = Number(preferredTarget.teamId);
+      const preferredSlotIndex = Number(preferredTarget.slotIdx);
+      const targetIsCurrentTeam = preferredTeamId === team.id;
+      const preferredSlotIsValid = isEligibleOpenSlot(
+        eligibilityPlayer,
+        preferredTeamId,
+        preferredSlotIndex,
+        targetIsCurrentTeam ? slotIndex : null,
+      );
+
+      if (preferredSlotIsValid && targetIsCurrentTeam) {
+        nextMoveSlotChoice =
+          preferredSlotIndex === slotIndex ? "" : String(preferredSlotIndex);
+      } else if (preferredSlotIsValid) {
+        nextTransferTeamChoice = String(preferredTeamId);
+        nextTransferSlotChoice = String(preferredSlotIndex);
+      }
+    }
+
+    setRemoveModal({
+      playerId: rosterEntry.playerId,
+      playerName: rosterEntry.name || player.name,
+      teamId: team.id,
+      slotIndex,
+      price: rosterEntry.price,
+      pos: slotLabel,
+      mode: "manage",
+    });
+    setMoveSlotChoice(nextMoveSlotChoice);
+    setTransferTeamChoice(nextTransferTeamChoice);
+    setTransferSlotChoice(nextTransferSlotChoice);
+    setSelectedPlayer({
+      ...player,
+      drafted: true,
+      draftedBy: team.id,
+      draftPrice: rosterEntry.price,
+      draftedPos: slotLabel,
+    });
+
+    return true;
   }
 
   const hoveredFilledCellTooltip =
@@ -656,6 +767,11 @@ export default function DraftBoard({
   // Pre-selects the first valid slot for the current active owner's team.
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModal(player) {
+    if (findRosterAssignmentForPlayer(player)) {
+      openDraftedPlayerActionModal(player);
+      return;
+    }
+
     // Kick off a valuation request immediately so the modal can update
     // its suggested bid as soon as the API responds (even after it opens).
     setIsPinnedExpanded(false);
@@ -688,6 +804,11 @@ export default function DraftBoard({
   // @param {number} slotIdx - Slot index of the clicked cell
   // ─────────────────────────────────────────────────────────────────────────
   function openSaleModalForCell(player, teamId, slotIdx) {
+    if (findRosterAssignmentForPlayer(player)) {
+      openDraftedPlayerActionModal(player, { teamId, slotIdx });
+      return;
+    }
+
     setIsPinnedExpanded(false);
     clearHoverPreview();
     requestValuation();
@@ -833,6 +954,7 @@ export default function DraftBoard({
       slotIndex: entry.slotIndex,
       price: entry.price,
       pos,
+      mode: "manage",
     });
     setMoveSlotChoice("");
     setTransferTeamChoice(defaultTransferTeam ? String(defaultTransferTeam.id) : "");
@@ -1026,6 +1148,12 @@ export default function DraftBoard({
 
   const displayedPinnedPlayer = hoverPreviewPlayer ?? selectedPlayer;
   const previewingPinnedPlayer = Boolean(hoverPreviewPlayer);
+  const displayedPinnedPlayerAssignment = displayedPinnedPlayer
+    ? findRosterAssignmentForPlayer(displayedPinnedPlayer)
+    : null;
+  const displayedPinnedPlayerIsDrafted = Boolean(
+    displayedPinnedPlayerAssignment || displayedPinnedPlayer?.drafted,
+  );
   const activeContextTeam = activeCellSearch
     ? league.teams.find((team) => team.id === activeCellSearch.teamId) || null
     : null;
@@ -1678,7 +1806,7 @@ export default function DraftBoard({
                         );
                       }}
                     >
-                      Add to Slot
+                      {displayedPinnedPlayerIsDrafted ? "Move to Slot" : "Add to Slot"}
                     </button>
                   )}
                 </div>
@@ -1846,7 +1974,17 @@ export default function DraftBoard({
               <button
                 className="record-sale-btn"
                 onClick={() =>
-                  activeCellSearch
+                  displayedPinnedPlayerIsDrafted
+                    ? openDraftedPlayerActionModal(
+                        selectedPlayer,
+                        activeCellSearch
+                          ? {
+                              teamId: activeCellSearch.teamId,
+                              slotIdx: activeCellSearch.slotIdx,
+                            }
+                          : null,
+                      )
+                    : activeCellSearch
                     ? openSaleModalForCell(
                         selectedPlayer,
                         activeCellSearch.teamId,
@@ -1855,7 +1993,13 @@ export default function DraftBoard({
                     : openSaleModal(selectedPlayer)
                 }
               >
-                {activeCellSearch ? "ADD TO SELECTED CELL" : "RECORD SALE"}
+                {displayedPinnedPlayerIsDrafted
+                  ? activeCellSearch
+                    ? "MOVE TO SELECTED CELL"
+                    : "MOVE PLAYER"
+                  : activeCellSearch
+                    ? "ADD TO SELECTED CELL"
+                    : "RECORD SALE"}
               </button>
             </div>
           </div>
@@ -2187,7 +2331,7 @@ export default function DraftBoard({
       {removeModal && (
         <div className="modal-overlay" onClick={() => setRemoveModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>REMOVE PLAYER FROM ROSTER?</h3>
+            <h3>MANAGE DRAFTED PLAYER</h3>
             <p className="modal-player">{removeModal.playerName}</p>
 
             <div className="modal-hint" style={{ marginBottom: 16 }}>
@@ -2209,11 +2353,9 @@ export default function DraftBoard({
                   ${removeModal.price}
                 </strong>
               </div>
-              <div style={{ marginTop: 6, color: "var(--green)" }}>
-                ✓ Budget refunded: +${removeModal.price}
-              </div>
-              <div style={{ marginTop: 4 }}>
-                Player returns to available pool.
+              <div style={{ marginTop: 6 }}>
+                Move keeps the player on this team in a different eligible
+                slot. Transfer moves the same purchase price to another team.
               </div>
             </div>
 
@@ -2307,6 +2449,7 @@ export default function DraftBoard({
                 className="modal-confirm"
                 style={{ background: "var(--red)" }}
                 onClick={confirmRemove}
+                title="Use only when the original sale was entered incorrectly."
               >
                 Remove Player
               </button>

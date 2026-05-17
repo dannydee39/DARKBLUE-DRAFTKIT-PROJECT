@@ -15,7 +15,7 @@ router.get("/", (req, res) => {
 });
 
 router.post("/login", (req, res) => {
-  const password = String(req.body?.password || "");
+  const password = String(req.body?.password || "").trim();
   const configuredPassword = getAdminPassword();
 
   if (!configuredPassword) {

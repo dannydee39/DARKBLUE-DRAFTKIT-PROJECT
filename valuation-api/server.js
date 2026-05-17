@@ -20,7 +20,15 @@ function createApp(options = {}) {
   const NODE_ENV = options.nodeEnv || process.env.NODE_ENV || "development";
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
     .split(",")
-    .map((o) => o.trim());
+    .map((o) => o.trim())
+    .filter(Boolean);
+  [
+    "https://darkblueapi.anythingavenue.com",
+    "https://darkbluevalue.anythingavenue.com",
+    "https://draft.anythingavenue.com",
+  ].forEach((origin) => {
+    if (!allowedOrigins.includes(origin)) allowedOrigins.push(origin);
+  });
   const rateLimitWindowMs = Number(options.rateLimitWindowMs ?? process.env.RATE_LIMIT_WINDOW_MS ?? 60 * 1000);
   const rateLimitMax = Number(options.rateLimitMax ?? process.env.RATE_LIMIT_MAX ?? 120);
 

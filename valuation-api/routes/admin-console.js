@@ -225,7 +225,15 @@ function sendLoginPage(res) {
     <section class="login-panel">
       <div class="eyebrow">Dark Blue API</div>
       <h1>Admin Console</h1>
-      <p class="muted">Sign in to manually test live API operations, including player alert pushes.</p>
+      <div class="wrong-site-warning">
+        <strong>Developer-only API testing area.</strong>
+        <span>
+          If you are a customer, fantasy manager, commissioner, or buyer, you are likely on the wrong site.
+          Use the client site to purchase or manage a license.
+        </span>
+        <a href="/admin/customer">Go to the client site</a>
+      </div>
+      <p class="muted">This console is only for developers of the Dark Blue Valuation API to manually test live API operations, including player alert pushes.</p>
       <form id="login-form" class="login-form">
         <label>Password<input type="password" name="password" autocomplete="current-password" required autofocus /></label>
         <button type="submit">Sign In</button>
@@ -535,6 +543,10 @@ function baseCss() {
     button { color:#06111f; background:var(--blue); border:0; border-radius:var(--radius); padding:10px 12px; font-weight:900; }
     button:hover { filter:brightness(1.08); }
     .customer-link { color:#bfdbfe; display:inline-flex; margin-top:16px; font-size:13px; }
+    .wrong-site-warning { display:grid; gap:6px; margin:18px 0; padding:12px; border:1px solid rgba(245,158,11,.42); border-left:4px solid #f59e0b; border-radius:var(--radius); background:rgba(245,158,11,.1); }
+    .wrong-site-warning strong { color:#fde68a; font-size:13px; }
+    .wrong-site-warning span { color:#d7e2ee; font-size:13px; line-height:1.45; }
+    .wrong-site-warning a { color:#bfdbfe; font-weight:900; font-size:13px; }
   `;
 }
 

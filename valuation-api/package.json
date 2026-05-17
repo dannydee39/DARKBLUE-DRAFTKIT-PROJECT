@@ -10,6 +10,7 @@
     "validate:players": "node scripts/validate-player-pool.js",
     "test:api": "node scripts/test-api.js",
     "test:api:fixtures": "node scripts/test-api-fixtures.js",
+    "test:admin-console": "node scripts/test-admin-console.js",
     "test:auth": "node scripts/test-auth-licenses.js"
   },
   "dependencies": {

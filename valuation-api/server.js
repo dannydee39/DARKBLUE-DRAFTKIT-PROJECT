@@ -8,6 +8,7 @@ const playersRouter = require("./routes/players");
 const playerUpdatesRouter = require("./routes/player-updates");
 const mlbDepthChartsRouter = require("./routes/mlb-depth-charts");
 const authRouter = require("./routes/auth");
+const adminConsoleRouter = require("./routes/admin-console");
 const {
   deleteExpiredPasswordResetTokens,
   deleteExpiredSessions,
@@ -51,6 +52,7 @@ function createApp(options = {}) {
 
   // ── BODY PARSING ────────────────────────────────────────────────────────────
   app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ extended: false, limit: "32kb" }));
 
   const cleanupMs = Number(options.sessionCleanupMs ?? process.env.SESSION_CLEANUP_MS ?? 15 * 60 * 1000);
   if (cleanupMs > 0) {
@@ -65,6 +67,8 @@ function createApp(options = {}) {
   }
 
   // ── ROUTES ──────────────────────────────────────────────────────────────────
+  app.get("/", (_req, res) => res.redirect(302, "/admin"));
+  app.use("/admin", adminConsoleRouter);
   app.use("/v1/auth", authRouter);
   app.use("/v1/valuate", valuateRouter);
   app.use("/v1/players", playersRouter);

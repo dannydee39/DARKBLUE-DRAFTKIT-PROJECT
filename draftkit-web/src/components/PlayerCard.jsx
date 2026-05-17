@@ -22,6 +22,7 @@ import {
   getValuationSource,
   makeValuationSnapshot,
 } from "../utils/draftHistory.js";
+import { getPlayerAlertLabel, getPlayerAlertTone } from "../utils/playerAlerts.js";
 
 const HITTER_STAT_META = {
   R: { key: "r", label: "Runs", benchmark: 90 },
@@ -344,6 +345,8 @@ export default function PlayerCard({
   const updateType =
     updateContext?.type ||
     (valuation && valuation !== "loading" ? valuation.player_update?.type : null);
+  const alertTone = getPlayerAlertTone(updateContext || player);
+  const alertStatusLabel = getPlayerAlertLabel(updateContext || player);
   const transactionContext =
     updateType === "TRANSACTION" ||
     updateType === "CONTRACT" ||
@@ -554,14 +557,14 @@ export default function PlayerCard({
 
       {/* News still comes from the Valuation API feed; keep the UI phrasing user-facing. */}
       {(injuryStatus || updateHeadline) && (
-        <div className={`pc-risk-panel risk-${String(riskLevel).toLowerCase()}`}>
+        <div className={`pc-risk-panel alert-${alertTone} risk-${String(riskLevel).toLowerCase()}`}>
           <div className="pc-risk-top">
             <span className="pc-risk-label">
               {updateType === "TRANSACTION" || updateType === "CONTRACT"
                 ? "PLAYER TRANSACTION"
                 : "PLAYER ALERT"}
             </span>
-            <span className="pc-risk-level">{riskLevel} RISK</span>
+            <span className="pc-risk-level">{alertStatusLabel}</span>
           </div>
           <div className="pc-risk-source">{apiNewsSource}</div>
           {injuryStatus && (

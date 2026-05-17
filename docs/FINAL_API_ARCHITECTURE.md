@@ -438,6 +438,7 @@ Body:
   "player_name": "Aaron Judge",
   "type": "INJURY",
   "severity": "HIGH",
+  "alert_status": "INJURY_HIGH",
   "headline": "Aaron Judge moved to high injury risk",
   "body": "Aaron Judge has a high-risk injury flag for draft review.",
   "injury_status": "Questionable",
@@ -457,6 +458,7 @@ Fields:
 | `player_name` | string | Yes* | Alternative lookup when id is unavailable |
 | `type` | `INJURY`, `TRANSACTION`, `CONTRACT`, `NEWS`, `LINEUP`, `ROLE` | Yes | Update class used by Draft Kit cards |
 | `severity` | `LOW`, `MEDIUM`, `HIGH` | Yes | Also becomes `risk_level` |
+| `alert_status` | `INJURY_HIGH`, `INJURY_MEDIUM`, `DAY_TO_DAY`, `ACTIVE`, `ROLE_GAIN`, `ROLE_LOSS`, `ROLE_CHANGE`, `LINEUP_CHANGE`, `TRANSACTION`, `CONTRACT`, `NEWS` | No | Product-facing status. The API derives `status_label` and `tone` from this for Draft Kit notification colors. |
 | `headline` | string | Yes | Supplied by the Valuation API news source |
 | `body` | string | Yes | Supplied by the Valuation API news source |
 | `injury_status` | string | No | Injury-specific status text |
@@ -472,7 +474,7 @@ Fields:
 
 ### POST `/v1/player-updates/demo`
 
-Purpose: create an operator-triggered demo update through the same persisted Valuation API player-update service used by live ingestion. Draft Kit receives this through the proxied player-update SSE stream.
+Purpose: create an operator-triggered demo update through the same persisted Valuation API player-update service used by live ingestion. The API website can choose any known player and alert status, then Draft Kit receives the created update through the proxied player-update SSE stream.
 
 Auth: `X-License-Key` required.
 
@@ -490,7 +492,17 @@ POST /v1/player-updates/demo
 X-License-Key: <active license key>
 ```
 
-The created update is marked with `source_type: "MANUAL_DEMO"` and `origin: "VALUATION_API"`.
+Body:
+
+```json
+{
+  "player_name": "Shohei Ohtani",
+  "alert_status": "ROLE_GAIN",
+  "impact_summary": "Role context improved for this demonstration."
+}
+```
+
+The created update is marked with `source_type: "MANUAL_DEMO"` and `origin: "VALUATION_API"`. It also includes `status_label` and `tone` so Draft Kit can render prominent status-colored notifications.
 
 ### GET `/v1/mlb/depth-charts`
 

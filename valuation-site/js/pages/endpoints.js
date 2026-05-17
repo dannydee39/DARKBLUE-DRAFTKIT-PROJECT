@@ -410,6 +410,33 @@ DB.pages.endpoints = function (container) {
             '<div class="ep-callout">' +
               'This button is for operator demonstrations. It writes through the same persisted player-update path that future live news ingestion uses, marked with <code>source_type: "MANUAL_DEMO"</code>.' +
             '</div>' +
+            '<div class="demo-news-grid">' +
+              '<label class="demo-news-field">' +
+                '<span>Player</span>' +
+                '<input id="demo-news-player" list="demo-news-player-list" value="Aaron Judge" placeholder="Search any player" autocomplete="off" />' +
+                '<datalist id="demo-news-player-list"></datalist>' +
+              '</label>' +
+              '<label class="demo-news-field">' +
+                '<span>Status</span>' +
+                '<select id="demo-news-alert-status">' +
+                  '<option value="INJURY_HIGH">Major injury concern</option>' +
+                  '<option value="INJURY_MEDIUM">Injury watch</option>' +
+                  '<option value="DAY_TO_DAY">Day-to-day</option>' +
+                  '<option value="ACTIVE">Cleared / active</option>' +
+                  '<option value="ROLE_GAIN">Role increase</option>' +
+                  '<option value="ROLE_LOSS">Role decrease</option>' +
+                  '<option value="ROLE_CHANGE">Role change</option>' +
+                  '<option value="LINEUP_CHANGE">Lineup change</option>' +
+                  '<option value="TRANSACTION">Transaction</option>' +
+                  '<option value="CONTRACT">Contract status</option>' +
+                  '<option value="NEWS">General player news</option>' +
+                '</select>' +
+              '</label>' +
+              '<label class="demo-news-field demo-news-field-wide">' +
+                '<span>Draft impact note</span>' +
+                '<textarea id="demo-news-impact" rows="2" placeholder="Optional note shown in Draft Kit"></textarea>' +
+              '</label>' +
+            '</div>' +
             '<div class="ep-tryit-actions">' +
               '<button class="btn btn-primary" id="demo-news-send">Push Demo News</button>' +
             '</div>' +
@@ -534,11 +561,19 @@ DB.pages.endpoints = function (container) {
   }
 
   /* Demo News Push */
+  var demoNewsPlayers = [];
+  loadDemoNewsPlayers();
+
   var demoNewsBtn = document.getElementById('demo-news-send');
   if (demoNewsBtn) {
     demoNewsBtn.addEventListener('click', async function () {
       var statusEl = document.getElementById('demo-news-status');
       var responseEl = document.getElementById('demo-news-response');
+      var playerInput = document.getElementById('demo-news-player');
+      var alertStatusEl = document.getElementById('demo-news-alert-status');
+      var impactEl = document.getElementById('demo-news-impact');
+      var selectedPlayer = findDemoNewsPlayer(playerInput && playerInput.value);
+      var impactSummary = impactEl ? impactEl.value.trim() : '';
 
       demoNewsBtn.textContent = 'Pushing...';
       demoNewsBtn.disabled = true;
@@ -551,7 +586,12 @@ DB.pages.endpoints = function (container) {
         var res = await fetch(BASE + '/v1/player-updates/demo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-License-Key': KEY },
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            player_id: selectedPlayer ? selectedPlayer.id : undefined,
+            player_name: selectedPlayer ? selectedPlayer.name : (playerInput && playerInput.value),
+            alert_status: alertStatusEl ? alertStatusEl.value : 'INJURY_HIGH',
+            impact_summary: impactSummary || undefined,
+          }),
         });
         var latency = Math.round(performance.now() - t0);
         var json = await res.json();
@@ -578,6 +618,47 @@ DB.pages.endpoints = function (container) {
       demoNewsBtn.textContent = 'Push Demo News';
       demoNewsBtn.disabled = false;
     });
+  }
+
+  async function loadDemoNewsPlayers() {
+    var listEl = document.getElementById('demo-news-player-list');
+    if (!listEl) return;
+
+    try {
+      var res = await fetch(BASE + '/v1/players?league=ALL', {
+        headers: { 'X-License-Key': KEY },
+      });
+      var json = await res.json();
+      demoNewsPlayers = Array.isArray(json.players) ? json.players : [];
+      listEl.innerHTML = demoNewsPlayers
+        .slice()
+        .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); })
+        .map(function (player) {
+          return '<option value="' + _attr(player.name) + '">' +
+            _esc([player.team, (player.pos || []).join('/')].filter(Boolean).join(' · ')) +
+          '</option>';
+        })
+        .join('');
+    } catch (err) {
+      listEl.innerHTML = '';
+    }
+  }
+
+  function findDemoNewsPlayer(value) {
+    var normalized = normalizeDemoNewsName(value);
+    if (!normalized) return null;
+    return demoNewsPlayers.find(function (player) {
+      return normalizeDemoNewsName(player.name) === normalized;
+    }) || null;
+  }
+
+  function normalizeDemoNewsName(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/gi, ' ')
+      .trim()
+      .toLowerCase();
   }
 
   /* ── Helpers ─────────────────────────────────────────────────────────────── */

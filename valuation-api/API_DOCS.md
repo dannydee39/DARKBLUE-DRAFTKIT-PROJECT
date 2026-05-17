@@ -539,6 +539,7 @@ Publishes a persisted Valuation API player news/injury/role update and broadcast
   "player_id": 2,
   "type": "INJURY",
   "severity": "HIGH",
+  "alert_status": "INJURY_HIGH",
   "headline": "Aaron Judge moved to high injury risk",
   "body": "Aaron Judge has a high-risk injury flag for draft review.",
   "injury_status": "Questionable",
@@ -557,6 +558,7 @@ Publishes a persisted Valuation API player news/injury/role update and broadcast
 | `player_name` | string | Yes* | Alternative lookup when `player_id` is unavailable |
 | `type` | `INJURY`, `TRANSACTION`, `CONTRACT`, `NEWS`, `LINEUP`, `ROLE` | Yes | Update class used by Draft Kit player-card surfaces |
 | `severity` | `LOW`, `MEDIUM`, `HIGH` | Yes | Drives `risk_level` |
+| `alert_status` | `INJURY_HIGH`, `INJURY_MEDIUM`, `DAY_TO_DAY`, `ACTIVE`, `ROLE_GAIN`, `ROLE_LOSS`, `ROLE_CHANGE`, `LINEUP_CHANGE`, `TRANSACTION`, `CONTRACT`, `NEWS` | No | Product-facing status. The API derives `status_label` and `tone` from this for Draft Kit notification colors. |
 | `headline` | string | Yes | Notification headline supplied by the Valuation API news source |
 | `body` | string | Yes | Full update body supplied by the Valuation API news source |
 | `injury_status` | string | No | Injury-specific player status |
@@ -570,7 +572,7 @@ Publishes a persisted Valuation API player news/injury/role update and broadcast
 
 *Provide either `player_id` or `player_name`.
 
-**Response:** HTTP `201` with the created `update` and the latest `updates` array.
+**Response:** HTTP `201` with the created `update` and the latest `updates` array. Each update includes derived `risk_level`, `status_label`, and `tone` fields so subscribers can show consistent alert wording and status-dependent colors.
 
 Player updates are persisted in `data/player-updates.json` by default. Set `PLAYER_UPDATES_FILE` to override that path in test or production deployments.
 
@@ -578,11 +580,19 @@ Player updates are persisted in `data/player-updates.json` by default. Set `PLAY
 
 **Auth required** (`X-License-Key` header)
 
-Creates an operator-triggered demo update through the same persisted player-update service used by live ingestion. The response shape matches `POST /v1/player-updates`, and the created update is marked with `source_type: "MANUAL_DEMO"` so Draft Kit can explain that the alert was demo-triggered.
+Creates an operator-triggered demo update through the same persisted player-update service used by live ingestion. The caller can choose any known player plus an `alert_status`; the endpoint fills in a complete notification body and broadcasts it to Draft Kit through the same SSE stream as live ingestion.
 
 ```http
 POST /v1/player-updates/demo
 X-License-Key: DB-2026-DEMO-0001
+```
+
+```json
+{
+  "player_name": "Shohei Ohtani",
+  "alert_status": "ROLE_GAIN",
+  "impact_summary": "Role context improved for this demonstration."
+}
 ```
 
 Use this endpoint from the valuation product site when demonstrating the push-notification workflow with Draft Kit open.

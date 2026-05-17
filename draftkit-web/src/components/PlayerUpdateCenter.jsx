@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getPlayerAlertLabel, getPlayerAlertTone } from "../utils/playerAlerts.js";
 
 function formatUpdateSource(update) {
   if (update?.source_type === "MANUAL_DEMO") {
@@ -32,12 +33,14 @@ export default function PlayerUpdateCenter({
   const compactHeadline = latest
     ? latest.headline
     : "No player alerts";
+  const latestTone = latest ? getPlayerAlertTone(latest) : "neutral";
+  const latestStatusLabel = latest ? getPlayerAlertLabel(latest) : "";
   const updateCountLabel =
     updates.length === 1 ? "1 update" : `${updates.length} updates`;
 
   return (
     <section
-      className={`player-update-center ${isOpen ? "is-open" : "is-collapsed"}`}
+      className={`player-update-center alert-${latestTone} ${isOpen ? "is-open" : "is-collapsed"}`}
       aria-label="Player alerts"
     >
       <div className="puc-compact">
@@ -49,7 +52,11 @@ export default function PlayerUpdateCenter({
         >
           <span className="puc-eyebrow">Player Alerts</span>
           <strong>{compactHeadline}</strong>
-          <span>{latest ? `${formatUpdateSource(latest)} - ${updateCountLabel}` : updateCountLabel}</span>
+          <span>
+            {latest
+              ? `${latestStatusLabel} - ${formatUpdateSource(latest)} - ${updateCountLabel}`
+              : updateCountLabel}
+          </span>
         </button>
         <div className={`puc-status ${statusTone}`}>{statusLabel}</div>
         {latest && (
@@ -84,8 +91,8 @@ export default function PlayerUpdateCenter({
 
           <div className="puc-body">
             <div className="puc-primary">
-              <div className="puc-label">
-                {latest ? `${formatUpdateSource(latest)} ${latest.type}` : "No updates loaded"}
+              <div className={`puc-label alert-${latestTone}`}>
+                {latest ? `${latestStatusLabel} - ${formatUpdateSource(latest)}` : "No updates loaded"}
               </div>
               <strong>
                 {latest?.headline || "No player alerts right now."}
@@ -125,17 +132,20 @@ export default function PlayerUpdateCenter({
 
           {updates.length > 0 ? (
             <div className="puc-list">
-              {updates.slice(0, 3).map((update) => (
+              {updates.slice(0, 3).map((update) => {
+                const tone = getPlayerAlertTone(update);
+                const statusLabel = getPlayerAlertLabel(update);
+                return (
                 <div
                   key={update.id}
-                  className={`puc-item risk-${String(update.risk_level || "LOW").toLowerCase()}`}
+                  className={`puc-item alert-${tone} risk-${String(update.risk_level || "LOW").toLowerCase()}`}
                 >
                   <button
                     type="button"
                     className="puc-item-main"
                     onClick={() => onOpenPlayer?.(update)}
                   >
-                    <span className="puc-item-risk">{update.risk_level}</span>
+                    <span className="puc-item-risk">{statusLabel}</span>
                     <span className="puc-item-copy">
                       <strong>
                         {update.player_name}
@@ -145,7 +155,8 @@ export default function PlayerUpdateCenter({
                     </span>
                   </button>
                 </div>
-              ))}
+              );
+              })}
             </div>
           ) : (
             <div className="puc-empty">

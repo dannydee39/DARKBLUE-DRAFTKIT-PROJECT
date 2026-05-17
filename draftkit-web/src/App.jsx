@@ -89,6 +89,7 @@ import {
   buildMlbDepthCharts,
   buildOwnerRankings,
 } from "./utils/teamInsights.js";
+import { getPlayerAlertTone } from "./utils/playerAlerts.js";
 
 const MAX_HISTORY_SNAPSHOTS = 30;
 const VALUATION_REQUEST_TIMEOUT_MS = 7000;
@@ -1143,6 +1144,9 @@ export default function App() {
         return {
           ...player,
           risk_level: "LOW",
+          alert_status: null,
+          alert_tone: null,
+          alert_status_label: null,
           injury_status: null,
           news_headline: null,
           update_impact_summary: null,
@@ -1154,6 +1158,9 @@ export default function App() {
       return {
         ...player,
         risk_level: update.risk_level || update.severity || "LOW",
+        alert_status: update.alert_status || null,
+        alert_tone: getPlayerAlertTone(update),
+        alert_status_label: update.status_label || null,
         injury_status: update.injury_status || null,
         news_headline: update.headline || null,
         update_impact_summary: update.impact_summary || null,
@@ -1274,7 +1281,7 @@ export default function App() {
     if (announce) {
       const pushedUpdate = validUpdates[0];
       setBoardNotice({
-        tone: "warning",
+        tone: getPlayerAlertTone(pushedUpdate),
         message: `Player alert: ${pushedUpdate.headline || pushedUpdate.player_name}`,
       });
     }
@@ -1305,6 +1312,9 @@ export default function App() {
     setSelectedPlayer({
       ...matched,
       risk_level: update.risk_level || update.severity || matched.risk_level,
+      alert_status: update.alert_status || matched.alert_status || null,
+      alert_tone: getPlayerAlertTone(update),
+      alert_status_label: update.status_label || matched.alert_status_label || null,
       injury_status: update.injury_status || null,
       news_headline: update.headline || null,
       update_impact_summary: update.impact_summary || null,

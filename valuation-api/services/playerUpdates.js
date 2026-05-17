@@ -8,6 +8,19 @@ const RISK_ORDER = { LOW: 0, MEDIUM: 1, HIGH: 2 };
 const UPDATE_TYPES = new Set(["INJURY", "TRANSACTION", "CONTRACT", "NEWS", "LINEUP", "ROLE"]);
 const UPDATE_SEVERITIES = new Set(["LOW", "MEDIUM", "HIGH"]);
 const SOURCE_TYPES = new Set(["LIVE_FEED", "MANUAL_DEMO"]);
+const ALERT_STATUSES = {
+  INJURY_HIGH: { label: "Major injury concern", tone: "danger" },
+  INJURY_MEDIUM: { label: "Injury watch", tone: "warning" },
+  DAY_TO_DAY: { label: "Day-to-day", tone: "warning" },
+  ACTIVE: { label: "Cleared", tone: "positive" },
+  ROLE_GAIN: { label: "Role increase", tone: "positive" },
+  ROLE_LOSS: { label: "Role decrease", tone: "danger" },
+  ROLE_CHANGE: { label: "Role change", tone: "warning" },
+  LINEUP_CHANGE: { label: "Lineup change", tone: "warning" },
+  TRANSACTION: { label: "Transaction", tone: "warning" },
+  CONTRACT: { label: "Contract status", tone: "warning" },
+  NEWS: { label: "Player news", tone: "info" },
+};
 const DEFAULT_UPDATES_FILE = path.join(__dirname, "..", "data", "player-updates.json");
 const UPDATES_FILE = process.env.PLAYER_UPDATES_FILE || DEFAULT_UPDATES_FILE;
 
@@ -93,6 +106,8 @@ function normalizeUpdate(input) {
   const headline = cleanText(input.headline);
   const body = cleanText(input.body);
   const sourceType = requireSourceType(input.source_type);
+  const alertStatus = normalizeAlertStatus(input.alert_status || input.status, type, severity);
+  const alertStatusConfig = ALERT_STATUSES[alertStatus];
 
   /*
    * Player news is intentionally API-authored. Draft Kit is a subscriber, not
@@ -117,6 +132,9 @@ function normalizeUpdate(input) {
     type,
     severity,
     risk_level: severity,
+    alert_status: alertStatus,
+    status_label: alertStatusConfig.label,
+    tone: alertStatusConfig.tone,
     headline,
     body,
     injury_status: type === "INJURY" ? cleanText(input.injury_status) || null : null,
@@ -234,6 +252,37 @@ function requireSeverity(value) {
   throw error;
 }
 
+function normalizeAlertStatus(value, type, severity) {
+  const requested = normalizeStatusKey(value);
+  if (ALERT_STATUSES[requested]) return requested;
+  if (requested) {
+    const error = new Error(
+      `Player update alert_status must be one of: ${Object.keys(ALERT_STATUSES).join(", ")}.`,
+    );
+    error.status = 400;
+    error.code = "NEWS_ALERT_STATUS_REQUIRED";
+    throw error;
+  }
+
+  if (type === "INJURY") {
+    if (severity === "HIGH") return "INJURY_HIGH";
+    if (severity === "MEDIUM") return "INJURY_MEDIUM";
+    return "DAY_TO_DAY";
+  }
+  if (type === "ROLE") return severity === "HIGH" ? "ROLE_LOSS" : "ROLE_CHANGE";
+  if (type === "LINEUP") return "LINEUP_CHANGE";
+  if (type === "TRANSACTION") return "TRANSACTION";
+  if (type === "CONTRACT") return "CONTRACT";
+  return "NEWS";
+}
+
+function normalizeStatusKey(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_");
+}
+
 function normalizeName(value) {
   return String(value || "")
     .normalize("NFD")
@@ -253,6 +302,7 @@ function clamp(value, min, max) {
 }
 
 module.exports = {
+  ALERT_STATUSES,
   createPlayerUpdate,
   decoratePlayerWithUpdate,
   getLatestUpdateForPlayer,

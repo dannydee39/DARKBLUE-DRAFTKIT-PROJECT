@@ -2,9 +2,9 @@ import { useState } from "react";
 
 function formatUpdateSource(update) {
   if (update?.source_type === "MANUAL_DEMO") {
-    return "Valuation API Demo";
+    return "Demo alert";
   }
-  return update?.source || "Valuation API";
+  return update?.source_type === "LIVE_FEED" ? "Live alert" : "Player alert";
 }
 
 export default function PlayerUpdateCenter({
@@ -21,24 +21,24 @@ export default function PlayerUpdateCenter({
   const isOnline = apiStatus === "online";
   const statusLabel =
     !isOnline
-      ? "Feed offline"
+      ? "Alerts unavailable"
       : pushStatus === "online"
-        ? "Push connected"
+        ? "Alerts live"
         : pushStatus === "reconnecting"
-          ? "Push reconnecting"
-          : "Push connecting";
+          ? "Reconnecting"
+          : "Connecting";
   const statusTone =
     !isOnline ? "offline" : pushStatus === "online" ? "online" : "reconnecting";
   const compactHeadline = latest
     ? latest.headline
-    : "No Valuation API news";
+    : "No player alerts";
   const updateCountLabel =
     updates.length === 1 ? "1 update" : `${updates.length} updates`;
 
   return (
     <section
       className={`player-update-center ${isOpen ? "is-open" : "is-collapsed"}`}
-      aria-label="Valuation API player news"
+      aria-label="Player alerts"
     >
       <div className="puc-compact">
         <button
@@ -47,7 +47,7 @@ export default function PlayerUpdateCenter({
           onClick={() => setIsOpen((open) => !open)}
           aria-expanded={isOpen}
         >
-          <span className="puc-eyebrow">API News</span>
+          <span className="puc-eyebrow">Player Alerts</span>
           <strong>{compactHeadline}</strong>
           <span>{latest ? `${formatUpdateSource(latest)} - ${updateCountLabel}` : updateCountLabel}</span>
         </button>
@@ -74,8 +74,8 @@ export default function PlayerUpdateCenter({
         <>
           <div className="puc-header">
             <div>
-              <div className="puc-eyebrow">Valuation API notification center</div>
-              <h2>API-sourced player news</h2>
+              <div className="puc-eyebrow">Player alert center</div>
+              <h2>Draft-day player updates</h2>
             </div>
             <div className={`puc-status ${statusTone}`}>
               {statusLabel}
@@ -88,11 +88,11 @@ export default function PlayerUpdateCenter({
                 {latest ? `${formatUpdateSource(latest)} ${latest.type}` : "No updates loaded"}
               </div>
               <strong>
-                {latest?.headline || "Draft Kit is listening for Valuation API player updates."}
+                {latest?.headline || "No player alerts right now."}
               </strong>
               <p>
                 {latest?.impact_summary ||
-                  "News alerts are created by the Valuation API. Draft Kit only subscribes, alerts, and opens the affected player card."}
+                  "Important player updates will appear here automatically during the draft."}
               </p>
               {latest && (
                 <div className="puc-primary-actions">
@@ -109,15 +109,14 @@ export default function PlayerUpdateCenter({
 
             <div className="puc-actions">
               <div className="puc-ingest-note">
-                Create demo/news pushes from the Valuation API site. This draft board
-                never manufactures news locally.
+                Alerts refresh automatically while the draft is open.
               </div>
               <button
                 type="button"
                 onClick={onRefresh}
                 disabled={!isOnline || loading}
               >
-                Refresh Feed
+                Refresh Alerts
               </button>
             </div>
           </div>
@@ -150,8 +149,7 @@ export default function PlayerUpdateCenter({
             </div>
           ) : (
             <div className="puc-empty">
-              No API news is active. The board will alert when the Valuation API
-              publishes notification-worthy player information.
+              No player alerts are active. New updates will appear here during the draft.
             </div>
           )}
         </>

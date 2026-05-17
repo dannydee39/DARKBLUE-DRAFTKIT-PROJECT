@@ -20,7 +20,6 @@
 //   └─ KeeperSetup (receives league + setLeague + players)
 //   └─ TaxiSquad (receives league + players + onTaxiPick)
 //   └─ ProspectRosters (receives league + players + protected roster actions)
-//   └─ ApiSandbox (receives league + apiStatus)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef } from "react";
@@ -35,7 +34,6 @@ import LeagueSettings from "./components/LeagueSettings.jsx";
 import KeeperSetup from "./components/KeeperSetup.jsx";
 import TaxiSquad from "./components/TaxiSquad.jsx";
 import ProspectRosters from "./components/ProspectRosters.jsx";
-import ApiSandbox from "./components/ApiSandbox.jsx";
 import PlayerUpdateCenter from "./components/PlayerUpdateCenter.jsx";
 import DraftHistory from "./components/DraftHistory.jsx";
 import DepthCharts from "./components/DepthCharts.jsx";
@@ -54,10 +52,8 @@ import {
   slotAcceptsPlayer,
 } from "./utils/helpers.js";
 import {
-  cloudRequest,
   createCloudDraft,
   deleteCloudDraft,
-  deleteDraftNote,
   confirmPasswordReset,
   getCurrentUser,
   listCloudDrafts,
@@ -113,72 +109,6 @@ const DEFAULT_LEAGUE = {
   draftHistory: [],
   teams: [],
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SAMPLE_PICKS — hardcoded debug picks for fillSampleDraft().
-// slotIndex based on default roster order:
-//   [C=0, C=1, 1B=2, 3B=3, CI=4, 2B=5, SS=6, MI=7, OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
-// ─────────────────────────────────────────────────────────────────────────────
-const SAMPLE_PICKS = [
-  {
-    name: "Shohei Ohtani",
-    teamIdx: 0,
-    price: 65,
-    slotIndex: 13,
-    draftedPos: "UTIL",
-  },
-  {
-    name: "William Contreras",
-    teamIdx: 0,
-    price: 22,
-    slotIndex: 0,
-    draftedPos: "C",
-  },
-  { name: "Juan Soto", teamIdx: 1, price: 72, slotIndex: 5, draftedPos: "OF" },
-  {
-    name: "Freddie Freeman",
-    teamIdx: 1,
-    price: 28,
-    slotIndex: 2,
-    draftedPos: "1B",
-  },
-  {
-    name: "Kyle Tucker",
-    teamIdx: 2,
-    price: 55,
-    slotIndex: 9,
-    draftedPos: "OF",
-  },
-  {
-    name: "Francisco Lindor",
-    teamIdx: 2,
-    price: 38,
-    slotIndex: 6,
-    draftedPos: "SS",
-  },
-  {
-    name: "Corbin Carroll",
-    teamIdx: 3,
-    price: 40,
-    slotIndex: 10,
-    draftedPos: "OF",
-  },
-  {
-    name: "Nolan Arenado",
-    teamIdx: 3,
-    price: 20,
-    slotIndex: 4,
-    draftedPos: "CI",
-  },
-  {
-    name: "Elly De La Cruz",
-    teamIdx: 4,
-    price: 35,
-    slotIndex: 6,
-    draftedPos: "SS",
-  },
-  { name: "Logan Webb", teamIdx: 5, price: 25, slotIndex: 14, draftedPos: "P" },
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // App — root component
@@ -1363,7 +1293,7 @@ export default function App() {
       const pushedUpdate = validUpdates[0];
       setBoardNotice({
         tone: "warning",
-        message: `Valuation API alert: ${pushedUpdate.headline || pushedUpdate.player_name}`,
+        message: `Player alert: ${pushedUpdate.headline || pushedUpdate.player_name}`,
       });
     }
   }
@@ -2099,129 +2029,6 @@ export default function App() {
         `${player.name} recorded to ${currentTeam.name} for $${numericPrice}.`,
     });
     return true;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // fillSampleDraft — hardcodes 10 sample picks for debugging the grid.
-  //
-  // Finds each player in the players array by name (case-insensitive), then
-  // applies all picks at once by calling setLeague and setPlayers once each
-  // with fully accumulated changes.
-  //
-  // Picks use the default roster slot order:
-  //   [C=0, C=1, 1B=2, 3B=3, CI=4, 2B=5, SS=6, MI=7,
-  //    OF=8, OF=9, OF=10, OF=11, OF=12, UTIL=13, P=14..22]
-  // ─────────────────────────────────────────────────────────────────────────
-  function fillSampleDraft() {
-    const baseTime = Date.now();
-    pushUndoSnapshot();
-
-    // Build accumulated per-team changes: teamId → { budgetDelta, newRoster[] }
-    const teamChanges = {};
-    const historyEvents = [];
-    // Track which player IDs were drafted so we can update players state at once
-    const draftedPlayerIds = new Set();
-
-    SAMPLE_PICKS.forEach((pick) => {
-      // Find the player in current players state by name (case-insensitive)
-      const player = players.find(
-        (p) => p.name.toLowerCase() === pick.name.toLowerCase(),
-      );
-      if (!player) return; // player not found in pool, skip
-
-      // Get the team for this pick
-      const team = league.teams[pick.teamIdx];
-      if (!team) return; // team index out of range, skip
-
-      // Skip if player already drafted (e.g., sample called twice)
-      if (player.drafted) return;
-
-      // Accumulate changes for this team
-      if (!teamChanges[team.id]) {
-        teamChanges[team.id] = { budgetDelta: 0, newRoster: [] };
-      }
-      teamChanges[team.id].budgetDelta -= pick.price;
-      const draftedAt = baseTime + draftedPlayerIds.size;
-      teamChanges[team.id].newRoster.push({
-        playerId: player.id,
-        name: player.name,
-        price: pick.price,
-        pos: player.pos,
-        slotIndex: pick.slotIndex,
-        draftedPos: pick.draftedPos,
-        draftedAt,
-      });
-
-      historyEvents.push({
-        event: makeDraftHistoryEventWithValuation({
-          type: "auction",
-          player,
-          team,
-          rosterSlot: pick.draftedPos,
-          price: pick.price,
-          timestamp: draftedAt,
-          remainingBudgetAfter:
-            team.budget_remaining +
-            teamChanges[team.id].budgetDelta,
-          note: "Sample draft pick",
-          source: "sample",
-        }),
-        playerId: player.id,
-        draftedAt,
-      });
-
-      draftedPlayerIds.add(player.id);
-    });
-
-    // Apply all team changes in a single setLeague call
-    setLeague((prev) => {
-      let nextLeague = {
-        ...prev,
-        teams: prev.teams.map((t) => {
-        const changes = teamChanges[t.id];
-        if (!changes) return t;
-        return {
-          ...t,
-          budget_remaining: t.budget_remaining + changes.budgetDelta,
-          roster: [...t.roster, ...changes.newRoster],
-        };
-        }),
-      };
-
-      historyEvents.forEach(({ event }) => {
-        nextLeague = withDraftHistory(nextLeague, event);
-      });
-
-      return nextLeague;
-    });
-
-    // Mark all drafted players in a single setPlayers call
-    setPlayers((prev) =>
-      prev.map((p) =>
-        draftedPlayerIds.has(p.id)
-          ? {
-              ...p,
-              drafted: true,
-              draftedBy:
-                historyEvents.find((entry) => entry.playerId === p.id)?.event
-                  ?.fantasyOwnerId || null,
-              draftPrice:
-                historyEvents.find((entry) => entry.playerId === p.id)?.event
-                  ?.price || null,
-              draftedAt:
-                historyEvents.find((entry) => entry.playerId === p.id)
-                  ?.draftedAt || baseTime,
-              taxi: false,
-              minorLeague: false,
-            }
-          : p,
-      ),
-    );
-
-    setBoardNotice({
-      tone: "info",
-      message: "Sample draft loaded for board QA.",
-    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -3147,8 +2954,6 @@ export default function App() {
             ["settings", "League Settings"],
             ["keeper", "Keeper Setup"],
             ["prospects", "Minor League"],
-            // "sandbox" tab intentionally omitted from nav — use setActiveTab("sandbox")
-            // programmatically or navigate directly for API diagnostics.
             ["taxi", "Taxi Squad"],
             ["insights", "Depth + Rankings"],
             ["history", "Draft History"],
@@ -3171,17 +2976,6 @@ export default function App() {
           >
             Draft Library
           </button>
-
-          {activeTab === "board" && (
-            <button
-              type="button"
-              className="sample-draft-btn"
-              onClick={fillSampleDraft}
-              title="Fill 10 sample picks for debugging the draft grid"
-            >
-              Sample Draft
-            </button>
-          )}
 
           <div className="nav-badge">
             {totalRecordedPicks > 0
@@ -3367,7 +3161,6 @@ export default function App() {
               onUndoCell={undoSale}
               onMoveRosterEntry={moveRosterEntry}
               onTransferRosterEntry={transferRosterEntry}
-              onFillSample={fillSampleDraft}
               currentOwnerIdx={currentOwnerIdx}
               setCurrentOwnerIdx={setCurrentOwnerIdx}
               notes={notes}
@@ -3425,11 +3218,6 @@ export default function App() {
             onRemoveKeeper={removeKeeperContract}
             onReturnToBoard={() => setActiveTab("board")}
           />
-        )}
-
-        {/* API Sandbox — raw JSON request/response tester */}
-        {activeTab === "sandbox" && (
-          <ApiSandbox league={league} apiStatus={apiStatus} />
         )}
 
         {/* Prospect Rosters — protected minor league player assignments */}

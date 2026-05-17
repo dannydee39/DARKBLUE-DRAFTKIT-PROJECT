@@ -433,8 +433,8 @@ function DictCard({
         </div>
       </div>
 
-      {/* Valuation API alert preview. Draft Kit cards do not manufacture local news. */}
-      {player.news_headline && <div className="dc-injury">API alert: {player.news_headline}</div>}
+      {/* Alert data comes from the player-update feed; the card keeps the label concise. */}
+      {player.news_headline && <div className="dc-injury">Alert: {player.news_headline}</div>}
 
       {/* Note preview (truncated) */}
       {note && (

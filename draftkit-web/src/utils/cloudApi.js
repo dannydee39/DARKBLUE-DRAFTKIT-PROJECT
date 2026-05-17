@@ -101,9 +101,3 @@ export function deleteCloudDraft(draftId) {
     method: "DELETE",
   });
 }
-
-export function deleteDraftNote(draftId, noteId) {
-  return cloudRequest(`/v1/drafts/${draftId}/notes/${noteId}`, {
-    method: "DELETE",
-  });
-}

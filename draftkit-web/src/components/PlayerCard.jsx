@@ -353,8 +353,10 @@ export default function PlayerCard({
       : null;
   const apiNewsSource =
     updateContext?.source_type === "MANUAL_DEMO"
-      ? "Valuation API demo"
-      : updateContext?.source || "Valuation API";
+      ? "Demo alert"
+      : updateContext?.source_type === "LIVE_FEED"
+        ? "Live alert"
+        : "Player alert";
   const volumeProjection =
     player.volume_projection ||
     (valuation && valuation !== "loading"
@@ -550,18 +552,18 @@ export default function PlayerCard({
         </div>
       )}
 
-      {/* ── Valuation API News Alert ────────────────────────────────────── */}
+      {/* News still comes from the Valuation API feed; keep the UI phrasing user-facing. */}
       {(injuryStatus || updateHeadline) && (
         <div className={`pc-risk-panel risk-${String(riskLevel).toLowerCase()}`}>
           <div className="pc-risk-top">
             <span className="pc-risk-label">
               {updateType === "TRANSACTION" || updateType === "CONTRACT"
-                ? "API TRANSACTION"
-                : "VALUATION API ALERT"}
+                ? "PLAYER TRANSACTION"
+                : "PLAYER ALERT"}
             </span>
             <span className="pc-risk-level">{riskLevel} RISK</span>
           </div>
-          <div className="pc-risk-source">Source: {apiNewsSource}</div>
+          <div className="pc-risk-source">{apiNewsSource}</div>
           {injuryStatus && (
             <div className="pc-risk-status">Status: {injuryStatus}</div>
           )}
@@ -581,15 +583,15 @@ export default function PlayerCard({
             transactionContext.contract_status ||
             transactionContext.body ||
             transactionContext.impact_summary}
-          <span className="pc-api-source"> Source: {apiNewsSource}</span>
+          <span className="pc-api-source"> {apiNewsSource}</span>
         </div>
       )}
 
-      {/* ── API Valuation Reasoning ─────────────────────────────────────── */}
+      {/* ── Valuation Reasoning ─────────────────────────────────────────── */}
       {/* Shown when the dark blue valuation API returns a reasoning string */}
       {valuation && valuation !== "loading" && valuation.reasoning && (
         <div className="pc-news">
-          <span className="news-tag">[API]</span>
+          <span className="news-tag">[VALUE]</span>
           {" "}{valuation.reasoning}
           {scarcityLabel && (
             <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: "var(--yellow)" }}>
@@ -601,8 +603,8 @@ export default function PlayerCard({
 
       {valuationFailed && (
         <div className="pc-news">
-          <span className="news-tag">[API]</span>{" "}
-          {valuation.message || "Live valuation was unavailable. Showing the base value instead."}
+          <span className="news-tag">[VALUE]</span>{" "}
+          {valuation.message || "Live value is unavailable. Showing the starting value instead."}
         </div>
       )}
 

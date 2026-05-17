@@ -17,8 +17,8 @@ export const DRAFTKIT_API_BASE = (
     : "http://localhost:3002")
 ).trim();
 
-// VALUATION_DISPLAY_URL: shown in the API Sandbox UI to make it clear the
-// Draft Kit depends on the separate licensed valuation product.
+// VALUATION_DISPLAY_URL: kept as code-level integration context for the
+// separate licensed valuation product.
 // Requests from the Draft Kit still flow through the Draft Kit backend.
 export const VALUATION_DISPLAY_URL = (
   VITE_ENV.VITE_VALUATION_API_BASE || "https://darkblueapi.anythingavenue.com"

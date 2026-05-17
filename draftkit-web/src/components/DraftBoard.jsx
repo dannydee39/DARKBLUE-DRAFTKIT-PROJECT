@@ -2101,13 +2101,13 @@ export default function DraftBoard({
                 </strong>
               </div>
               <div className="sale-valuation-status">
-                Source: <strong>{saleValuationSourceLabel}</strong>
+                Pricing: <strong>{saleValuationSourceLabel}</strong>
                 {saleValuationSource === "refreshing" &&
                   " · refreshing before the sale is recorded"}
                 {apiStatus !== "online" &&
-                  " · API offline, using player-pool base value"}
+                  " · live values unavailable, using starting value"}
                 {saleValuation?.error &&
-                  ` · ${saleValuation.message || "valuation unavailable"}`}
+                  ` · ${saleValuation.message || "live value unavailable"}`}
               </div>
               {saleValuationSnapshot && (
                 <>

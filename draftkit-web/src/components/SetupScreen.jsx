@@ -304,10 +304,10 @@ export default function SetupScreen({
 
           <div className={`setup-pool-note ${poolCounts.status === "error" ? "warning" : "info"}`}>
             {poolCounts.status === "ready"
-              ? `Live API player pool connected. MLB: ${poolCounts.MLB} · AL: ${poolCounts.AL} · NL: ${poolCounts.NL}.`
+              ? `Player pool connected. MLB: ${poolCounts.MLB} · AL: ${poolCounts.AL} · NL: ${poolCounts.NL}.`
               : poolCounts.status === "error"
-                ? "Live player-pool counts could not be loaded right now. Draft initialization will still try the API when you start."
-                : "Checking live player-pool counts from the API..."}
+                ? "Player-pool counts could not be loaded right now. Draft setup will retry when you start."
+                : "Checking player-pool counts..."}
           </div>
 
           <button

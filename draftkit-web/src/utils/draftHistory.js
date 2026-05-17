@@ -48,13 +48,13 @@ export function getValuationSource(player, valuation, loading = false) {
 export function formatValuationSource(source) {
   switch (source) {
     case "live_api":
-      return "Live API";
+      return "Live Value";
     case "refreshing":
-      return "Refreshing";
+      return "Updating";
     case "api_error":
-      return "API Error";
+      return "Value Unavailable";
     case "base_value":
-      return "Base Value";
+      return "Starting Value";
     default:
       return "Unknown";
   }

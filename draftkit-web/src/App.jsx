@@ -462,10 +462,8 @@ export default function App() {
         });
         setCloudSyncMessage("Cloud draft saved.");
         upsertDraftInLibrary(persisted);
-      } catch (error) {
-        setCloudSyncMessage(
-          error?.message || "Cloud save failed. This draft is not saved locally.",
-        );
+      } catch {
+        setCloudSyncMessage("Draft save failed. Try again from the draft library.");
       }
     }, CLOUD_SAVE_DEBOUNCE_MS);
 
@@ -628,9 +626,7 @@ export default function App() {
       if (!r.ok || data?.error || typeof data?.valuations !== "object") {
         valuationRequestRef.current = { key: null, inFlight: false };
         setValuationError(
-          data?.message ||
-            data?.error ||
-            "Live valuation was unavailable. Showing the last known values instead.",
+          "Live values are unavailable. Showing the last known values instead.",
         );
         return;
       }
@@ -650,9 +646,8 @@ export default function App() {
       valuationRequestRef.current = { key: null, inFlight: false };
       setValuationError(
         error?.name === "AbortError"
-          ? "Live valuation timed out. Showing the last known values instead."
-          : error?.message ||
-              "Live valuation was unavailable. Showing the last known values instead.",
+          ? "Live values are taking too long. Showing the last known values instead."
+          : "Live values are unavailable. Showing the last known values instead.",
       );
     } finally {
       window.clearTimeout(timeoutId);
@@ -724,14 +719,11 @@ export default function App() {
       await refreshCloudDraftLibrary();
       try {
         await promoteActiveDraftToCloud();
-      } catch (error) {
-        setCloudSyncMessage(
-          error?.message ||
-            "Signed in, but the current draft could not be promoted to cloud yet.",
-        );
+      } catch {
+        setCloudSyncMessage("Signed in, but this draft could not be saved yet.");
       }
-    } catch (error) {
-      setAuthError(error?.message || "Account creation failed.");
+    } catch {
+      setAuthError("Account creation failed. Check your details and try again.");
     } finally {
       setAuthBusy(false);
     }
@@ -748,14 +740,11 @@ export default function App() {
       await refreshCloudDraftLibrary();
       try {
         await promoteActiveDraftToCloud();
-      } catch (error) {
-        setCloudSyncMessage(
-          error?.message ||
-            "Signed in, but the current draft could not be promoted to cloud yet.",
-        );
+      } catch {
+        setCloudSyncMessage("Signed in, but this draft could not be saved yet.");
       }
-    } catch (error) {
-      setAuthError(error?.message || "Sign in failed.");
+    } catch {
+      setAuthError("Sign in failed. Check your email and password.");
     } finally {
       setAuthBusy(false);
     }
@@ -765,17 +754,18 @@ export default function App() {
     setAuthBusy(true);
     setAuthError("");
     try {
-      const response = await requestPasswordReset(payload);
-      setCloudSyncMessage(response?.message || "If that account exists, a reset link will be sent shortly.");
-      return response;
+      await requestPasswordReset(payload);
+      const message = "If that account exists, a reset link will be sent shortly.";
+      setCloudSyncMessage(message);
+      return { ok: true, message };
     } catch (error) {
       if (error?.code === "MAIL_NOT_CONFIGURED") {
         const message =
-          "Password reset email is not configured for this deployment. Contact the commissioner/admin to set SMTP before production reset links can be sent.";
+          "Password reset is temporarily unavailable. Contact the league administrator.";
         setCloudSyncMessage(message);
         return { ok: true, message };
       }
-      setAuthError(error?.message || "Could not request a password reset.");
+      setAuthError("Could not request a password reset. Try again later.");
       return null;
     } finally {
       setAuthBusy(false);
@@ -786,12 +776,13 @@ export default function App() {
     setAuthBusy(true);
     setAuthError("");
     try {
-      const response = await confirmPasswordReset(payload);
+      await confirmPasswordReset(payload);
       setPasswordResetToken("");
-      setCloudSyncMessage(response?.message || "Password reset complete. Sign in with your new password.");
-      return response;
-    } catch (error) {
-      setAuthError(error?.message || "Could not reset password.");
+      const message = "Password reset complete. Sign in with your new password.";
+      setCloudSyncMessage(message);
+      return { ok: true, message };
+    } catch {
+      setAuthError("Could not reset password. Check the reset link and try again.");
       return null;
     } finally {
       setAuthBusy(false);
@@ -823,8 +814,8 @@ export default function App() {
       clearDraftHistory();
       setShowAuthModal(false);
       setCloudSyncMessage("Signed out. Draft saving requires an account.");
-    } catch (error) {
-      setAuthError(error?.message || "Sign out failed.");
+    } catch {
+      setAuthError("Sign out failed. Try again.");
     } finally {
       setAuthBusy(false);
     }
@@ -887,10 +878,8 @@ export default function App() {
         tone: "info",
         message: "New cloud draft workspace initialized.",
       });
-    } catch (error) {
-      setCloudSyncMessage(
-        error?.message || "Cloud save failed. Sign in and try again before drafting.",
-      );
+    } catch {
+      setCloudSyncMessage("Draft save failed. Sign in and try again before drafting.");
     }
   }
 
@@ -991,10 +980,8 @@ export default function App() {
         tone: "info",
         message: `Opened duplicate workspace for ${copiedLeague.name}.`,
       });
-    } catch (error) {
-      setCloudSyncMessage(
-        error?.message || "Cloud duplicate failed. Sign in and try again.",
-      );
+    } catch {
+      setCloudSyncMessage("Could not duplicate that draft. Sign in and try again.");
     }
   }
 
@@ -1005,11 +992,10 @@ export default function App() {
     if (draft?.source === "cloud") {
       try {
         await deleteCloudDraft(draftId);
-      } catch (error) {
+      } catch {
         setBoardNotice({
           tone: "warning",
-          message:
-            error?.message || "Could not delete that cloud draft right now.",
+          message: "Could not delete that cloud draft right now.",
         });
         return;
       }
@@ -1207,16 +1193,14 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok || !Array.isArray(data?.updates)) {
-        throw new Error(data?.message || "Could not load player updates.");
+        throw new Error("Player alerts are unavailable right now.");
       }
 
       applyPlayerUpdates(data.updates, { replace: true });
       return data.updates;
-    } catch (error) {
+    } catch {
       if (!silent) {
-        setPlayerUpdatesError(
-          error?.message || "Player updates are unavailable right now.",
-        );
+        setPlayerUpdatesError("Player alerts are unavailable right now.");
       }
       return [];
     } finally {
@@ -1244,17 +1228,15 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok || !Array.isArray(data?.teams)) {
-        throw new Error(data?.message || "Could not load MLB roster depth data.");
+        throw new Error("Depth charts are unavailable right now.");
       }
 
       setLiveDepthData(data);
-      setLiveDepthError(data.warning || "");
+      setLiveDepthError("");
       return data;
-    } catch (error) {
+    } catch {
       if (!silent) {
-        setLiveDepthError(
-          error?.message || "MLB roster depth data is unavailable right now.",
-        );
+        setLiveDepthError("Depth charts are unavailable right now.");
       }
       return null;
     } finally {
@@ -1364,7 +1346,7 @@ export default function App() {
         }
         setPlayerPushStatus("online");
       } catch {
-        setPlayerUpdatesError("Could not read the live player update snapshot.");
+        setPlayerUpdatesError("Player alerts are reconnecting.");
       }
     });
 
@@ -1376,7 +1358,7 @@ export default function App() {
         }
         setPlayerPushStatus("online");
       } catch {
-        setPlayerUpdatesError("Could not read a pushed player update.");
+        setPlayerUpdatesError("Player alerts are reconnecting.");
       }
     });
 

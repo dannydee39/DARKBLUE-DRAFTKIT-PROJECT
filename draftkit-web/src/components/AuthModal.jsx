@@ -67,7 +67,7 @@ export default function AuthModal({
     if (mode === "forgot") {
       const response = await onRequestPasswordReset?.({ email });
       if (response?.ok) {
-        setResetMessage(response.message || "If that account exists, a reset link will be sent shortly.");
+        setResetMessage("If that account exists, a reset link will be sent shortly.");
       }
       return;
     }
@@ -82,7 +82,7 @@ export default function AuthModal({
         setNewPassword("");
         setResetTokenInput("");
         setMode("login");
-        setResetMessage(response.message || "Password reset complete. Sign in with your new password.");
+        setResetMessage("Password reset complete. Sign in with your new password.");
       }
       return;
     }

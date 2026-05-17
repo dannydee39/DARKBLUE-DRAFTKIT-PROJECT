@@ -604,7 +604,7 @@ export default function PlayerCard({
       {valuationFailed && (
         <div className="pc-news">
           <span className="news-tag">[VALUE]</span>{" "}
-          {valuation.message || "Live value is unavailable. Showing the starting value instead."}
+          Live value is unavailable. Showing the starting value instead.
         </div>
       )}
 

@@ -80,6 +80,27 @@ a:focus-visible,
   border-radius: var(--radius);
 }
 
+.sample-draft-btn {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--yellow);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.sample-draft-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fbbf24;
+}
+
 /* ── Round 2/3 UX polish additions ──────────────────────────────────────── */
 .rank-pill {
   display: inline-flex;
@@ -1760,7 +1781,9 @@ a {
   color: #86efac;
 }
 .sr-value-source.refreshing,
-.dc-value-source.refreshing {
+.sr-value-source.stale_live,
+.dc-value-source.refreshing,
+.dc-value-source.stale_live {
   border-color: rgba(59, 130, 246, 0.3);
   background: rgba(59, 130, 246, 0.12);
   color: #bfdbfe;
@@ -2385,7 +2408,8 @@ a {
   border-color: rgba(34, 197, 94, 0.38);
   background: rgba(34, 197, 94, 0.12);
 }
-.valuation-source-chip.refreshing {
+.valuation-source-chip.refreshing,
+.valuation-source-chip.stale_live {
   color: #fde68a;
   border-color: rgba(245, 158, 11, 0.36);
   background: rgba(245, 158, 11, 0.12);
@@ -3348,7 +3372,8 @@ a {
   background: rgba(34, 197, 94, 0.07);
   padding: 10px;
 }
-.sale-valuation-panel.source-refreshing {
+.sale-valuation-panel.source-refreshing,
+.sale-valuation-panel.source-stale_live {
   border-color: rgba(245, 158, 11, 0.3);
   background: rgba(245, 158, 11, 0.08);
 }
@@ -6284,7 +6309,8 @@ a {
   border-color: rgba(239, 68, 68, 0.32);
   background: rgba(239, 68, 68, 0.1);
 }
-.history-source-pill.refreshing {
+.history-source-pill.refreshing,
+.history-source-pill.stale_live {
   color: #fde68a;
   border-color: rgba(245, 158, 11, 0.34);
   background: rgba(245, 158, 11, 0.1);

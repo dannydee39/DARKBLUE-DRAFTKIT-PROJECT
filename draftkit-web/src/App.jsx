@@ -111,6 +111,24 @@ const DEFAULT_LEAGUE = {
   teams: [],
 };
 
+/*
+ * Sample draft targets for the board action. The button is a one-click way to
+ * populate a new workspace with realistic auction activity while still using
+ * the live player pool, current roster settings, and normal draft history.
+ */
+const SAMPLE_DRAFT_PICKS = [
+  { name: "Shohei Ohtani", teamIdx: 0, price: 65, preferredSlot: "UTIL" },
+  { name: "William Contreras", teamIdx: 0, price: 22, preferredSlot: "C" },
+  { name: "Juan Soto", teamIdx: 1, price: 72, preferredSlot: "OF" },
+  { name: "Freddie Freeman", teamIdx: 1, price: 28, preferredSlot: "1B" },
+  { name: "Kyle Tucker", teamIdx: 2, price: 55, preferredSlot: "OF" },
+  { name: "Francisco Lindor", teamIdx: 2, price: 38, preferredSlot: "SS" },
+  { name: "Corbin Carroll", teamIdx: 3, price: 40, preferredSlot: "OF" },
+  { name: "Nolan Arenado", teamIdx: 3, price: 20, preferredSlot: "CI" },
+  { name: "Elly De La Cruz", teamIdx: 4, price: 35, preferredSlot: "SS" },
+  { name: "Logan Webb", teamIdx: 5, price: 25, preferredSlot: "P" },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // App — root component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,6 +175,7 @@ export default function App() {
   const [valuationCache, setValuationCache] = useState({});
   const [valuationLoading, setValuationLoading] = useState(false);
   const [valuationError, setValuationError] = useState("");
+  const [valuationStale, setValuationStale] = useState(false);
   const [playerUpdates, setPlayerUpdates] = useState([]);
   const [playerUpdatesLoading, setPlayerUpdatesLoading] = useState(false);
   const [playerUpdatesError, setPlayerUpdatesError] = useState("");
@@ -493,9 +512,10 @@ export default function App() {
 
   // ─────────────────────────────────────────────────────────────────────────
   // draftStateKey + cache invalidation
-  // Clears the entire valuation cache whenever any team's roster changes.
-  // This forces fresh API calls after every pick or undo so inflation/scarcity
-  // math in the API stays accurate.
+  // Marks live values stale whenever any meaningful draft-state input changes.
+  // We intentionally keep the last successful valuation cache visible while the
+  // refresh is running; clearing it made the board fall back to starting values
+  // even when the API was healthy and only needed a moment to recalculate.
   // ─────────────────────────────────────────────────────────────────────────
   // Include exact roster identifiers and budgets so any meaningful draft-state change
   // forces a fresh all-player valuation pass.
@@ -556,8 +576,7 @@ export default function App() {
   useEffect(() => {
     cacheVersionRef.current += 1;
     valuationRequestRef.current = { key: null, inFlight: false };
-    valuationCacheRef.current = {};
-    setValuationCache({});
+    setValuationStale(Object.keys(valuationCacheRef.current || {}).length > 0);
     setValuationError("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftStateKey]);
@@ -587,7 +606,7 @@ export default function App() {
   // valuationCache instead of making on-demand hover/click requests.
   // ─────────────────────────────────────────────────────────────────────────
   async function requestValuation() {
-    if (apiStatus !== "online" || players.length === 0) return;
+    if (apiStatus === "offline" || players.length === 0) return;
 
     const requestKey = `${cacheVersionRef.current}|${draftStateKey}|${players.length}|${playerUpdateVersion}`;
     if (valuationRequestRef.current.inFlight) return;
@@ -607,6 +626,7 @@ export default function App() {
     setValuationLoading(true);
     setValuationError("");
 
+    let requestSucceeded = false;
     try {
       const draftState = buildDraftState(league, players, depthCharts);
 
@@ -632,16 +652,32 @@ export default function App() {
         return;
       }
 
+      const previousValuations = valuationCacheRef.current || {};
       const valuationsById = {};
+      let missingValuationCount = 0;
       players.forEach((player) => {
         const match = data.valuations?.[player.name];
         if (match) {
           valuationsById[player.id] = match;
+        } else if (previousValuations[player.id]) {
+          valuationsById[player.id] = previousValuations[player.id];
+          missingValuationCount += 1;
+        } else {
+          missingValuationCount += 1;
         }
       });
 
       valuationCacheRef.current = valuationsById;
       setValuationCache(valuationsById);
+      setValuationStale(
+        missingValuationCount > 0 && Object.keys(previousValuations).length > 0,
+      );
+      if (missingValuationCount > 0) {
+        setValuationError(
+          `Live values refreshed for ${players.length - missingValuationCount}/${players.length} players. Showing last known values where needed.`,
+        );
+      }
+      requestSucceeded = true;
     } catch (error) {
       if (cacheVersionRef.current !== version) return;
       valuationRequestRef.current = { key: null, inFlight: false };
@@ -654,7 +690,7 @@ export default function App() {
       window.clearTimeout(timeoutId);
       if (cacheVersionRef.current === version) {
         valuationRequestRef.current = {
-          key: requestKey,
+          key: requestSucceeded ? requestKey : null,
           inFlight: false,
         };
         setValuationLoading(false);
@@ -1173,8 +1209,7 @@ export default function App() {
     setPlayers((prev) => prev.map(applyUpdateFields));
     setSelectedPlayer((prev) => (prev ? applyUpdateFields(prev) : prev));
     valuationRequestRef.current = { key: null, inFlight: false };
-    valuationCacheRef.current = {};
-    setValuationCache({});
+    setValuationStale(Object.keys(valuationCacheRef.current || {}).length > 0);
     setPlayerUpdateVersion((version) => version + 1);
   }
 
@@ -2021,6 +2056,184 @@ export default function App() {
         `${player.name} recorded to ${currentTeam.name} for $${numericPrice}.`,
     });
     return true;
+  }
+
+  function findSampleRosterSlot(player, team, pendingRoster, preferredSlot) {
+    const usedSlotIndexes = new Set(
+      [...(team?.roster || []), ...(pendingRoster || [])].map((entry) =>
+        Number(entry.slotIndex),
+      ),
+    );
+    const preferred = String(preferredSlot || "").trim().toUpperCase();
+    const openValidSlots = rosterPositions
+      .map((slot, index) => ({ slot, index }))
+      .filter(
+        ({ slot, index }) =>
+          !usedSlotIndexes.has(index) && canPlayerFillSlot(player, slot),
+      );
+
+    return (
+      openValidSlots.find(({ slot }) => slot === preferred) ||
+      openValidSlots[0] ||
+      null
+    );
+  }
+
+  function findSamplePlayer(playerName, draftedPlayerIds) {
+    const normalizedName = String(playerName || "").trim().toLowerCase();
+    if (!normalizedName) return null;
+
+    return (
+      players.find(
+        (player) =>
+          !player.drafted &&
+          !draftedPlayerIds.has(player.id) &&
+          String(player.name || "").trim().toLowerCase() === normalizedName,
+      ) || null
+    );
+  }
+
+  /*
+   * Loads a short sample draft into the current board. It uses the same state
+   * changes as a real auction sale: budgets change, players become drafted,
+   * and draft history captures the valuation snapshot visible at the time.
+   */
+  function fillSampleDraft() {
+    if (!players.length || !league.teams?.length || !rosterPositions.length) {
+      setBoardNotice({
+        tone: "warning",
+        message: "Start a draft with a loaded player pool before adding sample picks.",
+      });
+      return;
+    }
+
+    const baseTime = Date.now();
+    const teamChanges = {};
+    const historyEntries = [];
+    const draftedPlayerIds = new Set();
+    let skippedCount = 0;
+
+    SAMPLE_DRAFT_PICKS.forEach((pick) => {
+      const player = findSamplePlayer(pick.name, draftedPlayerIds);
+      const team = league.teams[pick.teamIdx];
+      if (!player || !team) {
+        skippedCount += 1;
+        return;
+      }
+
+      if (!teamChanges[team.id]) {
+        teamChanges[team.id] = { budgetDelta: 0, newRoster: [] };
+      }
+
+      const teamChange = teamChanges[team.id];
+      const slot = findSampleRosterSlot(
+        player,
+        team,
+        teamChange.newRoster,
+        pick.preferredSlot,
+      );
+      if (!slot) {
+        skippedCount += 1;
+        return;
+      }
+
+      const pendingBudget = team.budget_remaining + teamChange.budgetDelta;
+      const pendingRosterCount =
+        (team.roster || []).length + teamChange.newRoster.length;
+      const slotsLeftBeforePick = Math.max(0, totalSlots - pendingRosterCount);
+      const allowedPrice = calcMaxBid(pendingBudget, slotsLeftBeforePick);
+      const price = Math.max(1, Math.min(Number(pick.price) || 1, allowedPrice));
+      const draftedAt = baseTime + draftedPlayerIds.size;
+      const rosterEntry = {
+        playerId: player.id,
+        name: player.name,
+        price,
+        pos: player.pos,
+        slotIndex: slot.index,
+        draftedPos: slot.slot,
+        draftedAt,
+      };
+
+      teamChange.budgetDelta -= price;
+      teamChange.newRoster.push(rosterEntry);
+      draftedPlayerIds.add(player.id);
+
+      historyEntries.push({
+        playerId: player.id,
+        teamId: team.id,
+        price,
+        draftedAt,
+        event: makeDraftHistoryEventWithValuation({
+          type: "auction",
+          player,
+          team,
+          rosterSlot: slot.slot,
+          price,
+          timestamp: draftedAt,
+          remainingBudgetAfter: team.budget_remaining + teamChange.budgetDelta,
+          note: "Sample draft pick",
+          source: "sample",
+        }),
+      });
+    });
+
+    if (draftedPlayerIds.size === 0) {
+      setBoardNotice({
+        tone: "warning",
+        message: "No sample picks were added because the target players are unavailable or already drafted.",
+      });
+      return;
+    }
+
+    pushUndoSnapshot();
+
+    setLeague((prev) => {
+      let nextLeague = {
+        ...prev,
+        teams: prev.teams.map((team) => {
+          const changes = teamChanges[team.id];
+          if (!changes) return team;
+          return {
+            ...team,
+            budget_remaining: team.budget_remaining + changes.budgetDelta,
+            roster: [...(team.roster || []), ...changes.newRoster],
+          };
+        }),
+      };
+
+      historyEntries.forEach(({ event }) => {
+        nextLeague = withDraftHistory(nextLeague, event);
+      });
+
+      return nextLeague;
+    });
+
+    setPlayers((prev) =>
+      prev.map((player) => {
+        const historyEntry = historyEntries.find(
+          (entry) => entry.playerId === player.id,
+        );
+        if (!historyEntry) return player;
+
+        return {
+          ...player,
+          drafted: true,
+          draftedBy: historyEntry.teamId,
+          draftPrice: historyEntry.price,
+          draftedAt: historyEntry.draftedAt,
+          taxi: false,
+          minorLeague: false,
+        };
+      }),
+    );
+
+    setBoardNotice({
+      tone: "info",
+      message:
+        skippedCount > 0
+          ? `Added ${draftedPlayerIds.size} sample picks. ${skippedCount} target players were unavailable.`
+          : `Added ${draftedPlayerIds.size} sample picks to the draft board.`,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2969,6 +3182,17 @@ export default function App() {
             Draft Library
           </button>
 
+          {activeTab === "board" && (
+            <button
+              type="button"
+              className="sample-draft-btn"
+              onClick={fillSampleDraft}
+              title="Add a short sample auction sequence to the current board"
+            >
+              Sample Draft
+            </button>
+          )}
+
           <div className="nav-badge">
             {totalRecordedPicks > 0
               ? `${totalRecordedPicks} PICKS SAVED`
@@ -3165,6 +3389,7 @@ export default function App() {
               maxBid={maxBid}
               valuationCache={valuationCache}
               valuationLoading={valuationLoading}
+              valuationStale={valuationStale}
               requestValuation={requestValuation}
               draftStateKey={draftStateKey}
               canUndo={undoStack.length > 0}
@@ -3187,6 +3412,7 @@ export default function App() {
             toggleFavorite={toggleFavorite}
             valuationCache={valuationCache}
             valuationLoading={valuationLoading}
+            valuationStale={valuationStale}
             requestValuation={requestValuation}
             draftStateKey={draftStateKey}
           />
@@ -3252,6 +3478,7 @@ export default function App() {
             toggleFavorite={toggleFavorite}
             valuationCache={valuationCache}
             valuationLoading={valuationLoading}
+            valuationStale={valuationStale}
             valuationError={valuationError}
             requestValuation={requestValuation}
             liveDepthLoading={liveDepthLoading}

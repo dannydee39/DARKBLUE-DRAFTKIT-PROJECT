@@ -132,6 +132,7 @@ export default function DraftBoard({
   maxBid,
   valuationCache,
   valuationLoading,
+  valuationStale = false,
   requestValuation, // (player) => void  — requests a valuation and stores it in the cache
   draftStateKey, // compact string that changes on every pick/undo (cache version key)
   canUndo = false,
@@ -153,6 +154,7 @@ export default function DraftBoard({
   const [saleModal, setSaleModal] = useState(null); // player obj or null
   const [saleTeam, setSaleTeam] = useState(1); // winning team ID
   const [salePrice, setSalePrice] = useState(""); // bid amount
+  const [salePriceManuallyEdited, setSalePriceManuallyEdited] = useState(false);
   const [saleSlot, setSaleSlot] = useState(null); // slotIndex to fill
   const [preferredSaleSlot, setPreferredSaleSlot] = useState(null); // clicked cell slotIndex to preserve when possible
   const [customPosInput, setCustomPosInput] = useState(""); // custom eligibility override
@@ -744,14 +746,18 @@ export default function DraftBoard({
   function getDisplayedValuation(player) {
     if (!player) return null;
     const cached = valuationCache?.[player.id];
-    if (cached) return cached;
+    if (cached) return valuationStale ? { ...cached, __stale: true } : cached;
     return valuationLoading ? "loading" : null;
   }
 
   // Sale modal valuation context. The dollar input still uses the max-bid
   // recommendation, while this block explains why that recommendation exists:
   // stat baseline, scoring/scarcity multipliers, risk, depth, and market state.
-  const saleValuation = saleModal ? valuationCache?.[saleModal.id] : null;
+  const rawSaleValuation = saleModal ? valuationCache?.[saleModal.id] : null;
+  const saleValuation =
+    rawSaleValuation && valuationStale
+      ? { ...rawSaleValuation, __stale: true }
+      : rawSaleValuation;
   const saleValuationSource = saleModal
     ? getValuationSource(saleModal, saleValuation || (valuationLoading ? "loading" : null))
     : "unknown";
@@ -791,6 +797,7 @@ export default function DraftBoard({
     setSaleSlot(initialSlots[0]?.slotIdx ?? null);
     setPreferredSaleSlot(null);
     setSalePrice(getRecommendedBid(player));
+    setSalePriceManuallyEdited(false);
     setCustomPosInput("");
     setSelectedPlayer(player);
   }
@@ -818,6 +825,7 @@ export default function DraftBoard({
     setSaleSlot(slotIdx); // pre-select the exact slot that was clicked
     setPreferredSaleSlot(slotIdx);
     setSalePrice(getRecommendedBid(player));
+    setSalePriceManuallyEdited(false);
     setCustomPosInput("");
     setSelectedPlayer(player);
   }
@@ -830,20 +838,13 @@ export default function DraftBoard({
     if (!saleModal) return;
     const cached = valuationCache?.[saleModal.id];
     if (!cached || cached.max_bid_recommendation == null) return;
+    if (salePriceManuallyEdited) return;
     setSalePrice((prev) => {
-      const prevNum = Number(prev);
-      // Only auto-fill if the field still holds the baseValue default (hasn't been manually edited)
-      if (
-        prev === "" ||
-        Number.isNaN(prevNum) ||
-        prevNum === Number(saleModal.baseValue)
-      ) {
-        return String(cached.max_bid_recommendation);
-      }
-      return prev;
+      const next = String(cached.max_bid_recommendation);
+      return prev === next ? prev : next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saleModal?.id, valuationCache]);
+  }, [saleModal?.id, salePriceManuallyEdited, valuationCache]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // confirmSale — validates and fires onSale with slotIndex + draftedPos.
@@ -871,6 +872,7 @@ export default function DraftBoard({
   function closeSaleModal() {
     setSaleModal(null);
     setSalePrice("");
+    setSalePriceManuallyEdited(false);
     setSaleSlot(null);
     setPreferredSaleSlot(null);
     setCustomPosInput("");
@@ -1893,6 +1895,7 @@ export default function DraftBoard({
                     isFavorite={Boolean(favorites?.[p.id])}
                     recValue={valuationCache[p.id]?.max_bid_recommendation}
                     recLoading={valuationLoading && !valuationCache[p.id]}
+                    recStale={valuationStale && Boolean(valuationCache[p.id])}
                     actionLabel={activeCellSearch ? "Add To Slot" : "Open Sale"}
                     onOpenCard={() => openPlayerCard(p)}
                     onRecord={() =>
@@ -2218,9 +2221,10 @@ export default function DraftBoard({
                 value={salePrice}
                 inputMode="numeric"
                 pattern="[0-9]*"
-                onChange={(e) =>
-                  setSalePrice(e.target.value.replace(/[^\d]/g, ""))
-                }
+                onChange={(e) => {
+                  setSalePriceManuallyEdited(true);
+                  setSalePrice(e.target.value.replace(/[^\d]/g, ""));
+                }}
                 onDoubleClick={(e) => e.currentTarget.select()}
                 autoFocus
                 onKeyDown={(e) => {
@@ -2248,7 +2252,9 @@ export default function DraftBoard({
                 Pricing: <strong>{saleValuationSourceLabel}</strong>
                 {saleValuationSource === "refreshing" &&
                   " · refreshing before the sale is recorded"}
-                {apiStatus !== "online" &&
+                {saleValuationSource === "stale_live" &&
+                  " · refreshing from the last live API value"}
+                {apiStatus === "offline" &&
                   " · live values unavailable, using starting value"}
                 {saleValuation?.error &&
                   ` · ${saleValuation.message || "live value unavailable"}`}
@@ -2470,6 +2476,7 @@ function SearchResult({
   isFavorite,
   recValue,
   recLoading,
+  recStale = false,
   contextTag,
   actionLabel = "Record Sale",
   onOpenCard,
@@ -2484,7 +2491,13 @@ function SearchResult({
   const displayValue =
     recValue != null ? `$${recValue}` : recLoading ? "$…" : `$${player.baseValue}`;
   const valueSource =
-    recValue != null ? "live_api" : recLoading ? "refreshing" : "base_value";
+    recValue != null
+      ? recStale
+        ? "stale_live"
+        : "live_api"
+      : recLoading
+        ? "refreshing"
+        : "base_value";
   const valueSourceLabel = formatValuationSource(valueSource);
   return (
     <div

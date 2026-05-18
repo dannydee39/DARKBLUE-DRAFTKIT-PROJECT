@@ -38,6 +38,7 @@ export default function PlayerDictionary({
   toggleFavorite,
   valuationCache, // shared valuation cache from App
   valuationLoading,
+  valuationStale = false,
   requestValuation, // (player) => void
   draftStateKey, // changes on every pick/undo to trigger re-fetches
 }) {
@@ -124,7 +125,7 @@ export default function PlayerDictionary({
   function getDisplayedValuation(player) {
     if (!player) return null;
     const cached = valuationCache[player.id];
-    if (cached) return cached;
+    if (cached) return valuationStale ? { ...cached, __stale: true } : cached;
     return valuationLoading ? "loading" : null;
   }
 
@@ -247,6 +248,7 @@ export default function PlayerDictionary({
                     isFavorite={Boolean(favorites?.[p.id])}
                     liveValue={valuationCache[p.id]?.max_bid_recommendation}
                     valueLoading={valuationLoading && !valuationCache[p.id]}
+                    valueStale={valuationStale && Boolean(valuationCache[p.id])}
                     onToggleFavorite={() => toggleFavorite(p.id)}
                     onClick={() => handleSelectPlayer(p)}
                   />
@@ -359,13 +361,20 @@ function DictCard({
   isFavorite,
   liveValue,
   valueLoading,
+  valueStale = false,
   onClick,
   onToggleFavorite,
 }) {
   // Dictionary cards are often scanned quickly, so the chip clarifies whether
   // the displayed dollar amount is a live API max bid or only the base pool value.
   const valueSource =
-    liveValue != null ? "live_api" : valueLoading ? "refreshing" : "base_value";
+    liveValue != null
+      ? valueStale
+        ? "stale_live"
+        : "live_api"
+      : valueLoading
+        ? "refreshing"
+        : "base_value";
   const valueSourceLabel = formatValuationSource(valueSource);
   const displayValue =
     liveValue != null ? `$${liveValue}` : valueLoading ? "$..." : `$${player.baseValue}`;

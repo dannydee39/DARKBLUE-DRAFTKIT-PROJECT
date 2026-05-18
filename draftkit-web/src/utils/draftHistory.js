@@ -31,6 +31,9 @@ function roundMoney(value, fallback = null) {
 // amount gets a source label so "Base Value" is not mistaken for a live API bid.
 export function getValuationSource(player, valuation, loading = false) {
   if (valuation && valuation !== "loading" && !valuation.error) {
+    if (valuation.__stale) {
+      return "stale_live";
+    }
     return "live_api";
   }
   if (valuation === "loading" || loading) {
@@ -49,6 +52,8 @@ export function formatValuationSource(source) {
   switch (source) {
     case "live_api":
       return "Live Value";
+    case "stale_live":
+      return "Updating";
     case "refreshing":
       return "Updating";
     case "api_error":
@@ -130,7 +135,7 @@ export function getPlayerPrePickValue(player, valuation) {
  */
 export function makeValuationSnapshot(player, valuation, options = {}) {
   const source = getValuationSource(player, valuation, options.loading);
-  const hasLiveValuation = source === "live_api";
+  const hasLiveValuation = source === "live_api" || source === "stale_live";
   const breakdown = hasLiveValuation ? valuation.valuation_breakdown || {} : {};
   const trueDollarValue = hasLiveValuation
     ? roundMoney(valuation.true_dollar_value ?? breakdown.true_dollar_value, null)

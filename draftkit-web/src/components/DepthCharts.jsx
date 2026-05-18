@@ -57,13 +57,13 @@ function getValuationForPlayer(valuationCache, player) {
   return player?.id != null ? valuationCache?.[player.id] || null : null;
 }
 
-function getDepthPrice(player, valuationCache, valuationLoading) {
+function getDepthPrice(player, valuationCache, valuationLoading, valuationStale) {
   const valuation = getValuationForPlayer(valuationCache, player);
   if (valuation && !valuation.error && valuation.max_bid_recommendation != null) {
     return {
-      label: "Live Max",
+      label: valuationStale ? "Refreshing" : "Live Max",
       value: valuation.max_bid_recommendation,
-      source: "live",
+      source: valuationStale ? "refreshing" : "live",
     };
   }
   return {
@@ -133,6 +133,7 @@ export default function DepthCharts({
   toggleFavorite,
   valuationCache = {},
   valuationLoading = false,
+  valuationStale = false,
   requestValuation,
 }) {
   const teamOptions = depthCharts?.teamOptions || [];
@@ -313,7 +314,7 @@ export default function DepthCharts({
 
                     <div className="depth-card-list">
                       {position.players.map((player) => {
-                        const price = getDepthPrice(player, valuationCache, valuationLoading);
+                        const price = getDepthPrice(player, valuationCache, valuationLoading, valuationStale);
                         return (
                           <button
                             key={`${player.id}-${position.position}`}

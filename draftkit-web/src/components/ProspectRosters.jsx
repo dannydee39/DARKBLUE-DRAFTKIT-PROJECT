@@ -221,25 +221,7 @@ export default function ProspectRosters({
       </div>
 
       <div className="right-panel prospect-right-panel">
-        <div className="panel-section-label">RUBRIC COVERAGE</div>
-        <div className="prospect-rule-list">
-          <div>
-            <strong>Minor league entry</strong>
-            <span>Owners can assign minor league players directly to protected rosters.</span>
-          </div>
-          <div>
-            <strong>Draft eligibility block</strong>
-            <span>Rostered minor league players are marked unavailable in the main auction pool.</span>
-          </div>
-          <div>
-            <strong>Team movement</strong>
-            <span>Commissioner can transfer minor league players between fantasy teams.</span>
-          </div>
-        </div>
-
-        <div className="panel-section-label" style={{ marginTop: 16 }}>
-          ACTIVE TEAM PROSPECTS
-        </div>
+        <div className="panel-section-label">ACTIVE TEAM MINOR LEAGUE</div>
         {(activeTeam?.minorLeague || []).length === 0 && (
           <div className="taxi-side-empty">No minor league players assigned to this team.</div>
         )}

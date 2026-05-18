@@ -19,6 +19,43 @@ DB.pages.endpoints = function (container) {
   var KEY     = DB.DEMO_KEY;
   var BASE    = DB.API_BASE;
   var DISPLAY = DB.API_DISPLAY;
+  var ACTIVITY8_SAMPLES = [
+    {
+      id: 'before_draft',
+      label: 'Sample 1',
+      title: 'Before Draft Starts',
+      file: 'data/activity8/before_draft.json',
+      note: 'Initial league state from pre-draft rosters and minors.',
+    },
+    {
+      id: '10_picks',
+      label: 'Sample 2',
+      title: 'After 10 Picks',
+      file: 'data/activity8/10_picks.json',
+      note: 'Draft checkpoint after the first 10 auction selections.',
+    },
+    {
+      id: '50_picks',
+      label: 'Sample 3',
+      title: 'After 50 Picks',
+      file: 'data/activity8/50_picks.json',
+      note: 'Mid-draft valuation checkpoint after 50 selections.',
+    },
+    {
+      id: '100_picks',
+      label: 'Sample 4',
+      title: 'After 100 Picks',
+      file: 'data/activity8/100_picks.json',
+      note: 'Late-draft valuation checkpoint after 100 selections.',
+    },
+    {
+      id: '130_picks',
+      label: 'Sample 5',
+      title: 'After 130 Picks',
+      file: 'data/activity8/130_picks.json',
+      note: 'Endgame valuation checkpoint after 130 selections.',
+    },
+  ];
 
   /* ── Sample responses ────────────────────────────────────────────────────── */
 
@@ -378,6 +415,26 @@ DB.pages.endpoints = function (container) {
               '<code>stat_baseline_value * scoring * scarcity * predictive * age * depth_chart * market_inflation * injury_risk</code>.' +
             '</div>' +
 
+            '<div class="activity8-panel">' +
+              '<div class="activity8-head">' +
+                '<span>Common Evaluation Samples</span>' +
+                '<strong>Activity 8 Draft States</strong>' +
+              '</div>' +
+              '<p>' +
+                'Use these buttons to run the shared sample draft states against <code>/v1/valuate</code>. ' +
+                'They cover the required checkpoints: before the draft, after 10 picks, after 50 picks, after 100 picks, and after 130 picks.' +
+              '</p>' +
+              '<div class="activity8-grid">' +
+                ACTIVITY8_SAMPLES.map(function (sample, index) {
+                  return '<button type="button" class="activity8-btn" data-activity8-index="' + index + '">' +
+                    '<span>' + _esc(sample.label) + '</span>' +
+                    '<strong>' + _esc(sample.title) + '</strong>' +
+                    '<small>' + _esc(sample.note) + '</small>' +
+                  '</button>';
+                }).join('') +
+              '</div>' +
+            '</div>' +
+
             _codeBlock('cURL', CURL_VALUATE) +
             _codeBlock('Response \u2014 200 OK', VALUATE_RESPONSE) +
 
@@ -492,60 +549,19 @@ DB.pages.endpoints = function (container) {
   /* Try It: Send */
   var sendBtn = document.getElementById('tryit-send');
   if (sendBtn) {
-    sendBtn.addEventListener('click', async function () {
-      var bodyEl     = document.getElementById('tryit-body');
-      var statusEl   = document.getElementById('tryit-status');
-      var responseEl = document.getElementById('tryit-response');
-
-      var payload;
-      try {
-        payload = JSON.parse(bodyEl.value);
-      } catch (e) {
-        statusEl.className   = 'ep-tryit-status ep-tryit-error';
-        statusEl.textContent = 'Invalid JSON \u2014 ' + e.message;
-        return;
-      }
-
-      sendBtn.textContent = 'Sending\u2026';
-      sendBtn.disabled    = true;
-      statusEl.className  = 'ep-tryit-status';
-      statusEl.textContent = '';
-      responseEl.innerHTML = '';
-
-      var t0 = performance.now();
-      try {
-        var res     = await fetch(BASE + '/v1/valuate', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', 'X-License-Key': KEY },
-          body:    JSON.stringify(payload),
-        });
-        var latency = Math.round(performance.now() - t0);
-        var json    = await res.json();
-
-        statusEl.className = 'ep-tryit-status ' + (res.ok ? 'ep-tryit-ok' : 'ep-tryit-error');
-        statusEl.textContent = (res.ok ? '\u2713 ' : '\u2715 ') +
-          res.status + ' ' + res.statusText + ' \u00b7 ' + latency + 'ms';
-
-        responseEl.innerHTML =
-          '<div class="code-block" style="margin-top:0.75rem;">' +
-            '<div class="code-block-header">' +
-              '<span class="code-block-lang">Response \u00b7 ' + latency + 'ms</span>' +
-            '</div>' +
-            '<pre class="code-pre" style="max-height:360px;overflow:auto;">' +
-              _esc(JSON.stringify(json, null, 2)) +
-            '</pre>' +
-          '</div>';
-
-      } catch (err) {
-        var ms = Math.round(performance.now() - t0);
-        statusEl.className   = 'ep-tryit-status ep-tryit-error';
-        statusEl.textContent = 'Network error (' + ms + 'ms) \u2014 is the API running at ' + BASE + '?';
-      }
-
-      sendBtn.textContent = 'Send Request';
-      sendBtn.disabled    = false;
+    sendBtn.addEventListener('click', function () {
+      runValuateTryIt();
     });
   }
+
+  container.querySelectorAll('[data-activity8-index]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var index = Number(btn.getAttribute('data-activity8-index'));
+      var sample = ACTIVITY8_SAMPLES[index];
+      if (!sample) return;
+      loadActivity8Sample(sample, btn);
+    });
+  });
 
   /* Try It: Reset */
   var resetBtn = document.getElementById('tryit-reset');
@@ -659,6 +675,96 @@ DB.pages.endpoints = function (container) {
       .replace(/[^a-z0-9]+/gi, ' ')
       .trim()
       .toLowerCase();
+  }
+
+  async function loadActivity8Sample(sample, btn) {
+    var bodyEl = document.getElementById('tryit-body');
+    var statusEl = document.getElementById('tryit-status');
+    var responseEl = document.getElementById('tryit-response');
+    if (!bodyEl || !statusEl || !responseEl) return;
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+    statusEl.className = 'ep-tryit-status';
+    statusEl.textContent = 'Loading ' + sample.title + '...';
+    responseEl.innerHTML = '';
+
+    try {
+      var response = await fetch(sample.file, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Could not load ' + sample.file);
+      var payload = await response.json();
+      bodyEl.value = JSON.stringify(payload, null, 2);
+      document.getElementById('ep-tryit')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      await runValuateTryIt(sample.title);
+    } catch (err) {
+      statusEl.className = 'ep-tryit-status ep-tryit-error';
+      statusEl.textContent = 'Could not load ' + sample.title + ': ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  async function runValuateTryIt(sourceLabel) {
+    var bodyEl     = document.getElementById('tryit-body');
+    var statusEl   = document.getElementById('tryit-status');
+    var responseEl = document.getElementById('tryit-response');
+    var sendButton = document.getElementById('tryit-send');
+
+    var payload;
+    try {
+      payload = JSON.parse(bodyEl.value);
+    } catch (e) {
+      statusEl.className   = 'ep-tryit-status ep-tryit-error';
+      statusEl.textContent = 'Invalid JSON \u2014 ' + e.message;
+      return;
+    }
+
+    if (sendButton) {
+      sendButton.textContent = 'Sending\u2026';
+      sendButton.disabled    = true;
+    }
+    statusEl.className  = 'ep-tryit-status';
+    statusEl.textContent = sourceLabel
+      ? 'Running ' + sourceLabel + ' against /v1/valuate...'
+      : '';
+    responseEl.innerHTML = '';
+
+    var t0 = performance.now();
+    try {
+      var res     = await fetch(BASE + '/v1/valuate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-License-Key': KEY },
+        body:    JSON.stringify(payload),
+      });
+      var latency = Math.round(performance.now() - t0);
+      var json    = await res.json();
+
+      statusEl.className = 'ep-tryit-status ' + (res.ok ? 'ep-tryit-ok' : 'ep-tryit-error');
+      statusEl.textContent = (res.ok ? '\u2713 ' : '\u2715 ') +
+        (sourceLabel ? sourceLabel + ' \u00b7 ' : '') +
+        res.status + ' ' + res.statusText + ' \u00b7 ' + latency + 'ms';
+
+      responseEl.innerHTML =
+        '<div class="code-block" style="margin-top:0.75rem;">' +
+          '<div class="code-block-header">' +
+            '<span class="code-block-lang">Response \u00b7 ' + latency + 'ms</span>' +
+          '</div>' +
+          '<pre class="code-pre" style="max-height:360px;overflow:auto;">' +
+            _esc(JSON.stringify(json, null, 2)) +
+          '</pre>' +
+        '</div>';
+
+    } catch (err) {
+      var ms = Math.round(performance.now() - t0);
+      statusEl.className   = 'ep-tryit-status ep-tryit-error';
+      statusEl.textContent = 'Network error (' + ms + 'ms) \u2014 is the API running at ' + BASE + '?';
+    }
+
+    if (sendButton) {
+      sendButton.textContent = 'Send Request';
+      sendButton.disabled    = false;
+    }
   }
 
   /* ── Helpers ─────────────────────────────────────────────────────────────── */

@@ -1,0 +1,918 @@
+{
+    "draft_state": {
+        "total_teams": 9,
+        "budget_per_team": 260,
+        "scoring_categories": [
+            "R",
+            "HR",
+            "RBI",
+            "SB",
+            "AVG",
+            "W",
+            "SV",
+            "ERA",
+            "WHIP",
+            "SO"
+        ],
+        "teams": [
+            {
+                "id": 1,
+                "budget_remaining": 0,
+                "roster": [
+                    [
+                        "Drake Baldwin",
+                        "ATL"
+                    ],
+                    [
+                        "Xavier Edwards",
+                        "MIA"
+                    ],
+                    [
+                        "Alec Burleson",
+                        "STL"
+                    ],
+                    [
+                        "Shota Imanaga",
+                        "CHC"
+                    ],
+                    [
+                        "Cade Horton",
+                        "CHC"
+                    ],
+                    [
+                        "Brandon Pfaadt",
+                        "AZ"
+                    ],
+                    [
+                        "Jacob Misiorowski",
+                        "MIL"
+                    ],
+                    [
+                        "Matt Chapman",
+                        "SF"
+                    ],
+                    [
+                        "Matt Olson",
+                        "ATL"
+                    ],
+                    [
+                        "Devin Williams",
+                        "NYM"
+                    ],
+                    [
+                        "Ian Happ",
+                        "CHC"
+                    ],
+                    [
+                        "Teoscar Hernández",
+                        "LAD"
+                    ],
+                    [
+                        "Joe Musgrove",
+                        "SD"
+                    ],
+                    [
+                        "Carlos Santana",
+                        "AZ"
+                    ],
+                    [
+                        "Otto Lopez",
+                        "MIA"
+                    ],
+                    [
+                        "Brandon Lowe",
+                        "PIT"
+                    ],
+                    [
+                        "Noelvi Marte",
+                        "CIN"
+                    ],
+                    [
+                        "Tanner Scott",
+                        "LAD"
+                    ],
+                    [
+                        "Ben Brown",
+                        "CHC"
+                    ],
+                    [
+                        "Tobias Myers",
+                        "NYM"
+                    ],
+                    [
+                        "Gavin Sheets",
+                        "SD"
+                    ],
+                    [
+                        "Luis Torrens",
+                        "NYM"
+                    ],
+                    [
+                        "Mike Tauchman",
+                        "CHC"
+                    ]
+                ]
+            },
+            {
+                "id": 2,
+                "budget_remaining": 10,
+                "roster": [
+                    [
+                        "Francisco Alvarez",
+                        "NYM"
+                    ],
+                    [
+                        "Spencer Horwitz",
+                        "PIT"
+                    ],
+                    [
+                        "Ronny Mauricio",
+                        "NYM"
+                    ],
+                    [
+                        "CJ Abrams",
+                        "WSH"
+                    ],
+                    [
+                        "Jackson Merrill",
+                        "SD"
+                    ],
+                    [
+                        "Michael Harris II",
+                        "ATL"
+                    ],
+                    [
+                        "Joey Ortiz",
+                        "MIL"
+                    ],
+                    [
+                        "Sandy Alcantara",
+                        "MIA"
+                    ],
+                    [
+                        "Michael King",
+                        "SD"
+                    ],
+                    [
+                        "Spencer Strider",
+                        "ATL"
+                    ],
+                    [
+                        "Yoshinobu Yamamoto",
+                        "LAD"
+                    ],
+                    [
+                        "Alex Bregman",
+                        "CHC"
+                    ],
+                    [
+                        "Mason Miller",
+                        "SD"
+                    ],
+                    [
+                        "Jhoan Duran",
+                        "PHI"
+                    ],
+                    [
+                        "Daniel Palencia",
+                        "CHC"
+                    ],
+                    [
+                        "Luis García",
+                        "NYM"
+                    ],
+                    [
+                        "Patrick Bailey",
+                        "SF"
+                    ],
+                    [
+                        "Tyler Freeman",
+                        "COL"
+                    ],
+                    [
+                        "Quinn Priester",
+                        "MIL"
+                    ],
+                    [
+                        "Lourdes Gurriel Jr.",
+                        "AZ"
+                    ],
+                    [
+                        "Edward Cabrera",
+                        "CHC"
+                    ],
+                    [
+                        "Jake Mangum",
+                        "PIT"
+                    ],
+                    [
+                        "Mark Vientos",
+                        "NYM"
+                    ]
+                ]
+            },
+            {
+                "id": 3,
+                "budget_remaining": 1,
+                "roster": [
+                    [
+                        "Hunter Goodman",
+                        "COL"
+                    ],
+                    [
+                        "Gabriel Moreno",
+                        "AZ"
+                    ],
+                    [
+                        "Brice Turang",
+                        "MIL"
+                    ],
+                    [
+                        "Trea Turner",
+                        "PHI"
+                    ],
+                    [
+                        "Corbin Carroll",
+                        "AZ"
+                    ],
+                    [
+                        "Pete Crow-Armstrong",
+                        "CHC"
+                    ],
+                    [
+                        "Jordan Walker",
+                        "STL"
+                    ],
+                    [
+                        "Matthew Boyd",
+                        "CHC"
+                    ],
+                    [
+                        "Brandon Woodruff",
+                        "MIL"
+                    ],
+                    [
+                        "Blake Snell",
+                        "LAD"
+                    ],
+                    [
+                        "Kyle Stowers",
+                        "BAL"
+                    ],
+                    [
+                        "Tyler Glasnow",
+                        "LAD"
+                    ],
+                    [
+                        "Edwin Díaz",
+                        "LAD"
+                    ],
+                    [
+                        "Eury Pérez",
+                        "MIA"
+                    ],
+                    [
+                        "Bryson Stott",
+                        "PHI"
+                    ],
+                    [
+                        "Jordan Beck",
+                        "COL"
+                    ],
+                    [
+                        "Willi Castro",
+                        "COL"
+                    ],
+                    [
+                        "Kodai Senga",
+                        "NYM"
+                    ],
+                    [
+                        "Marcell Ozuna",
+                        "PIT"
+                    ],
+                    [
+                        "Brady House",
+                        "WSH"
+                    ],
+                    [
+                        "Spencer Schwellenbach",
+                        "ATL"
+                    ],
+                    [
+                        "Bryce Harper",
+                        "PHI"
+                    ],
+                    [
+                        "Corbin Burnes",
+                        "AZ"
+                    ]
+                ]
+            },
+            {
+                "id": 4,
+                "budget_remaining": 0,
+                "roster": [
+                    [
+                        "Max Muncy (LAD)",
+                        "LAD"
+                    ],
+                    [
+                        "Nico Hoerner",
+                        "CHC"
+                    ],
+                    [
+                        "Francisco Lindor",
+                        "NYM"
+                    ],
+                    [
+                        "Brandon Marsh",
+                        "PHI"
+                    ],
+                    [
+                        "James Wood",
+                        "WSH"
+                    ],
+                    [
+                        "Mitch Keller",
+                        "PIT"
+                    ],
+                    [
+                        "Raisel Iglesias",
+                        "ATL"
+                    ],
+                    [
+                        "William Contreras",
+                        "MIL"
+                    ],
+                    [
+                        "Mookie Betts",
+                        "LAD"
+                    ],
+                    [
+                        "Will Smith (LAD)",
+                        "LAD"
+                    ],
+                    [
+                        "Aaron Nola",
+                        "PHI"
+                    ],
+                    [
+                        "TJ Friedl",
+                        "CIN"
+                    ],
+                    [
+                        "Merrill Kelly",
+                        "AZ"
+                    ],
+                    [
+                        "Zack Wheeler",
+                        "PHI"
+                    ],
+                    [
+                        "Luis Arraez",
+                        "SF"
+                    ],
+                    [
+                        "Matt McLain",
+                        "CIN"
+                    ],
+                    [
+                        "Abner Uribe",
+                        "MIL"
+                    ],
+                    [
+                        "Ryne Nelson",
+                        "AZ"
+                    ],
+                    [
+                        "Matt Shaw",
+                        "CHC"
+                    ],
+                    [
+                        "Sean Manaea",
+                        "NYM"
+                    ],
+                    [
+                        "Garrett Mitchell",
+                        "MIL"
+                    ],
+                    [
+                        "Lars Nootbaar",
+                        "STL"
+                    ],
+                    [
+                        "JP Sears",
+                        "ATH"
+                    ]
+                ]
+            },
+            {
+                "id": 5,
+                "budget_remaining": 2,
+                "roster": [
+                    [
+                        "Geraldo Perdomo",
+                        "AZ"
+                    ],
+                    [
+                        "Juan Soto",
+                        "NYM"
+                    ],
+                    [
+                        "Kyle Tucker",
+                        "LAD"
+                    ],
+                    [
+                        "Kyle Schwarber",
+                        "PHI"
+                    ],
+                    [
+                        "Andrew Abbott",
+                        "CIN"
+                    ],
+                    [
+                        "Freddy Peralta",
+                        "NYM"
+                    ],
+                    [
+                        "Paul Skenes",
+                        "PIT"
+                    ],
+                    [
+                        "Nestor Cortes",
+                        "SD"
+                    ],
+                    [
+                        "Daylen Lile",
+                        "WSH"
+                    ],
+                    [
+                        "Xander Bogaerts",
+                        "SD"
+                    ],
+                    [
+                        "Miguel Amaya",
+                        "CHC"
+                    ],
+                    [
+                        "Liam Hicks",
+                        "MIA"
+                    ],
+                    [
+                        "Emilio Pagán",
+                        "CIN"
+                    ],
+                    [
+                        "Ryan Walker",
+                        "SF"
+                    ],
+                    [
+                        "Adolis García",
+                        "PHI"
+                    ],
+                    [
+                        "Andrew Vaughn",
+                        "MIL"
+                    ],
+                    [
+                        "Tommy Edman",
+                        "LAD"
+                    ],
+                    [
+                        "Connor Norby",
+                        "MIA"
+                    ],
+                    [
+                        "Robert Suarez",
+                        "ATL"
+                    ],
+                    [
+                        "Kyle Karros",
+                        "COL"
+                    ],
+                    [
+                        "Matthew Liberatore",
+                        "STL"
+                    ],
+                    [
+                        "Jorge Mateo",
+                        "ATL"
+                    ],
+                    [
+                        "Jeremiah Estrada",
+                        "SD"
+                    ]
+                ]
+            },
+            {
+                "id": 6,
+                "budget_remaining": 16,
+                "roster": [
+                    [
+                        "Nolan Arenado",
+                        "AZ"
+                    ],
+                    [
+                        "Sal Frelick",
+                        "MIL"
+                    ],
+                    [
+                        "Jackson Chourio",
+                        "MIL"
+                    ],
+                    [
+                        "Reynaldo López",
+                        "ATL"
+                    ],
+                    [
+                        "Michael McGreevy",
+                        "STL"
+                    ],
+                    [
+                        "Chris Sale",
+                        "ATL"
+                    ],
+                    [
+                        "Jameson Taillon",
+                        "CHC"
+                    ],
+                    [
+                        "Brady Singer",
+                        "CIN"
+                    ],
+                    [
+                        "Eugenio Suárez",
+                        "CIN"
+                    ],
+                    [
+                        "Mickey Moniak",
+                        "COL"
+                    ],
+                    [
+                        "Spencer Steer",
+                        "CIN"
+                    ],
+                    [
+                        "J.T. Realmuto",
+                        "PHI"
+                    ],
+                    [
+                        "Miguel Rojas",
+                        "LAD"
+                    ],
+                    [
+                        "Marcus Semien",
+                        "NYM"
+                    ],
+                    [
+                        "Ketel Marte",
+                        "AZ"
+                    ],
+                    [
+                        "Dylan Crews",
+                        "WSH"
+                    ],
+                    [
+                        "Ryan O'Hearn",
+                        "PIT"
+                    ],
+                    [
+                        "Tyler Stephenson",
+                        "CIN"
+                    ],
+                    [
+                        "Matt Svanson",
+                        "STL"
+                    ],
+                    [
+                        "Pete Fairbanks",
+                        "MIA"
+                    ],
+                    [
+                        "Dennis Santana",
+                        "PIT"
+                    ],
+                    [
+                        "Ramón Laureano",
+                        "SD"
+                    ],
+                    [
+                        "Kevin Ginkel",
+                        "AZ"
+                    ]
+                ]
+            },
+            {
+                "id": 7,
+                "budget_remaining": 0,
+                "roster": [
+                    [
+                        "Michael Busch",
+                        "CHC"
+                    ],
+                    [
+                        "Austin Riley",
+                        "ATL"
+                    ],
+                    [
+                        "Pavin Smith",
+                        "AZ"
+                    ],
+                    [
+                        "Masyn Winn",
+                        "STL"
+                    ],
+                    [
+                        "Ronald Acuña Jr.",
+                        "ATL"
+                    ],
+                    [
+                        "Mike Yastrzemski",
+                        "ATL"
+                    ],
+                    [
+                        "Nick Lodolo",
+                        "CIN"
+                    ],
+                    [
+                        "Jesús Luzardo",
+                        "PHI"
+                    ],
+                    [
+                        "Ozzie Albies",
+                        "ATL"
+                    ],
+                    [
+                        "Zac Gallen",
+                        "AZ"
+                    ],
+                    [
+                        "Rafael Devers",
+                        "SF"
+                    ],
+                    [
+                        "Trevor Megill",
+                        "MIL"
+                    ],
+                    [
+                        "Jorge Polanco",
+                        "NYM"
+                    ],
+                    [
+                        "Oneil Cruz",
+                        "PIT"
+                    ],
+                    [
+                        "Andy Pages",
+                        "LAD"
+                    ],
+                    [
+                        "Eduardo Rodriguez",
+                        "AZ"
+                    ],
+                    [
+                        "Dustin May",
+                        "STL"
+                    ],
+                    [
+                        "Joey Bart",
+                        "PIT"
+                    ],
+                    [
+                        "Henry Davis",
+                        "PIT"
+                    ],
+                    [
+                        "Nick Castellanos",
+                        "SD"
+                    ],
+                    [
+                        "Riley O'Brien",
+                        "STL"
+                    ],
+                    [
+                        "Clay Holmes",
+                        "NYM"
+                    ],
+                    [
+                        "Clayton Beeter",
+                        "WSH"
+                    ]
+                ]
+            },
+            {
+                "id": 8,
+                "budget_remaining": 0,
+                "roster": [
+                    [
+                        "Carson Kelly",
+                        "CHC"
+                    ],
+                    [
+                        "Freddie Freeman",
+                        "LAD"
+                    ],
+                    [
+                        "Elly De La Cruz",
+                        "CIN"
+                    ],
+                    [
+                        "Dansby Swanson",
+                        "CHC"
+                    ],
+                    [
+                        "Jung Hoo Lee",
+                        "SF"
+                    ],
+                    [
+                        "Cade Cavalli",
+                        "WSH"
+                    ],
+                    [
+                        "Logan Webb",
+                        "SF"
+                    ],
+                    [
+                        "Fernando Tatis Jr.",
+                        "SD"
+                    ],
+                    [
+                        "Bo Bichette",
+                        "NYM"
+                    ],
+                    [
+                        "Emmet Sheehan",
+                        "LAD"
+                    ],
+                    [
+                        "Christian Yelich",
+                        "MIL"
+                    ],
+                    [
+                        "Hunter Greene",
+                        "CIN"
+                    ],
+                    [
+                        "Bryan Reynolds",
+                        "PIT"
+                    ],
+                    [
+                        "Heliot Ramos",
+                        "SF"
+                    ],
+                    [
+                        "Brett Baty",
+                        "NYM"
+                    ],
+                    [
+                        "Joey Wentz",
+                        "ATL"
+                    ],
+                    [
+                        "Nolan Gorman",
+                        "STL"
+                    ],
+                    [
+                        "David Peterson",
+                        "NYM"
+                    ],
+                    [
+                        "Keibert Ruiz",
+                        "WSH"
+                    ],
+                    [
+                        "Harrison Bader",
+                        "SF"
+                    ],
+                    [
+                        "Chad Patrick",
+                        "MIL"
+                    ],
+                    [
+                        "Alex Vesia",
+                        "LAD"
+                    ],
+                    [
+                        "Luke Weaver",
+                        "NYM"
+                    ]
+                ]
+            },
+            {
+                "id": 9,
+                "budget_remaining": 1,
+                "roster": [
+                    [
+                        "Agustín Ramírez",
+                        "MIA"
+                    ],
+                    [
+                        "Manny Machado",
+                        "SD"
+                    ],
+                    [
+                        "Willy Adames",
+                        "SF"
+                    ],
+                    [
+                        "Victor Scott II",
+                        "STL"
+                    ],
+                    [
+                        "Seiya Suzuki",
+                        "CHC"
+                    ],
+                    [
+                        "Grant Holmes",
+                        "ATL"
+                    ],
+                    [
+                        "Cristopher Sánchez",
+                        "PHI"
+                    ],
+                    [
+                        "Nick Pivetta",
+                        "SD"
+                    ],
+                    [
+                        "Robbie Ray",
+                        "SF"
+                    ],
+                    [
+                        "Shohei Ohtani",
+                        "LAD"
+                    ],
+                    [
+                        "Ezequiel Tovar",
+                        "COL"
+                    ],
+                    [
+                        "Luis Robert Jr.",
+                        "NYM"
+                    ],
+                    [
+                        "Brenton Doyle",
+                        "COL"
+                    ],
+                    [
+                        "Alec Bohm",
+                        "PHI"
+                    ],
+                    [
+                        "Jakob Marsee",
+                        "MIA"
+                    ],
+                    [
+                        "Freddy Fermin",
+                        "SD"
+                    ],
+                    [
+                        "Tyler Mahle",
+                        "SF"
+                    ],
+                    [
+                        "Jake Cronenworth",
+                        "SD"
+                    ],
+                    [
+                        "TJ Rumfield",
+                        "COL"
+                    ],
+                    [
+                        "Max Meyer",
+                        "MIA"
+                    ],
+                    [
+                        "Braxton Ashcraft",
+                        "PIT"
+                    ],
+                    [
+                        "Jake McCarthy",
+                        "COL"
+                    ],
+                    [
+                        "Jaxon Wiggins",
+                        "CHC"
+                    ]
+                ]
+            }
+        ],
+        "roster_config": {
+            "C": 2,
+            "1B": 1,
+            "2B": 1,
+            "CI": 1,
+            "3B": 1,
+            "SS": 1,
+            "MI": 1,
+            "OF": 5,
+            "SP": 0,
+            "RP": 0,
+            "P": 9,
+            "UTIL": 1,
+            "BN": 0,
+            "TAXI": 0
+        }
+    }
+}

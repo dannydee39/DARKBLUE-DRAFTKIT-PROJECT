@@ -7,10 +7,9 @@
 
 import { POSITION_COLORS } from "../constants.js";
 
-const DEFAULT_SLOT_SEQUENCE = [
-  "C", "C", "1B", "3B", "CI", "2B", "SS", "MI",
-  "OF", "OF", "OF", "OF", "OF", "UTIL",
-  "P", "P", "P", "P", "P", "P", "P", "P", "P",
+const ROSTER_SLOT_GROUP_ORDER = [
+  "C", "1B", "3B", "CI", "2B", "SS", "MI",
+  "OF", "UTIL", "SP", "RP", "P", "BN",
 ];
 
 const ROSTER_FALLBACK_ORDER = [
@@ -63,6 +62,26 @@ function normalizePositionCode(value) {
 function positionSortIndex(position) {
   const index = PLAYER_POSITION_ORDER.indexOf(normalizePositionCode(position));
   return index === -1 ? PLAYER_POSITION_ORDER.length : index;
+}
+
+function countSlotOccurrence(slots, targetIndex) {
+  const targetSlot = slots[targetIndex];
+  if (!targetSlot) return null;
+  let occurrence = 0;
+  for (let index = 0; index <= targetIndex; index += 1) {
+    if (slots[index] === targetSlot) occurrence += 1;
+  }
+  return { slot: targetSlot, occurrence };
+}
+
+function findSlotOccurrenceIndex(slots, slot, occurrence) {
+  let seen = 0;
+  for (let index = 0; index < slots.length; index += 1) {
+    if (slots[index] !== slot) continue;
+    seen += 1;
+    if (seen === occurrence) return index;
+  }
+  return null;
 }
 
 export function sortPlayerPositions(positions = []) {
@@ -210,18 +229,25 @@ export function slotAcceptsPlayer(player, slotPos) {
 export function buildRosterPositions(roster) {
   const remaining = Object.fromEntries(
     Object.entries(roster || {})
-      .filter(([slot]) => slot !== "TAXI")
+      .filter(([slot]) => normalizePositionCode(slot) !== "TAXI")
       .map(([slot, count]) => [
-        slot,
+        normalizePositionCode(slot),
         Math.max(0, Number(count) || 0),
       ]),
   );
   const slots = [];
 
-  DEFAULT_SLOT_SEQUENCE.forEach((slot) => {
-    if ((remaining[slot] || 0) <= 0) return;
-    slots.push(slot);
-    remaining[slot] -= 1;
+  /*
+   * Emit every configured count at the slot's normal board location. The old
+   * two-pass template emitted only the default number first, then pushed extra
+   * counts to the far right of the board. Grouping here keeps an added 2B beside
+   * the existing 2B columns, an added OF beside the OF group, and so on.
+   */
+  ROSTER_SLOT_GROUP_ORDER.forEach((slot) => {
+    while ((remaining[slot] || 0) > 0) {
+      slots.push(slot);
+      remaining[slot] -= 1;
+    }
   });
 
   ROSTER_FALLBACK_ORDER.forEach((slot) => {
@@ -238,6 +264,20 @@ export function buildRosterPositions(roster) {
   });
 
   return slots;
+}
+
+export function remapRosterSlotIndex(slotIndex, previousRoster, nextRoster) {
+  const previousSlots = buildRosterPositions(previousRoster);
+  const nextSlots = buildRosterPositions(nextRoster);
+  const previousSlot = countSlotOccurrence(previousSlots, Number(slotIndex));
+  if (!previousSlot) return slotIndex;
+
+  const nextIndex = findSlotOccurrenceIndex(
+    nextSlots,
+    previousSlot.slot,
+    previousSlot.occurrence,
+  );
+  return nextIndex == null ? slotIndex : nextIndex;
 }
 
 // ── buildDraftState ───────────────────────────────────────────────────────────

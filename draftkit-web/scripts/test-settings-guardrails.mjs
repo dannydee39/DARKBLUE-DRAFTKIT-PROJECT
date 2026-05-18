@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import {
+  buildRosterPositions,
+  remapRosterSlotIndex,
+} from "../src/utils/helpers.js";
+import {
   buildRosterImpact,
   getPositionHelp,
   getScoringHelp,
@@ -51,5 +55,35 @@ const scoring = summarizeScoring({
 assert.equal(scoring.totalCount, 10, "expected 10 active scoring categories");
 assert.equal(scoring.hittingCount, 5, "expected 5 hitting categories");
 assert.equal(scoring.pitchingCount, 5, "expected 5 pitching categories");
+
+const expandedRoster = {
+  ...defaultRoster,
+  "2B": 2,
+  OF: 6,
+};
+const expandedSlots = buildRosterPositions(expandedRoster);
+assert.deepEqual(
+  expandedSlots.slice(expandedSlots.indexOf("2B"), expandedSlots.indexOf("2B") + 2),
+  ["2B", "2B"],
+  "extra 2B slot should join the existing 2B board group",
+);
+assert.deepEqual(
+  expandedSlots.slice(expandedSlots.indexOf("OF"), expandedSlots.indexOf("OF") + 6),
+  ["OF", "OF", "OF", "OF", "OF", "OF"],
+  "extra OF slot should join the existing OF board group",
+);
+
+const originalSlots = buildRosterPositions(defaultRoster);
+const oldThreeBaseIndex = originalSlots.indexOf("3B");
+const newThreeBaseIndex = remapRosterSlotIndex(
+  oldThreeBaseIndex,
+  defaultRoster,
+  expandedRoster,
+);
+assert.equal(
+  expandedSlots[newThreeBaseIndex],
+  "3B",
+  "mid-draft roster expansion should preserve existing players under their original slot label",
+);
 
 console.log("Settings guardrail tests passed.");

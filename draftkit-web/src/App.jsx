@@ -50,6 +50,7 @@ import {
   buildRosterPositions,
   calcMaxBid,
   mergePlayerPositions,
+  remapRosterSlotIndex,
   slotAcceptsPlayer,
 } from "./utils/helpers.js";
 import {
@@ -1099,33 +1100,46 @@ export default function App() {
 
     pushUndoSnapshot();
 
-    setLeague((prev) => ({
-      ...prev,
-      name: normalized.name,
-      season: normalized.season,
-      scoring: normalized.scoring,
-      keeperLeague: normalized.keeperLeague,
-      commissionerUnlocked: normalized.commissionerUnlocked,
-      budget: normalized.commissionerUnlocked ? normalized.budget : prev.budget,
-      roster: normalized.commissionerUnlocked ? normalized.roster : prev.roster,
-      teams: prev.teams.map((team, index) => {
-        const normalizedTeam = normalized.teams?.[index];
-        const renamedTeam = {
-          ...team,
-          name: normalizedTeam?.name || normalized.teamNames?.[index] || team.name,
-        };
+    setLeague((prev) => {
+      const nextRoster = normalized.commissionerUnlocked
+        ? normalized.roster
+        : prev.roster;
+      return {
+        ...prev,
+        name: normalized.name,
+        season: normalized.season,
+        scoring: normalized.scoring,
+        keeperLeague: normalized.keeperLeague,
+        commissionerUnlocked: normalized.commissionerUnlocked,
+        budget: normalized.commissionerUnlocked ? normalized.budget : prev.budget,
+        roster: nextRoster,
+        teams: prev.teams.map((team, index) => {
+          const normalizedTeam = normalized.teams?.[index];
+          const renamedTeam = {
+            ...team,
+            name: normalizedTeam?.name || normalized.teamNames?.[index] || team.name,
+          };
 
-        if (!normalized.commissionerUnlocked) {
-          return renamedTeam;
-        }
+          if (!normalized.commissionerUnlocked) {
+            return renamedTeam;
+          }
 
-            const spent = prev.budget - team.budget_remaining;
-            return {
-          ...renamedTeam,
-              budget_remaining: Math.max(0, normalized.budget - spent),
-            };
-      }),
-    }));
+          const spent = prev.budget - team.budget_remaining;
+          return {
+            ...renamedTeam,
+            budget_remaining: Math.max(0, normalized.budget - spent),
+            roster: (renamedTeam.roster || []).map((entry) => ({
+              ...entry,
+              slotIndex: remapRosterSlotIndex(
+                entry.slotIndex,
+                prev.roster,
+                nextRoster,
+              ),
+            })),
+          };
+        }),
+      };
+    });
 
     const ignoredChanges = [];
     if (normalized.owners !== league.owners) ignoredChanges.push("owner count");

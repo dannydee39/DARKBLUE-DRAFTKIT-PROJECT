@@ -18,6 +18,11 @@ const ROSTER_FALLBACK_ORDER = [
   "OF", "UTIL", "SP", "RP", "P", "BN", "TAXI",
 ];
 
+const PLAYER_POSITION_ORDER = [
+  "C", "1B", "2B", "3B", "SS", "MI", "CI", "OF", "UTIL",
+  "SP", "RP", "P", "BN", "TAXI",
+];
+
 function normalizePlayerKey(value) {
   return String(value || "")
     .normalize("NFD")
@@ -49,6 +54,34 @@ function asFiniteNumber(value, fallback = null) {
 
 function primaryPosition(player = {}) {
   return Array.isArray(player.pos) && player.pos.length > 0 ? player.pos[0] : null;
+}
+
+function normalizePositionCode(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+function positionSortIndex(position) {
+  const index = PLAYER_POSITION_ORDER.indexOf(normalizePositionCode(position));
+  return index === -1 ? PLAYER_POSITION_ORDER.length : index;
+}
+
+export function sortPlayerPositions(positions = []) {
+  const uniquePositions = Array.from(
+    new Set(
+      (Array.isArray(positions) ? positions : [positions])
+        .map(normalizePositionCode)
+        .filter(Boolean),
+    ),
+  );
+
+  return uniquePositions.sort((left, right) => {
+    const rankDelta = positionSortIndex(left) - positionSortIndex(right);
+    return rankDelta !== 0 ? rankDelta : left.localeCompare(right);
+  });
+}
+
+export function mergePlayerPositions(...positionGroups) {
+  return sortPlayerPositions(positionGroups.flat());
 }
 
 function normalizeDepthContext(row, team, position) {

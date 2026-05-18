@@ -34,6 +34,7 @@ import {
   posColor,
   calcMaxBid,
   getValueClass,
+  mergePlayerPositions,
   slotAcceptsPlayer,
 } from "../utils/helpers.js";
 import {
@@ -206,16 +207,14 @@ export default function DraftBoard({
   const extendedSalePlayer = saleModal
     ? {
         ...saleModal,
-        pos: [
-          ...new Set([
-            ...(Array.isArray(saleModal.pos) ? saleModal.pos : []),
-            ...customPosInput
-              .toUpperCase()
-              .split(/[,\s]+/)
-              .map((p) => p.trim())
-              .filter(Boolean),
-          ]),
-        ],
+        pos: mergePlayerPositions(
+          Array.isArray(saleModal.pos) ? saleModal.pos : [],
+          customPosInput
+            .toUpperCase()
+            .split(/[,\s]+/)
+            .map((p) => p.trim())
+            .filter(Boolean),
+        ),
       }
     : null;
 
@@ -2169,12 +2168,10 @@ export default function DraftBoard({
                         // Recalculate valid slots with the new override
                         const overriddenPlayer = {
                           ...saleModal,
-                          pos: [
-                            ...new Set([
-                              ...(Array.isArray(saleModal.pos) ? saleModal.pos : []),
-                              selectedPos,
-                            ]),
-                          ],
+                          pos: mergePlayerPositions(
+                            Array.isArray(saleModal.pos) ? saleModal.pos : [],
+                            selectedPos,
+                          ),
                         };
                         const nextSlots = getValidSlotsForPlayer(overriddenPlayer, saleTeam);
                         if (nextSlots[0]) {

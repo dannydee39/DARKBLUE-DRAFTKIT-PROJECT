@@ -49,6 +49,7 @@ import {
   buildDraftState,
   buildRosterPositions,
   calcMaxBid,
+  mergePlayerPositions,
   slotAcceptsPlayer,
 } from "./utils/helpers.js";
 import {
@@ -1904,14 +1905,7 @@ export default function App() {
     const effectivePlayer = currentPlayer
       ? {
           ...currentPlayer,
-          pos: Array.from(
-            new Set([
-              ...(currentPlayer.pos || []),
-              ...(player?.pos || []).map((pos) =>
-                String(pos).trim().toUpperCase(),
-              ),
-            ]),
-          ),
+          pos: mergePlayerPositions(currentPlayer.pos || [], player?.pos || []),
         }
       : null;
     const numericPrice = Number(price);

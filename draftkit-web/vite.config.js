@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  preview: {
+    allowedHosts: ["draft.anythingavenue.com"],
+  },
   build: {
     outDir: "dist",
   },

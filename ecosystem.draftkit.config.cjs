@@ -19,7 +19,7 @@ module.exports = {
       max_restarts: 10,
       env: {
         NODE_ENV: "production",
-        PORT: "3005",
+        PORT: "3002",
         TRUST_PROXY_HOPS: "1",
         ALLOWED_ORIGINS: "https://draft.anythingavenue.com",
         PASSWORD_RESET_BASE_URL: "https://draft.anythingavenue.com",
